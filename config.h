@@ -1,10 +1,10 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const unsigned int borderpx  = 1;        /* border pixel of windows */
+static const unsigned int borderpx  = 0;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
-static const int topbar             = 1;        /* 0 means bottom bar */
+static const int topbar             = 0;        /* 0 means bottom bar */
 static const char *fonts[]          = { "monospace:size=10" };
 static const char dmenufont[]       = "monospace:size=10";
 static const char col_gray1[]       = "#222222";
@@ -91,13 +91,13 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_b,      togglebar,      {0} },
 //	{ MODKEY,                       XK_Tab,    view,           {0} },
-	{ MODKEY,                       XK_q,	   view,           {0} },
-    { ControlMask|Mod1Mask,         XK_q,	   killclient,     {0} },
+        { MODKEY,                       XK_q,	   view,           {0} },
+        { ControlMask|Mod1Mask,         XK_q,	   killclient,     {0} },
 
-    { MODKEY|ShiftMask,             XK_q,      exitclient,     {0} }, //kilcient kills current x11 session
-    { MODKEY,                       XK_z,      setlayout,      {.v = &layouts[0]} },//TILED
-    { MODKEY,                       XK_x,      setlayout,      {.v = &layouts[1]} },//MONOCLE //Tiled but makes main window big (focused)
-    { MODKEY,                       XK_c,      setlayout,      {.v = &layouts[2]} },//FLOATING
+        { MODKEY|ShiftMask,             XK_q,      exitclient,     {0} }, //kilcient kills current x11 session
+        { MODKEY,                       XK_z,      setlayout,      {.v = &layouts[0]} },//TILED
+        { MODKEY,                       XK_x,      setlayout,      {.v = &layouts[1]} },//MONOCLE //Tiled but makes main window big (focused)
+        { MODKEY,                       XK_c,      setlayout,      {.v = &layouts[2]} },//FLOATING
     //ALT TAB
 	{ Mod1Mask,             		XK_Tab,    altTabStart,	   {0} },
 

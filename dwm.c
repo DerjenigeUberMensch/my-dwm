@@ -61,7 +61,8 @@
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 
 /* enums */
-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
+enum { CurResizeBR, CurResizeBL, CurResizeTR, CurResizeTL, CurNormal, CurMove, CurLast }; /* cursor */
+//enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
 enum { SchemeNorm, SchemeSel }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -1051,8 +1052,7 @@ exitclient(const Arg *arg)
         XGrabServer(dpy);
         XSetErrorHandler(xerrordummy);
         XSetCloseDownMode(dpy, DestroyAll);
-
-
+		XKillClient(dpy, selmon->sel->win);
         XSync(dpy, False);
         XSetErrorHandler(xerror);
         XUngrabServer(dpy);
@@ -1331,10 +1331,16 @@ resizeclient(Client *c, int x, int y, int w, int h)
 void
 resizemouse(const Arg *arg)
 {
-	int ocx, ocy, nw, nh;
+        //RESIZABLE WINDOWS PATCH APPLIED
+	//int ocx, ocy, nw, nh;
+        int opx, opy, ocx, ocy, och, ocw, nx, ny, nw, nh;
 	Client *c;
 	Monitor *m;
 	XEvent ev;
+        int horizcorner, vertcorner;
+        int di;
+        unsigned int dui;
+        Window dummy;
 	Time lasttime = 0;
 
 	if (!(c = selmon->sel))
@@ -1344,10 +1350,21 @@ resizemouse(const Arg *arg)
 	restack(selmon);
 	ocx = c->x;
 	ocy = c->y;
+        ocw = c->w;
+        och = c->h;
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-		None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+		//None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+                None, cursor[horizcorner | (vertcorner << 1)]->cursor, CurrentTime) != GrabSuccess)
 		return;
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+
+        //XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+        if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
+                return;
+        horizcorner = nx < c->w / 2;
+        vertcorner  = ny < c->h / 2;
+        XWarpPointer (dpy, None, c->win, 0, 0, 0, 0,
+                      horizcorner ? (-c->bw) : (c->w + c->bw -1),
+                      vertcorner  ? (-c->bw) : (c->h + c->bw -1));
 	do {
 		XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
 		switch(ev.type) {
@@ -1361,8 +1378,13 @@ resizemouse(const Arg *arg)
 				continue;
 			lasttime = ev.xmotion.time;
 
-			nw = MAX(ev.xmotion.x - ocx - 2 * c->bw + 1, 1);
-			nh = MAX(ev.xmotion.y - ocy - 2 * c->bw + 1, 1);
+                        //nw = MAX(ev.xmotion.x - ocx - 2 * c->bw + 1, 1);
+			//nh = MAX(ev.xmotion.y - ocy - 2 * c->bw + 1, 1);
+                        nx = horizcorner ? (ocx + ev.xmotion.x - opx) : c->x;
+                        ny = vertcorner ? (ocy + ev.xmotion.y - opy) : c->y;
+                        nw = MAX(horizcorner ? (ocx + ocw - nx) : (ocw + (ev.xmotion.x - opx)), 1);
+                        nh = MAX(vertcorner ? (ocy + och - ny) : (och + (ev.xmotion.y - opy)), 1);
+
 			if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
 			&& c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
 			{
@@ -1371,11 +1393,16 @@ resizemouse(const Arg *arg)
 					togglefloating(NULL);
 			}
 			if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-				resize(c, c->x, c->y, nw, nh, 1);
+                                //resize(c, c->x, c->y, nw, nh, 1);
+                                //resize(c, nx, ny, nw, nh, 1);
+                                resizeclient(c, nx, ny, nw, nh);
 			break;
 		}
 	} while (ev.type != ButtonRelease);
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+	//XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
+        //XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
+//                     horizcorner ? (-c->bw) : (c->w + c->bw - 1),
+//                     vertcorner ? (-c->bw) : (c->h + c->bw - 1));
 	XUngrabPointer(dpy, CurrentTime);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 	if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -1605,7 +1632,12 @@ setup(void)
 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
 	/* init cursors */
 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
-	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+	//cursor[CurResize] = drw_cur_create(drw, XC_sizing);
+        cursor[CurResizeBR] = drw_cur_create(drw, XC_bottom_right_corner);
+        cursor[CurResizeBL] = drw_cur_create(drw, XC_bottom_left_corner);
+        cursor[CurResizeTR] = drw_cur_create(drw, XC_top_right_corner);
+        cursor[CurResizeTL] = drw_cur_create(drw, XC_top_left_corner);
+        cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 	cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 	/* init appearance */
 	scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
