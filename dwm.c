@@ -1835,7 +1835,46 @@ spawn(const Arg *arg)
     }
 }
 
+int
+dockablewindow()
+{
+    int wx; /* Window  X */
+    int wy; /* Window  Y */
+    int mx; /* Monitor X */
+    int my; /* Monitor Y */
 
+    int ww; /* Window Width   */
+    int wh; /* Window Height  */
+    int mw; /* Monitor Width  */
+    int mh; /* Monitor Height */
+
+    wx = selmon->sel->x;
+    wy = selmon->sel->y;
+    mx = selmon->sel->mon->wx;
+    my = selmon->sel->mon->wy;
+
+    ww = selmon->sel->w;
+    wh = selmon->sel->h;
+    mw = selmon->sel->mon->ww;
+    mh = selmon->sel->mon->wh;
+
+    /* Check if dockable -> same height width, location, as monitor */
+    if(wh != mh)
+        return 0;
+    if(ww != mw)
+        return 0;
+    if(wx != mx)
+        return 0;
+    if(wy != my)
+        return 0;
+
+    return 1;
+}
+void 
+dockwindow()
+{
+    selmon->sel->isfloating = 0;
+}
 void
 altTab()
 {
@@ -1845,16 +1884,11 @@ altTab()
         if (selmon->altTabN >= selmon->nTabs)
             selmon->altTabN = 0; /* reset altTabN */
 
+        if(dockablewindow())
+            dockwindow();
         focus(selmon->altsnext[selmon->altTabN]);
         restack(selmon);
     }
-    //Raises window without regard if its floating or not
-    //Without this alttab only raises like-wise windows ie: only raise floating or only raise stacked
-    XRaiseWindow(dpy, selmon->altsnext[selmon->altTabN]->win); 
-
-    //Docks window works after second attempt fix later.
-   if (selmon->sel->x == selmon->sel->mon->wx && selmon->sel->y == selmon->sel->mon->wy && selmon->sel->w == selmon->sel->mon->ww && selmon->sel->h == selmon->sel->mon->wh && selmon->sel->isfloating && selmon->sel)
-        selmon->sel->isfloating = 0;
 
     /* redraw tab */
     XRaiseWindow(dpy, selmon->tabwin);

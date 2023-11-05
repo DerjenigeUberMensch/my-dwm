@@ -1,7 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static char WM_NAME[]               = "Mutter"; //wm name displayed when using X (type neofetch to see this)
+static char WM_NAME[]               = "dwm.exe";//wm name displayed when using X (type neofetch to see this)
 static const unsigned int borderpx  = 0;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
@@ -19,15 +19,9 @@ static char col_yellow[]      = "#ffff00";
 */
 static char *colors[][3]      = {
 /*					fg         bg          border   */
-//              fg=textColour 
+/*                  fg=textColour                   */
 	[SchemeNorm]    = { col_white, col_black,  col_white},
 	[SchemeSel]     = { col_white, col_black,   col_white},
-    /*
-	[SchemeWarn]    = { col_yellow, NULL, NULL},
-	[SchemeUrgent]  = { col_red, NULL, col_red },
-    [SchemeHack]    = {col_green, NULL, NULL},
-    [SchemeShade]   = {col_term_blue, NULL, NULL},
-    */
 };
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -42,10 +36,10 @@ static const Rule rules[] = {
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
-static const int nmaster     = 1;    /* number of clients in master area */
+static const float mfact     = 0.55; /* factor of master area size [0.05..0.95]      */
+static const int nmaster     = 1;    /* number of clients in master area             */
 static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
-static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window */
+static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window  */
 
 static const Layout layouts[] = {
     /* symbol     arrange function */
@@ -83,9 +77,9 @@ static const unsigned int maxHTab 			= 200;	/* tab menu height */
 static const char *up_vol[]   = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+1%",   NULL };
 static const char *down_vol[] = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-1%",   NULL };
 static const char *mute_vol[] = { "pactl", "set-sink-mute",   "@DEFAULT_SINK@", "toggle", NULL };
-static const char *pause_vol[]= {"playerctl", "play-pause"};
-static const char *next_vol[] = {"playerctl", "next"};
-static const char *prev_vol[] = {"playerctl", "previous"};
+static const char *pause_vol[]= { "playerctl", "play-pause"};
+static const char *next_vol[] = { "playerctl", "next"};
+static const char *prev_vol[] = { "playerctl", "previous"};
 //brightness 
 static const char *brighter[] = { "brightnessctl", "set", "1%+", NULL };
 static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
@@ -94,7 +88,7 @@ static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */ 
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, "-b", "-f", NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
-static const char *termcmd[]        = { "st", NULL }; //replace anything in "" with what ever terminal you want
+static const char *termcmd[]        = { "st", NULL }; 
 static const char *screenshotcmd[]  = {"scrot", "~/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.jpg", NULL};
 
 static const Key keys[] = {
@@ -118,12 +112,12 @@ static const Key keys[] = {
     { 0, XF86XK_AudioRaiseVolume,   spawn, {.v = up_vol } },
     { 0, XF86XK_MonBrightnessDown,  spawn, {.v = dimmer } },
     { 0, XF86XK_MonBrightnessUp,    spawn, {.v = brighter } },
-    { 0, XF86XK_AudioPlay,   spawn, {.v = pause_vol } },
-    { 0, XF86XK_AudioPause,  spawn, {.v = pause_vol } },
-    { 0, XF86XK_AudioNext,   spawn, {.v = next_vol } },
-    { 0, XF86XK_AudioPrev,   spawn, {.v = prev_vol } },
+    { 0, XF86XK_AudioPlay,          spawn, {.v = pause_vol } },
+    { 0, XF86XK_AudioPause,         spawn, {.v = pause_vol } },
+    { 0, XF86XK_AudioNext,          spawn, {.v = next_vol } },
+    { 0, XF86XK_AudioPrev,          spawn, {.v = prev_vol } },
     //Screenshot
-    { 0, XK_Print,           spawn, {.v = screenshotcmd } },
+    { 0, XK_Print,                  spawn, {.v = screenshotcmd } },
     //Fulscreen function
     { 0,             XK_F11,      togglefullscr,  {0} },
     TAGKEYS(                        XK_1,                      0)

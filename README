@@ -1,52 +1,51 @@
 Fork of dwm 
-============================
+~-~-~-~-~-~-~-~-~-~-~-
 Implements basic features for the average day user (me) and IS a bit bloated compared to default dwm
 Keybinds are personal preferance
- .____________.
- |Requirements|
- .-~-~-~-~-~-~.
+ .______________.
+ | Requirements |
+ .-~-~-~-~-~-~-~.
     Optional (requires some modifications):
         pactl (can be changed)
         brightnessctl (can be changed)
         scrot (can be changed)
-   .______________.
-   |'Xlib Installed'|
-   .~-~-~-~-~-~-~-.
- .____________.
- |Installation|
- .-~-~-~-~-~-~.
+   .________________.
+   | Xlib Installed |
+   .~-~-~-~-~-~-~-~-.
+ .______________.
+ | Installation |
+ .-~-~-~-~-~-~-~.
     Optional:
         Edit config.mk to match your local setup (dwm is installed into
         the /usr/local namespace by default).
         Edit your ~/.bashrc to alias make clean install ex: alias ccmk="sudo make clean install"
 
     Afterwards enter the following command to build and install dwm:
-       ._______________________.
-       |'sudo make clean install'|
-       .~-~-~-~-~-~-~-~-~-~-~-~.
+       ._________________________.
+       | sudo make clean install |
+       .~-~-~-~-~-~-~-~-~-~-~-~-~.
 
-.____________.
-Running dwm
------------
-Optional:
-    exec picom &
+ ._____________.
+ | Running dwm |
+ .~-~-~-~-~-~-~.
+    Optional:
+        exec picom &
 
-Add the following line at the end your ~/.xinitrc to start the wm using startx:
-    .__________.
-    |'exec dwm'|
-    .~-~-~-~-~-.
+    Add the following line at the end your ~/.xinitrc to start the wm using startx:
+        .__________.
+        | exec dwm |
+        .~-~-~-~-~-.
 
-In order to connect you WM to a specific display, make sure that
-the DISPLAY environment variable is set correctly, e.g.:
+    In order to connect you WM to a specific display, make sure that
+    the DISPLAY environment variable is set correctly, e.g.:
 
-    DISPLAY=foo.bar:1 exec dwm
+        DISPLAY=foo.bar:1 exec dwm
 
-(This will start the WM on display :1 of the host foo.bar.)
+    (This will start the WM on display :1 of the host foo.bar.)
 
-In order to display status info in the bar, modify sstatus.c and recompile.
-Or comment start_status_bar() and use your own status bar(not recommended)
-.____________.
-Configuration
--------------
-The configuration of dwm is done by creating a custom config.h
-and (re)compiling the source code.
+ ._______________.
+ | Configuration |
+ .~-~-~-~-~-~-~-~.
+    Configuration can be done by modifying config.def.h (base config)
+    However you can modify config.h alone, I would only recommend this for non-release personal projects.
+    and (re)compiling the source code.
