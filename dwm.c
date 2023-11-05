@@ -1,3 +1,4 @@
+//Dynamic window manager(dwm) NOTES:
 /* See LICENSE file for copyright and license details.
  *
  * dynamic window manager is designed like any other X client as well. It is
@@ -44,10 +45,8 @@
 
 #include <time.h> //ALT TAB
 
-#include "async.h" //async
 #include "drw.h"
 #include "util.h" //Include near dpy defintions due to conflicting variables
-static pthread_t MAIN_THREAD;
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
 #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
@@ -63,7 +62,7 @@ static pthread_t MAIN_THREAD;
 /* enums */
 enum { CurResizeBR, CurResizeBL, CurResizeTR, CurResizeTL, CurNormal, CurMove, CurLast }; /* cursor */
 //enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel, SchemeWarn, SchemeUrgent }; /* color schemes */
+enum { SchemeNorm, SchemeSel}; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
        NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
@@ -175,6 +174,7 @@ static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
+static int drawstatusbar(Monitor *m, int bh, char* text);
 static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
@@ -254,7 +254,7 @@ static void altTabEnd();
 
 /* variables */
 static const char broken[] = "broken";
-static char stext[256];
+static char stext[1024];
 static int screen;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
@@ -286,7 +286,6 @@ static Drw *drw;
 static Monitor *mons, *selmon;
 static Window root, wmcheckwin;
 
-#include "dwmstatus.c" // dpy must be declared before dwmstatus can work
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
@@ -508,7 +507,7 @@ cleanup(void)
         cleanupmon(mons);
     for (i = 0; i < CurLast; i++)
         drw_cur_free(drw, cursor[i]);
-    for (i = 0; i < LENGTH(colors); i++)
+    for (i = 0; i < LENGTH(colors) + 1; i++)
         free(scheme[i]);
     free(scheme);
     XDestroyWindow(dpy, wmcheckwin);
@@ -723,6 +722,113 @@ dirtomon(int dir)
         for (m = mons; m->next != selmon; m = m->next);
     return m;
 }
+int
+drawstatusbar(Monitor *m, int bh, char* stext) {
+	int ret, i, w, x, len;
+	short isCode = 0;
+	char *text;
+	char *p;
+
+	len = strlen(stext) + 1 ;
+	if (!(text = (char*) malloc(sizeof(char)*len)))
+		die("malloc");
+	p = text;
+	memcpy(text, stext, len);
+
+	/* compute width of the status text */
+	w = 0;
+	i = -1;
+	while (text[++i]) {
+		if (text[i] == '^') {
+			if (!isCode) {
+				isCode = 1;
+				text[i] = '\0';
+				w += TEXTW(text) - lrpad;
+				text[i] = '^';
+				if (text[++i] == 'f')
+					w += atoi(text + ++i);
+			} else {
+				isCode = 0;
+				text = text + i + 1;
+				i = -1;
+			}
+		}
+	}
+	if (!isCode)
+		w += TEXTW(text) - lrpad;
+	else
+		isCode = 0;
+	text = p;
+
+	w += barpadding; /* 1px padding on both sides */
+	ret = x = m->ww - w;
+
+	drw_setscheme(drw, scheme[LENGTH(colors)]);
+	drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+	drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+	drw_rect(drw, x, 0, w, bh, 1, 1);
+	x++;
+
+	/* process status text */
+	i = -1;
+	while (text[++i]) {
+		if (text[i] == '^' && !isCode) {
+			isCode = 1;
+
+			text[i] = '\0';
+			w = TEXTW(text) - lrpad;
+			drw_text(drw, x, 0, w, bh, 0, text, 0);
+
+			x += w;
+
+			/* process code */
+			while (text[++i] != '^') {
+				if (text[i] == 'c') {
+					char buf[8];
+					memcpy(buf, (char*)text+i+1, 7);
+					buf[7] = '\0';
+					drw_clr_create(drw, &drw->scheme[ColFg], buf);
+					i += 7;
+				} else if (text[i] == 'b') {
+					char buf[8];
+					memcpy(buf, (char*)text+i+1, 7);
+					buf[7] = '\0';
+					drw_clr_create(drw, &drw->scheme[ColBg], buf);
+					i += 7;
+				} else if (text[i] == 'd') {
+					drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
+					drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
+				} else if (text[i] == 'r') {
+					int rx = atoi(text + ++i);
+					while (text[++i] != ',');
+					int ry = atoi(text + ++i);
+					while (text[++i] != ',');
+					int rw = atoi(text + ++i);
+					while (text[++i] != ',');
+					int rh = atoi(text + ++i);
+
+					drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
+				} else if (text[i] == 'f') {
+					x += atoi(text + ++i);
+				}
+			}
+
+			text = text + i + 1;
+			i=-1;
+			isCode = 0;
+		}
+	}
+
+	if (!isCode) {
+		w = TEXTW(text) - lrpad;
+		drw_text(drw, x, 0, w, bh, 0, text, 0);
+	}
+
+	drw_setscheme(drw, scheme[SchemeNorm]);
+	free(p);
+
+	return ret;
+}
 
 void
 drawbar(Monitor *m)
@@ -731,10 +837,6 @@ drawbar(Monitor *m)
     int boxs = drw->fonts->h / 9;
     int boxw = drw->fonts->h / 6 + 2;
     unsigned int i, occ = 0, urg = 0;
-    char *ts = stext;
-    char *tp = stext;
-    int tx = 0;
-    char ctmp;
 
     Client *c;
 
@@ -743,19 +845,7 @@ drawbar(Monitor *m)
 
     /* draw status first so it can be overdrawn by tags later */
     if (m == selmon) { /* status is only drawn on selected monitor */
-        drw_setscheme(drw, scheme[SchemeNorm]);
-        tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-        while (1) {
-            if ((unsigned int)*ts > LENGTH(colors)) { ts++; continue ; }
-            ctmp = *ts;
-            *ts = '\0';
-            drw_text(drw, m->ww - tw + tx, 0, tw - tx, bh, 0, tp, 0);
-            tx += TEXTW(tp) -lrpad;
-            if (ctmp == '\0') { break; }
-            drw_setscheme(drw, scheme[(unsigned int)(ctmp-1)]);
-            *ts = ctmp;
-            tp = ++ts;
-        }
+        tw = m->ww - drawstatusbar(m, bh, stext);
     }
 
     for (c = m->clients; c; c = c->next) {
@@ -1055,14 +1145,14 @@ killclient(const Arg *arg)
         XGrabServer(dpy);
         XSetErrorHandler(xerrordummy);
         XSetCloseDownMode(dpy, DestroyAll);
-        XKillClient(dpy, selmon->sel->win);//works most of the time though not all
+        XKillClient(dpy, selmon->sel->win);
         XSync(dpy, False);
         XSetErrorHandler(xerror);
         XUngrabServer(dpy);
     }
 }
 void
-forcekillclient(const Arg *arg)
+forcekillclient(const Arg *arg) //Destroys window disregarding any errors that may occur in the process
 {
     if(!selmon->sel)
         return; 
@@ -1350,13 +1440,15 @@ resizeclient(Client *c, int x, int y, int w, int h)
 void
 resizemouse(const Arg *arg)
 {
-    //RESIZABLE WINDOWS PATCH APPLIED
     //int ocx, ocy, nw, nh;
-    int opx, opy, ocx, ocy, och, ocw, nx, ny, nw, nh;
+    int opx = 0; //Omit compiler warnings
+    int opy = 0; //value asigned later
+    int ocx, ocy, och, ocw, nx, ny, nw, nh;
     Client *c;
     Monitor *m;
     XEvent ev;
-    int horizcorner, vertcorner;
+    int horizcorner = 0;//Omit compiler warnings
+    int vertcorner = 0; //value asigned later
     int di;
     unsigned int dui;
     Window dummy;
@@ -1441,6 +1533,7 @@ restack(Monitor *m)
     drawbar(m);
     if (!m->sel)
         return;
+
     if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
         XRaiseWindow(dpy, m->sel->win);
     if (m->lt[m->sellt]->arrange) {
@@ -1661,7 +1754,8 @@ setup(void)
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
     /* init appearance */
-    scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
+    scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
+    scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
     for (i = 0; i < LENGTH(colors); i++)
         scheme[i] = drw_scm_create(drw, colors[i], 3);
     /* init bars */
@@ -1672,7 +1766,7 @@ setup(void)
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8,
-                    PropModeReplace, (unsigned char *) "dwm", 3);
+                    PropModeReplace, (unsigned char *) "->NeAT", 6); //number after is char size of string so "bagel" would be 5
     XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     /* EWMH support per view */
@@ -1688,7 +1782,6 @@ setup(void)
     XSelectInput(dpy, root, wa.event_mask);
     grabkeys();
     focus(NULL);
-    start_status_bar(MAIN_THREAD);
 }
 
 void
@@ -1738,7 +1831,7 @@ spawn(const Arg *arg)
             close(ConnectionNumber(dpy));
         setsid();
         execvp(((char **)arg->v)[0], (char **)arg->v);
-        die("dwm: execvp '%s' failed:", ((char **)arg->v)[0]);
+        die("FATAL ERROR: execvp '%s' failed:", ((char **)arg->v)[0]);
     }
 }
 
@@ -1755,6 +1848,13 @@ altTab()
         focus(selmon->altsnext[selmon->altTabN]);
         restack(selmon);
     }
+    //Raises window without regard if its floating or not
+    //Without this alttab only raises like-wise windows ie: only raise floating or only raise stacked
+    XRaiseWindow(dpy, selmon->altsnext[selmon->altTabN]->win); 
+
+    //Docks window works after second attempt fix later.
+   if (selmon->sel->x == selmon->sel->mon->wx && selmon->sel->y == selmon->sel->mon->wy && selmon->sel->w == selmon->sel->mon->ww && selmon->sel->h == selmon->sel->mon->wh && selmon->sel->isfloating && selmon->sel)
+        selmon->sel->isfloating = 0;
 
     /* redraw tab */
     XRaiseWindow(dpy, selmon->tabwin);
@@ -1787,6 +1887,7 @@ altTabEnd()
         for (int i = selmon->nTabs - 1;i >= 0;i--) {
             focus(selmon->altsnext[i]);
             restack(selmon);
+
         }
 
         free(selmon->altsnext); /* free list of clients */
@@ -1826,7 +1927,7 @@ drawTab(int nwins, int first, Monitor *m)
         /* decide position of tabwin */
         int posX = selmon->mx;
         int posY = selmon->my;
-        //Switch statment feels unoptimized code dont use
+
         if (tabPosX == 0)
             posX += 0;
         if (tabPosX == 1)
@@ -2119,7 +2220,7 @@ updatebars(void)
         .background_pixmap = ParentRelative,
         .event_mask = ButtonPressMask|ExposureMask
     };
-    XClassHint ch = {"dwm", "dwm"};
+    XClassHint ch = {WM_NAME, WM_NAME};
     for (m = mons; m; m = m->next) {
         if (m->barwin)
         continue;
@@ -2302,7 +2403,7 @@ updatestatus(void)
 {
     if (!gettextprop(root, XA_WM_NAME, stext, sizeof(stext)))
     {
-       strcpy(stext, "dwm-"VERSION);
+       strcpy(stext, WM_NAME);
     }
     drawbar(selmon);
 }
@@ -2405,7 +2506,7 @@ xerror(Display *dpy, XErrorEvent *ee)
         || (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
         || (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
         return 0;
-    fprintf(stderr, "dwm: fatal error: request code=%d, error code=%d\n",
+    fprintf(stderr, "fatal error: request code=%d, error code=%d\n",
             ee->request_code, ee->error_code);
     return xerrorxlib(dpy, ee); /* may call exit */
 }
@@ -2421,7 +2522,7 @@ xerrordummy(Display *dpy, XErrorEvent *ee)
 int
 xerrorstart(Display *dpy, XErrorEvent *ee)
 {
-    die("dwm: another window manager is already running");
+    die("WARN: another window manager is already running");
     return -1;
 }
 
@@ -2441,13 +2542,13 @@ int
 main(int argc, char *argv[])
 {
     if (argc == 2 && !strcmp("-v", argv[1]))
-        die("dwm-"VERSION);
+        die(WM_NAME);
     else if (argc != 1)
-        die("usage: dwm [-v]");
+        die("usage: args[-v]");
     if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
-        fputs("warning: no locale support\n", stderr);
+        fputs("WARN: no locale support\n", stderr);
     if (!(dpy = XOpenDisplay(NULL)))
-        die("dwm: cannot open display");
+        die("FATAL ERROR: cannot open display");
     checkotherwm();
     setup();
 
