@@ -71,86 +71,86 @@ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
 
 typedef union {
-	int i;
-	unsigned int ui;
-	float f;
-	const void *v;
+    int i;
+    unsigned int ui;
+    float f;
+    const void *v;
 } Arg;
 
 typedef struct {
-	unsigned int click;
-	unsigned int mask;
-	unsigned int button;
-	void (*func)(const Arg *arg);
-	const Arg arg;
+    unsigned int click;
+    unsigned int mask;
+    unsigned int button;
+    void (*func)(const Arg *arg);
+    const Arg arg;
 } Button;
 
 typedef struct Monitor Monitor;
 typedef struct Client Client;
 struct Client {
-	char name[256];
-	float mina, maxa;
-	int x, y, w, h;
-	int oldx, oldy, oldw, oldh;
-	int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
-	int bw, oldbw;
-	unsigned int tags;
-	int isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
-	Client *next;
-	Client *snext;
-	Monitor *mon;
-	Window win;
+    char name[256];
+    float mina, maxa;
+    int x, y, w, h;
+    int oldx, oldy, oldw, oldh;
+    int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
+    int bw, oldbw;
+    unsigned int tags;
+    int ismax, wasfloating, isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+    Client *next;
+    Client *snext;
+    Monitor *mon;
+    Window win;
 };
 
 typedef struct {
-	unsigned int mod;
-	KeySym keysym;
-	void (*func)(const Arg *);
-	const Arg arg;
+    unsigned int mod;
+    KeySym keysym;
+    void (*func)(const Arg *);
+    const Arg arg;
 } Key;
 
 typedef struct {
-	const char *symbol;
-	void (*arrange)(Monitor *);
+    const char *symbol;
+    void (*arrange)(Monitor *);
 } Layout;
 
 struct Monitor {
-	char ltsymbol[16];
-	float mfact;
-	int nmaster;
-	int num;
-	int by;               /* bar geometry */
-	int mx, my, mw, mh;   /* screen size */
-	int wx, wy, ww, wh;   /* window area  */
-	int altTabN;		  /* move that many clients forward */
-	int nTabs;			  /* number of active clients in tag */
-	int isAlt; 			  /* 1,0 */
-	int maxWTab;
-	int maxHTab;
+    char ltsymbol[16];
+    float mfact;
+    int nmaster;
+    int num;
+    int by;               /* bar geometry */
+    int mx, my, mw, mh;   /* screen size */
+    int wx, wy, ww, wh;   /* window area  */
+    int altTabN;		  /* move that many clients forward */
+    int nTabs;			  /* number of active clients in tag */
+    int isAlt; 			  /* 1,0 */
+    int maxWTab;
+    int maxHTab;
 
 
-	unsigned int seltags;
-	unsigned int sellt;
-	unsigned int tagset[2];
-	int showbar;
-	int topbar;
-	Client *clients;
-	Client *sel;
-	Client *stack;
-	Client ** altsnext; /* array of all clients in the tag */
-	Monitor *next;
-	Window barwin;
+    unsigned int seltags;
+    unsigned int sellt;
+    unsigned int tagset[2];
+    int showbar;
+    int topbar;
+    Client *clients;
+    Client *sel;
+    Client *stack;
+    Client ** altsnext; /* array of all clients in the tag */
+    Monitor *next;
+    Window barwin;
     Window tabwin;
-	const Layout *lt[2];
+    const Layout *lt[2];
 };
 
 typedef struct {
-	const char *class;
-	const char *instance;
-	const char *title;
-	unsigned int tags;
-	int isfloating;
-	int monitor;
+    const char *class;
+    const char *instance;
+    const char *title;
+    unsigned int tags;
+    int isfloating;
+    int monitor;
 } Rule;
 /* function declarations */
 static void applyrules(Client *c);
@@ -174,7 +174,7 @@ static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
-static int drawstatusbar(Monitor *m, int bh, char* text);
+static int  drawstatusbar(Monitor *m, int bh, char* text);
 static void enternotify(XEvent *e);
 static void expose(XEvent *e);
 static void focus(Client *c);
@@ -220,6 +220,11 @@ static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
 static void sigchld(int unused);
 static void spawn(const Arg *arg);
+static int  dockablewindow(Client *c);
+static void maximize(int x, int y, int w, int h);
+static void togglemaximize(const Arg *arg);
+static void toggleverticalmax(const Arg *arg);
+static void togglehorizontalmax(const Arg *arg);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
@@ -825,6 +830,7 @@ drawstatusbar(Monitor *m, int bh, char* stext) {
 	}
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
+
 	free(p);
 
 	return ret;
@@ -1210,6 +1216,8 @@ manage(Window w, XWindowAttributes *wa)
     updatewmhints(c);
     XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
     grabbuttons(c, 0);
+    c->wasfloating = 0;
+	c->ismax = 0;
     if (!c->isfloating)
         c->isfloating = c->oldstate = trans != None || c->isfixed;
     if (c->isfloating)
@@ -1334,6 +1342,10 @@ movemouse(const Arg *arg)
             break;
         }
     } while (ev.type != ButtonRelease);
+    /* On release dockwindow */
+    if(dockablewindow(c))
+        c->isfloating = 0;
+
     XUngrabPointer(dpy, CurrentTime);
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
         sendmon(c, m);
@@ -1766,7 +1778,7 @@ setup(void)
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8,
-                    PropModeReplace, (unsigned char *) "->NeAT", 6); //number after is char size of string so "bagel" would be 5
+                    PropModeReplace, (unsigned char *) WM_NAME, (sizeof(WM_NAME)/sizeof(WM_NAME[0])));/*the last arg is for the size of the WM_NAME) */
     XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     /* EWMH support per view */
@@ -1836,7 +1848,7 @@ spawn(const Arg *arg)
 }
 
 int
-dockablewindow()
+dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselected; */
 {
     int wx; /* Window  X */
     int wy; /* Window  Y */
@@ -1848,15 +1860,23 @@ dockablewindow()
     int mw; /* Monitor Width  */
     int mh; /* Monitor Height */
 
-    wx = selmon->sel->x;
-    wy = selmon->sel->y;
-    mx = selmon->sel->mon->wx;
-    my = selmon->sel->mon->wy;
+    int isfloating;
 
-    ww = selmon->sel->w;
-    wh = selmon->sel->h;
-    mw = selmon->sel->mon->ww;
-    mh = selmon->sel->mon->wh;
+    wx = c->x;
+    wy = c->y;
+    mx = c->mon->wx;
+    my = c->mon->wy;
+
+    ww = c->w;
+    wh = c->h;
+    mw = c->mon->ww;
+    mh = c->mon->wh;
+
+    isfloating = c->isfloating;
+
+    //Window already docked/non dockable
+    if(!isfloating)
+        return 0;
 
     /* Check if dockable -> same height width, location, as monitor */
     if(wh != mh)
@@ -1870,11 +1890,53 @@ dockablewindow()
 
     return 1;
 }
-void 
-dockwindow()
-{
-    selmon->sel->isfloating = 0;
+
+void
+maximize(int x, int y, int w, int h) {
+	XEvent ev;
+
+	if(!selmon->sel || selmon->sel->isfixed)
+		return;
+	XRaiseWindow(dpy, selmon->sel->win);
+	if(!selmon->sel->ismax) {
+		if(!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
+			selmon->sel->wasfloating = True;
+		else {
+			togglefloating(NULL);
+			selmon->sel->wasfloating = False;
+		}
+		selmon->sel->oldx = selmon->sel->x;
+		selmon->sel->oldy = selmon->sel->y;
+		selmon->sel->oldw = selmon->sel->w;
+		selmon->sel->oldh = selmon->sel->h;
+		resize(selmon->sel, x, y, w, h, True);
+		selmon->sel->ismax = True;
+	}
+	else {
+		resize(selmon->sel, selmon->sel->oldx, selmon->sel->oldy, selmon->sel->oldw, selmon->sel->oldh, True);
+		if(!selmon->sel->wasfloating)
+			togglefloating(NULL);
+		selmon->sel->ismax = False;
+	}
+	drawbar(selmon);
+	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
+
+void
+togglemaximize(const Arg *arg) {
+	maximize(selmon->wx, selmon->wy, selmon->ww - 2 * borderpx, selmon->wh - 2 * borderpx);
+}
+
+void
+toggleverticalmax(const Arg *arg) {
+	maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * borderpx);
+}
+
+void
+togglehorizontalmax(const Arg *arg) {
+	maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * borderpx, selmon->sel->h);
+}
+
 void
 altTab()
 {
@@ -1884,8 +1946,6 @@ altTab()
         if (selmon->altTabN >= selmon->nTabs)
             selmon->altTabN = 0; /* reset altTabN */
 
-        if(dockablewindow())
-            dockwindow();
         focus(selmon->altsnext[selmon->altTabN]);
         restack(selmon);
     }

@@ -1,0 +1,8 @@
+*** HIGH PRIORITY 
+**  REGULAR PRIORITY
+*   LOW PRIORITY
+--------------------------------------------------------------------------------
+
+*** Compositor behaviour 
+** Rework Window functionality and how floating windows behave
+* Small Memory leak when compiled?, inconsistent.  further investigation required

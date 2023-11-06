@@ -3,7 +3,7 @@
 /* appearance */
 static char WM_NAME[]               = "dwm.exe";//wm name displayed when using X (type neofetch to see this)
 static const unsigned int borderpx  = 0;        /* border pixel of windows */
-static const unsigned int snap      = 32;       /* snap pixel */
+static const unsigned int snap      = 15;        /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 0;        /* 0 means bottom bar */
 static const int barpadding         = 0;        /* pixel (status bar)/2 padding */
@@ -87,7 +87,7 @@ static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 //refer here => https://ratfactor.com/dwm
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */ 
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, "-b", "-f", NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, topbar ? NULL : "-b", "-f", NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
 static const char *termcmd[]        = { "st", NULL }; 
 static const char *screenshotcmd[]  = {"scrot", "~/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.jpg", NULL};
 
@@ -98,6 +98,7 @@ static const Key keys[] = {
     { MODKEY,                       XK_b,      togglebar,      {0} },
     { MODKEY,                       XK_q,	   view,           {0} },
     { MODKEY|ShiftMask,             XK_q,      killclient,     {0} }, 
+    { MODKEY,                       XK_w,      togglemaximize, {0} }, 
     { ControlMask|Mod1Mask,         XK_q,	   forcekillclient,{0} },
     { MODKEY|ShiftMask,             XK_p,      quit,           {0} },
     { MODKEY,                       XK_z,      setlayout,      {.v = &layouts[0]} },//TILED
@@ -107,17 +108,17 @@ static const Key keys[] = {
     { Mod1Mask,             		XK_Tab,    altTabStart,	   {0} },
 
     //Multi media
-    { 0, XF86XK_AudioMute,          spawn, {.v = mute_vol } },
-    { 0, XF86XK_AudioLowerVolume,   spawn, {.v = down_vol } },
-    { 0, XF86XK_AudioRaiseVolume,   spawn, {.v = up_vol } },
-    { 0, XF86XK_MonBrightnessDown,  spawn, {.v = dimmer } },
-    { 0, XF86XK_MonBrightnessUp,    spawn, {.v = brighter } },
-    { 0, XF86XK_AudioPlay,          spawn, {.v = pause_vol } },
-    { 0, XF86XK_AudioPause,         spawn, {.v = pause_vol } },
-    { 0, XF86XK_AudioNext,          spawn, {.v = next_vol } },
-    { 0, XF86XK_AudioPrev,          spawn, {.v = prev_vol } },
+    { 0, XF86XK_AudioMute,                     spawn, {.v = mute_vol } },
+    { 0, XF86XK_AudioLowerVolume,              spawn, {.v = down_vol } },
+    { 0, XF86XK_AudioRaiseVolume,              spawn, {.v = up_vol } },
+    { 0, XF86XK_MonBrightnessDown,             spawn, {.v = dimmer } },
+    { 0, XF86XK_MonBrightnessUp,               spawn, {.v = brighter } },
+    { 0, XF86XK_AudioPlay,                     spawn, {.v = pause_vol } },
+    { 0, XF86XK_AudioPause,                    spawn, {.v = pause_vol } },
+    { 0, XF86XK_AudioNext,                     spawn, {.v = next_vol } },
+    { 0, XF86XK_AudioPrev,                     spawn, {.v = prev_vol } },
     //Screenshot
-    { 0, XK_Print,                  spawn, {.v = screenshotcmd } },
+    { MODKEY,                       XK_Print,  spawn,          {.v = screenshotcmd } },
     //Fulscreen function
     { 0,             XK_F11,      togglefullscr,  {0} },
     TAGKEYS(                        XK_1,                      0)
