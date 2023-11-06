@@ -3,20 +3,19 @@
 /* appearance */
 static char WM_NAME[]               = "dwm.exe";//wm name displayed when using X (type neofetch to see this)
 static const unsigned int borderpx  = 0;        /* border pixel of windows */
-static const unsigned int snap      = 15;        /* snap pixel */
+static const unsigned int snap      = 15;       /* snap pixel */
+static const unsigned int windowrate= 120;      /* max refresh rate when resizing, moving windows; set 0 to disable */
+                                                /* No noticeable increase/decrease in cpu usage when set to 0 */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 0;        /* 0 means bottom bar */
 static const int barpadding         = 0;        /* pixel (status bar)/2 padding */
 static const char *fonts[]          = {"monospace:size=15" };
 static const char dmenufont[]       = "monospace:size=15";
+
+
 static char col_black[]       = "#000000";
 static char col_white[]       = "#ffffff";
-/*
-static char col_red[]         = "#ff0000";
-static char col_green[]       = "#00b300";
-static char col_term_blue[]   = "#ecffff";
-static char col_yellow[]      = "#ffff00";
-*/
+/*static char col_term_blue[]   = "#ecffff"; */
 static char *colors[][3]      = {
 /*					fg         bg          border   */
 /*                  fg=textColour                   */
@@ -73,14 +72,12 @@ static const unsigned int maxHTab 			= 200;	/* tab menu height */
 
 
 /* Multimedia Keys (laptops and function keyboards) */
-//volume
 static const char *up_vol[]   = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+1%",   NULL };
 static const char *down_vol[] = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-1%",   NULL };
 static const char *mute_vol[] = { "pactl", "set-sink-mute",   "@DEFAULT_SINK@", "toggle", NULL };
 static const char *pause_vol[]= { "playerctl", "play-pause"};
 static const char *next_vol[] = { "playerctl", "next"};
 static const char *prev_vol[] = { "playerctl", "previous"};
-//brightness 
 static const char *brighter[] = { "brightnessctl", "set", "1%+", NULL };
 static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 
@@ -95,6 +92,7 @@ static const Key keys[] = {
     /* modifier                     key        function        argument */
     { MODKEY,                       XK_d,      spawn,          {.v = dmenucmd } },
     { MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
+    { MODKEY,                       XK_Print,  spawn,          {.v = screenshotcmd } },
     { MODKEY,                       XK_b,      togglebar,      {0} },
     { MODKEY,                       XK_q,	   view,           {0} },
     { MODKEY|ShiftMask,             XK_q,      killclient,     {0} }, 
@@ -104,10 +102,10 @@ static const Key keys[] = {
     { MODKEY,                       XK_z,      setlayout,      {.v = &layouts[0]} },//TILED
     { MODKEY,                       XK_x,      setlayout,      {.v = &layouts[1]} },//MONOCLE 
     { MODKEY,                       XK_c,      setlayout,      {.v = &layouts[2]} },//FLOATING
-    //ALT TAB
+    { 0,                            XK_F11,    togglefullscr,  {0} },
+
     { Mod1Mask,             		XK_Tab,    altTabStart,	   {0} },
 
-    //Multi media
     { 0, XF86XK_AudioMute,                     spawn, {.v = mute_vol } },
     { 0, XF86XK_AudioLowerVolume,              spawn, {.v = down_vol } },
     { 0, XF86XK_AudioRaiseVolume,              spawn, {.v = up_vol } },
@@ -117,10 +115,7 @@ static const Key keys[] = {
     { 0, XF86XK_AudioPause,                    spawn, {.v = pause_vol } },
     { 0, XF86XK_AudioNext,                     spawn, {.v = next_vol } },
     { 0, XF86XK_AudioPrev,                     spawn, {.v = prev_vol } },
-    //Screenshot
-    { MODKEY,                       XK_Print,  spawn,          {.v = screenshotcmd } },
-    //Fulscreen function
-    { 0,             XK_F11,      togglefullscr,  {0} },
+
     TAGKEYS(                        XK_1,                      0)
     TAGKEYS(                        XK_2,                      1)
     TAGKEYS(                        XK_3,                      2)

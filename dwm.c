@@ -1320,10 +1320,12 @@ movemouse(const Arg *arg)
                 handler[ev.type](&ev);
             break;
             case MotionNotify:
-                if ((ev.xmotion.time - lasttime) <= (1000 / 60))
-                continue;
-                lasttime = ev.xmotion.time;
-
+                if(windowrate != 0)
+                {
+                    if ((ev.xmotion.time - lasttime) <= (1000 / windowrate))
+                        continue;
+                    lasttime = ev.xmotion.time;
+                }
                 nx = ocx + (ev.xmotion.x - x);
                 ny = ocy + (ev.xmotion.y - y);
                 if (abs(selmon->wx - nx) < snap)
@@ -1476,11 +1478,9 @@ resizemouse(const Arg *arg)
     ocw = c->w;
     och = c->h;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     //None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
                      None, cursor[horizcorner | (vertcorner << 1)]->cursor, CurrentTime) != GrabSuccess)
         return;
 
-    //XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
         return;
     horizcorner = nx < c->w / 2;
@@ -1497,12 +1497,12 @@ resizemouse(const Arg *arg)
                 handler[ev.type](&ev);
             break;
             case MotionNotify:
-                if ((ev.xmotion.time - lasttime) <= (1000 / 60))
-                continue;
-                lasttime = ev.xmotion.time;
-
-                //nw = MAX(ev.xmotion.x - ocx - 2 * c->bw + 1, 1);
-                //nh = MAX(ev.xmotion.y - ocy - 2 * c->bw + 1, 1);
+                if(windowrate != 0)
+                {
+                    if ((ev.xmotion.time - lasttime) <= (1000 / 60))
+                    continue;
+                    lasttime = ev.xmotion.time;
+                }
                 nx = horizcorner ? (ocx + ev.xmotion.x - opx) : c->x;
                 ny = vertcorner ? (ocy + ev.xmotion.y - opy) : c->y;
                 nw = MAX(horizcorner ? (ocx + ocw - nx) : (ocw + (ev.xmotion.x - opx)), 1);
@@ -1516,16 +1516,10 @@ resizemouse(const Arg *arg)
                         togglefloating(NULL);
                 }
                 if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-                    //resize(c, c->x, c->y, nw, nh, 1);
-                    //resize(c, nx, ny, nw, nh, 1);
                     resizeclient(c, nx, ny, nw, nh);
             break;
         }
     } while (ev.type != ButtonRelease);
-    //XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->bw - 1, c->h + c->bw - 1);
-    //XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
-    //                     horizcorner ? (-c->bw) : (c->w + c->bw - 1),
-    //                     vertcorner ? (-c->bw) : (c->h + c->bw - 1));
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -1925,6 +1919,7 @@ maximize(int x, int y, int w, int h) {
 void
 togglemaximize(const Arg *arg) {
 	maximize(selmon->wx, selmon->wy, selmon->ww - 2 * borderpx, selmon->wh - 2 * borderpx);
+    selmon->sel->isfloating = 0;
 }
 
 void
