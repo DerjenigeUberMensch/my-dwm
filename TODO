@@ -3,6 +3,7 @@
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
 
+*** Center Alt-tab when in use
 *** Compositor behaviour 
 ** Rework Window functionality and how floating windows behave
 * Small Memory leak when compiled?, inconsistent.  further investigation required

@@ -1660,7 +1660,7 @@ setfocus(Client *c)
 void
 setfullscreen(Client *c, int fullscreen)
 {
-    if (fullscreen && !c->isfullscreen) {
+    if (!fullscreen && !c->isfullscreen) {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
         c->isfullscreen = 1;
@@ -1670,7 +1670,7 @@ setfullscreen(Client *c, int fullscreen)
         c->isfloating = 1;
         resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
         XRaiseWindow(dpy, c->win);
-    } else if (!fullscreen && c->isfullscreen){
+    } else if (fullscreen && c->isfullscreen){
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)0, 0);
         c->isfullscreen = 0;
@@ -1772,7 +1772,7 @@ setup(void)
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], utf8string, 8,
-                    PropModeReplace, (unsigned char *) WM_NAME, (sizeof(WM_NAME)/sizeof(WM_NAME[0])));/*the last arg is for the size of the WM_NAME) */
+                    PropModeReplace, (unsigned char *) WM_NAME, LENGTH(WM_NAME));
     XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     /* EWMH support per view */
@@ -1989,8 +1989,6 @@ altTabEnd()
     XDestroyWindow(dpy, selmon->tabwin);
 }
 
-//alttab alt_tab
-//Draws window for it change it here if you want to give better appeal or something
 void
 drawTab(int nwins, int first, Monitor *m)
 {
@@ -2000,7 +1998,37 @@ drawTab(int nwins, int first, Monitor *m)
     /* void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h); */
 
     Client *c;
-    int h;
+
+    /* Center and decrease tab usage begin */
+    int maxwNeeded; /*max width px needed for client name */
+    int maxhNeeded; /*max height px needed for client name */
+    int namewpx;  /*name width px size */
+    int namehpx;  /*name height px size */
+
+    maxwNeeded = 0;
+    for(int i = 0; i < m->nTabs; ++i)
+    {
+        c = m->altsnext[i];
+        if(!ISVISIBLE(c)) continue;
+        namewpx = TEXTW(c->name) - lrpad;
+        if(namewpx < maxWTab)
+        {
+            if(namewpx > maxwNeeded)
+                maxwNeeded = namewpx;
+        }
+        else 
+        {
+            maxwNeeded = maxWTab;
+            break;
+        }
+    }
+    c = NULL;
+    namehpx = bh + tabHpadding;
+    maxhNeeded = namehpx * m->nTabs;
+    if(maxhNeeded > maxHTab)
+        maxhNeeded = maxHTab;
+    /*end*/
+
 
     if (first) {
         Monitor *m = selmon;
@@ -2017,34 +2045,36 @@ drawTab(int nwins, int first, Monitor *m)
         int posX = selmon->mx;
         int posY = selmon->my;
 
+
         if (tabPosX == 0)
             posX += 0;
         if (tabPosX == 1)
-            posX += (selmon->mw / 2) - (maxWTab / 2);
+            posX += (selmon->mw / 2) - (maxwNeeded/ 2);
         if (tabPosX == 2)
-            posX += selmon->mw - maxWTab;
+            posX += selmon->mw - maxwNeeded;
 
-        if (tabPosY == 0)
-            posY += selmon->mh - maxHTab;
         if (tabPosY == 1)
             posY += (selmon->mh / 2) - (maxHTab / 2);
         if (tabPosY == 2)
             posY += 0;
-        h = selmon->maxHTab;
+        //h = selmon->maxHTab;
+        
+
         /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
-        m->tabwin = XCreateWindow(dpy, root, posX, posY, selmon->maxWTab, selmon->maxHTab, 2, DefaultDepth(dpy, screen),
+        m->tabwin = XCreateWindow(dpy, root, posX, posY, maxwNeeded, maxhNeeded, 2, DefaultDepth(dpy, screen),
                                   CopyFromParent, DefaultVisual(dpy, screen),
                                   CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa); /* create tabwin */
 
         XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
         XMapRaised(dpy, m->tabwin);
-
     }
 
-    h = selmon->maxHTab  / m->nTabs;
-
+    //h = selmon->maxHTab  / m->nTabs;
+    maxhNeeded/= m->nTabs;
+    int x = 0;
     int y = 0;
     int n = 0;
+    int textsize;
     for (int i = 0;i < m->nTabs;i++) { /* draw all clients into tabwin */
         c = m->altsnext[i];
         if(!ISVISIBLE(c)) continue;
@@ -2052,12 +2082,17 @@ drawTab(int nwins, int first, Monitor *m)
 
         n++;
         drw_setscheme(drw, scheme[(c == m->sel) ? SchemeSel : SchemeNorm]);
-        drw_text(drw, 0, y, selmon->maxWTab, h, 0, c->name, 0);
-        y += h;
+
+        /* align text with middle if space avaible */
+        textsize = TEXTW(c->name) - lrpad;
+        x = textsize / 2; 
+
+        drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, 0, c->name, 0);
+        y += maxhNeeded;
     }
 
     drw_setscheme(drw, scheme[SchemeNorm]);
-    drw_map(drw, m->tabwin, 0, 0, selmon->maxWTab, selmon->maxHTab);
+    drw_map(drw, m->tabwin, 0, 0, maxWTab, selmon->maxHTab);
 }
 
 void
@@ -2216,7 +2251,7 @@ void
 togglefullscr(const Arg *arg)
 {
     if(selmon->sel)
-        setfullscreen(selmon->sel, !selmon->sel->isfullscreen);
+        setfullscreen(selmon->sel, selmon->sel->isfullscreen);
 }
 
 
