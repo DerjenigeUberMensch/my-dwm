@@ -51,14 +51,14 @@ static const Layout layouts[] = {
 /* key definitions */
 #define ALT     Mod1Mask
 #define NUMLOCK Mod2Mask
-#define SUPER   Mod4Mask
+#define SUPER   Mod4Mask /* windows key */
 #define CTRL    ControlMask
 #define SHIFT   ShiftMask
 #define TAB     XK_Tab
 /* #define ISO_LEVEL5_SHIFT Mod3Mask
  * #define ISO_LEVEL3_SHIFT Mod5Mask */
 #define TAGKEYS(KEY,TAG) \
-{ SUPER,                       KEY,      view,           {.ui = 1 << TAG} }, \
+    { SUPER,                       KEY,      view,           {.ui = 1 << TAG} }, \
     { SUPER|CTRL,                  KEY,      toggleview,     {.ui = 1 << TAG} }, \
     { SUPER|SHIFT,                 KEY,      tag,            {.ui = 1 << TAG} }, \
     { SUPER|CTRL|SHIFT,            KEY,      toggletag,      {.ui = 1 << TAG} },
@@ -93,7 +93,7 @@ static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */ 
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, topbar ? NULL : "-b", fastinputbar ? "-f" : NULL, NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
 static const char *termcmd[]        = { "st", NULL }; 
-static const char *screenshotcmd[]  = {"scrot", "~/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.jpg", NULL};
+static const char *screenshotcmd[]  = {"scrot", "~/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.jpg", NULL}; /*doesnt work*/
 
 static const Key keys[] = {
     /* modifier                     key        function        argument */
@@ -103,15 +103,15 @@ static const Key keys[] = {
     { SUPER,                        XK_b,       togglebar,      {0} },
     { SUPER,                        XK_q,	    view,           {0} },
     { SUPER|SHIFT,                  XK_q,       killclient,     {0} }, 
-    { SUPER,                        XK_w,       togglemaximize, {0} }, 
     { CTRL|ALT,                     XK_q,	    forcekillclient,{0} },
+    { SUPER,                        XK_w,       togglemaximize, {0} }, 
     { SUPER|SHIFT,                  XK_p,       quit,           {0} },
-    { SUPER,                        XK_z,       setlayout,      {.v = &layouts[0]} },//TILED
-    { SUPER,                        XK_x,       setlayout,      {.v = &layouts[1]} },//MONOCLE 
-    { SUPER,                        XK_c,       setlayout,      {.v = &layouts[2]} },//FLOATING
+    { SUPER,                        XK_z,       setlayout,      {.v = &layouts[0]} },/* TILED    */
+    { SUPER,                        XK_x,       setlayout,      {.v = &layouts[1]} },/* FLOATING */
+    { SUPER,                        XK_c,       setlayout,      {.v = &layouts[2]} },/* MONOCLE  */
     { 0,                            XK_F11,     togglefullscr,  {0} },
 
-    { ALT,             		        TAB,        altTabStart,	   {0} },
+    { ALT,             		        TAB,        altTabStart,	{0} },
 
     { 0, XF86XK_AudioMute,                      spawn, {.v = mute_vol } },
     { 0, XF86XK_AudioLowerVolume,               spawn, {.v = down_vol } },

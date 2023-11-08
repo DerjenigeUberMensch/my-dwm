@@ -2049,7 +2049,7 @@ drawTab(int nwins, int first, Monitor *m)
         if (tabPosX == 0)
             posX += 0;
         if (tabPosX == 1)
-            posX += (selmon->mw / 2) - (maxwNeeded/ 2);
+            posX += (selmon->mw / 2) - (maxwNeeded / 2);
         if (tabPosX == 2)
             posX += selmon->mw - maxwNeeded;
 
@@ -2057,6 +2057,8 @@ drawTab(int nwins, int first, Monitor *m)
             posY += (selmon->mh / 2) - (maxHTab / 2);
         if (tabPosY == 2)
             posY += 0;
+        if (showbar)
+            posY+=bh;
         //h = selmon->maxHTab;
         
 
@@ -2071,10 +2073,12 @@ drawTab(int nwins, int first, Monitor *m)
 
     //h = selmon->maxHTab  / m->nTabs;
     maxhNeeded/= m->nTabs;
-    int x = 0;
     int y = 0;
     int n = 0;
     int textsize;
+    int middlespacing;
+
+    middlespacing = 0;
     for (int i = 0;i < m->nTabs;i++) { /* draw all clients into tabwin */
         c = m->altsnext[i];
         if(!ISVISIBLE(c)) continue;
@@ -2082,17 +2086,20 @@ drawTab(int nwins, int first, Monitor *m)
 
         n++;
         drw_setscheme(drw, scheme[(c == m->sel) ? SchemeSel : SchemeNorm]);
-
-        /* align text with middle if space avaible */
         textsize = TEXTW(c->name) - lrpad;
-        x = textsize / 2; 
+        if(textsize < maxwNeeded)
+            middlespacing = (maxwNeeded - textsize) / 2;
+        else 
+            middlespacing = 0;
+        /* align text with middle if space avaible */ 
 
-        drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, 0, c->name, 0);
+        drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, middlespacing, c->name, 0);
+        /* drw_text(drw, 0, y, textsize + tabWpadding, maxhNeeded, middlespacing, c->name, 0); */
         y += maxhNeeded;
     }
 
     drw_setscheme(drw, scheme[SchemeNorm]);
-    drw_map(drw, m->tabwin, 0, 0, maxWTab, selmon->maxHTab);
+    drw_map(drw, m->tabwin, 0, 0, selmon->maxWTab, selmon->maxHTab);
 }
 
 void

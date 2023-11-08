@@ -3,7 +3,8 @@
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
 
-*** Center Alt-tab when in use
+*** Create extra windows? to reduces space from alttab of windows without long names
 *** Compositor behaviour 
-** Rework Window functionality and how floating windows behave
-* Small Memory leak when compiled?, inconsistent.  further investigation required
+**  Rework Window functionality and how floating windows behave
+*   Fix scrot screenshotcmd
+*   Small Memory leak when compiled?, inconsistent. further investigation required
