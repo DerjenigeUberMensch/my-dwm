@@ -49,3 +49,6 @@ Keybinds are personal preferance
     Configuration can be done by modifying config.def.h (base config)
     However you can modify config.h alone, I would only recommend this for non-release personal projects.
     and (re)compiling the source code.
+
+Notes :3
+You are intented to use the monocle layout over tiled/floating
