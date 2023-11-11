@@ -1,5 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 /*4 Tab spaces; No tab characters use spaces for tabs  */
+
 /* appearance */
 static char WM_NAME[]               = "dwm.exe";        /* wm name displayed when using X (type neofetch to see this) */
 static const unsigned int borderpx  = 0;    /* border pixel of windows */
@@ -14,7 +15,6 @@ static const int fastinputbar       = 0;    /* 0 means no fastinput; 1 prioritiz
 static const char *fonts[]          = {"monospace:size=15" };
 static const char dmenufont[]       = "monospace:size=15";
 
-
 /* alt-tab configuration */
 static const unsigned int tabModKey 		= 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
 static const unsigned int tabCycleKey 		= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
@@ -25,15 +25,15 @@ static const unsigned int maxWTab 			= 600;	/* MAX tab menu width */
 static const unsigned int maxHTab 			= 200;	/* MAX tab menu height */
 static const unsigned int minWidthDraw      = 0;  /* if (textlength < minWidthDraw): add padding */
 
-
 static char col_black[]       = "#000000";
 static char col_white[]       = "#ffffff";
 /*static char col_term_blue[]   = "#ecffff"; */
 static char *colors[][3]      = {
     /*					fg         bg          border   */
     /*                  fg=textColour                   */
-    [SchemeNorm]    = { col_white, col_black,  col_white},
-    [SchemeSel]     = { col_white, col_black,   col_white},
+    [SchemeNorm]    = { col_white, col_black, col_white},
+    [SchemeSel]     = { col_white, col_black, col_white},
+    [SchemeAltTab]  = { col_white, col_black, col_white},
 };
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -90,9 +90,9 @@ static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 
 //refer here => https://ratfactor.com/dwm
 /* commands */
-static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */ 
+static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, topbar ? NULL : "-b", fastinputbar ? "-f" : NULL, NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
-static const char *termcmd[]        = { "st", NULL }; 
+static const char *termcmd[]        = { "st", NULL };
 static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.png", NULL}; /*doesnt work*/
 
 static const Key keys[] = {
@@ -102,9 +102,9 @@ static const Key keys[] = {
     { SUPER,                        XK_Print,   spawn,          {.v = screenshotcmd } },
     { SUPER,                        XK_b,       togglebar,      {0} },
     { SUPER,                        XK_q,	    view,           {0} },
-    { SUPER|SHIFT,                  XK_q,       killclient,     {0} }, 
+    { SUPER|SHIFT,                  XK_q,       killclient,     {0} },
     { CTRL|ALT,                     XK_q,	    forcekillclient,{0} },
-    { SUPER,                        XK_w,       togglemaximize, {0} }, 
+    { SUPER,                        XK_w,       togglemaximize, {0} },
     { SUPER|SHIFT,                  XK_p,       quit,           {0} },
     { SUPER,                        XK_z,       setlayout,      {.v = &layouts[0]} },/* TILED    */
     { SUPER,                        XK_x,       setlayout,      {.v = &layouts[1]} },/* FLOATING */
@@ -124,14 +124,14 @@ static const Key keys[] = {
     { 0, XF86XK_AudioPrev,                      spawn, {.v = prev_vol } },
 
     TAGKEYS(                        XK_1,                      0)
-        TAGKEYS(                        XK_2,                      1)
-        TAGKEYS(                        XK_3,                      2)
-        TAGKEYS(                        XK_4,                      3)
-        TAGKEYS(                        XK_5,                      4)
-        TAGKEYS(                        XK_6,                      5)
-        TAGKEYS(                        XK_7,                      6)
-        TAGKEYS(                        XK_8,                      7)
-        TAGKEYS(                        XK_9,                      8)
+    TAGKEYS(                        XK_2,                      1)
+    TAGKEYS(                        XK_3,                      2)
+    TAGKEYS(                        XK_4,                      3)
+    TAGKEYS(                        XK_5,                      4)
+    TAGKEYS(                        XK_6,                      5)
+    TAGKEYS(                        XK_7,                      6)
+    TAGKEYS(                        XK_8,                      7)
+    TAGKEYS(                        XK_9,                      8)
 };
 
 /* button definitions */
@@ -150,4 +150,3 @@ static const Button buttons[] = {
     { ClkTagBar,            SUPER,          Button1,        tag,            {0} },
     { ClkTagBar,            SUPER,          Button3,        toggletag,      {0} },
 };
-

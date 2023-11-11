@@ -1,35 +1,35 @@
-Fork of dwm 
+Fork of dwm
 ~-~-~-~-~-~-~-~-~-~-~-
 Implements basic features for the average day user (me) and IS a bit bloated compared to default dwm
 Keybinds are personal preferance
- .______________.
- | Requirements |
- .-~-~-~-~-~-~-~.
-    Optional (requires some modifications):
-        pactl (can be changed)
-        brightnessctl (can be changed)
-        scrot (can be changed)
-   .________________.
-   | Xlib Installed |
-   .~-~-~-~-~-~-~-~-.
- .______________.
- | Installation |
- .-~-~-~-~-~-~-~.
-    Optional:
-        Edit config.mk to match your local setup (dwm is installed into
-        the /usr/local namespace by default).
-        Edit your ~/.bashrc to alias make clean install ex: alias ccmk="sudo make clean install"
+.******\_\_******.
+| Requirements |
+.-~-~-~-~-~-~-~.
+Optional (requires some modifications):
+pactl (can be changed)
+brightnessctl (can be changed)
+scrot (can be changed)
+.******\_\_\_\_******.
+| Xlib Installed |
+.~-~-~-~-~-~-~-~-.
+.******\_\_******.
+| Installation |
+.-~-~-~-~-~-~-~.
+Optional:
+Edit config.mk to match your local setup (dwm is installed into
+the /usr/local namespace by default).
+Edit your ~/.bashrc to alias make clean install ex: alias ccmk="sudo make clean install"
 
     Afterwards enter the following command to build and install dwm:
        ._________________________.
        | sudo make clean install |
        .~-~-~-~-~-~-~-~-~-~-~-~-~.
 
- ._____________.
- | Running dwm |
- .~-~-~-~-~-~-~.
-    Optional:
-        exec picom &
+.******\_******.
+| Running dwm |
+.~-~-~-~-~-~-~.
+Optional:
+exec picom &
 
     Add the following line at the end your ~/.xinitrc to start the wm using startx:
         .__________.
@@ -43,12 +43,12 @@ Keybinds are personal preferance
 
     (This will start the WM on display :1 of the host foo.bar.)
 
- ._______________.
- | Configuration |
- .~-~-~-~-~-~-~-~.
-    Configuration can be done by modifying config.def.h (base config)
-    However you can modify config.h alone, I would only recommend this for non-release personal projects.
-    and (re)compiling the source code.
+.******\_\_\_******.
+| Configuration |
+.~-~-~-~-~-~-~-~.
+Configuration can be done by modifying config.def.h (base config)
+However you can modify config.h alone, I would only recommend this for non-release personal projects.
+and (re)compiling the source code.
 
 Notes :3
 You are intented to use the monocle layout over tiled/floating
