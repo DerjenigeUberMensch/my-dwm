@@ -2086,7 +2086,7 @@ drawTab(int nwins, int first, Monitor *m)
         if(!ISVISIBLE(c)) continue;
         /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
         drw_setscheme(drw, scheme[SchemeAltTab]);
-        middlespacing = centerTabText ? (maxwNeeded - namewpxl[i]) / 2 : 0;
+        middlespacing = centerTabText ? MAX((maxwNeeded - namewpxl[i]),0) / 2 : 0;
         drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, middlespacing, c->name, 0);
         y += maxhNeeded;
     }
