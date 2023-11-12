@@ -17,3 +17,6 @@ _"dwm is an extremely fast, small, and dynamic window manager for X."_
 ## Preview:
 
 ![alttab](/cool_images/alt_tab.png "AltTab.")
+
+
+### NOTE: See experimental for full commit log
