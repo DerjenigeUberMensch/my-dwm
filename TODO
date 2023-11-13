@@ -2,9 +2,9 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-
-*** Compositor behaviour 
+*** Fix resizing windows teleporting when resizing too much
+**  Fix Alt-tab screen artifacts (fullscreen)
+**  Fix scrot screenshotcmd
 **  Rework Window functionality and how floating windows behave
-*   Fix scrot screenshotcmd
 *   Create extra windows? to reduces space from alttab of windows without long names
 *   Small Memory leak when compiled?, inconsistent. further investigation required

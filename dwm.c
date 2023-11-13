@@ -65,7 +65,7 @@
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 /* enums */
-enum { CurResizeBR, CurResizeBL, CurResizeTR, CurResizeTL, CurNormal, CurMove, CurLast }; /* cursor */
+enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
 enum { SchemeNorm, SchemeSel, SchemeAltTab}; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
@@ -1465,18 +1465,21 @@ resizeclient(Client *c, int x, int y, int w, int h)
 void
 resizemouse(const Arg *arg)
 {
-    //int ocx, ocy, nw, nh;
-    int opx = 0; //Omit compiler warnings
-    int opy = 0; //value asigned later
-    int ocx, ocy, och, ocw, nx, ny, nw, nh;
+    int x, y; /*client x, y location */
+    int ocw, och; /*client w and client h */
+    int nw, nh;
+
+    int ocx, ocy;
+    int nx, ny;
+    int horizcorner, vertcorner;
+	int di;
+	unsigned int dui;
+	Window dummy;
+
+
     Client *c;
     Monitor *m;
     XEvent ev;
-    int horizcorner = 0;//Omit compiler warnings
-    int vertcorner = 0; //value asigned later
-    int di;
-    unsigned int dui;
-    Window dummy;
     Time lasttime = 0;
 
     if (!(c = selmon->sel))
@@ -1484,51 +1487,65 @@ resizemouse(const Arg *arg)
     if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
         return;
     restack(selmon);
-    ocx = c->x;
-    ocy = c->y;
+
     ocw = c->w;
     och = c->h;
+	ocx = c->x + c->w;
+	ocy = c->y + c->h;
+
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[horizcorner | (vertcorner << 1)]->cursor, CurrentTime) != GrabSuccess)
+                     None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
         return;
 
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
-        return;
+		return;
+
     horizcorner = nx < c->w / 2;
-    vertcorner  = ny < c->h / 2;
-    XWarpPointer (dpy, None, c->win, 0, 0, 0, 0,
-                  horizcorner ? (-c->bw) : (c->w + c->bw -1),
-                  vertcorner  ? (-c->bw) : (c->h + c->bw -1));
+	vertcorner  = ny < c->h / 2;
+
+    if(!getrootptr(&x, &y))
+        return;
+
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
-        switch(ev.type) {
-        case ConfigureRequest:
-        case Expose:
-        case MapRequest:
-            handler[ev.type](&ev);
-            break;
-        case MotionNotify:
-            if(windowrate != 0)
-            {
-                if ((ev.xmotion.time - lasttime) <= (1000 / 60))
-                    continue;
-                lasttime = ev.xmotion.time;
-            }
-            nx = horizcorner ? (ocx + ev.xmotion.x - opx) : c->x;
-            ny = vertcorner ? (ocy + ev.xmotion.y - opy) : c->y;
-            nw = MAX(horizcorner ? (ocx + ocw - nx) : (ocw + (ev.xmotion.x - opx)), 1);
-            nh = MAX(vertcorner ? (ocy + och - ny) : (och + (ev.xmotion.y - opy)), 1);
+        switch(ev.type)
+        {
+            case ConfigureRequest:
+            case Expose:
+            case MapRequest:
+                handler[ev.type](&ev);
+                break;
+            case MotionNotify:
+                if(windowrate != 0)
+                {
+                    if ((ev.xmotion.time - lasttime) <= (1000 / windowrate))
+                        continue;
+                }
 
-            if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
-                    && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
-            {
-                if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
-                        && (abs(nw - c->w) > snap || abs(nh - c->h) > snap))
-                    togglefloating(NULL);
-            }
-            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-                resizeclient(c, nx, ny, nw, nh);
-            break;
+                lasttime = ev.xmotion.time;
+
+                nw = MAX(ocw + (ev.xmotion.x - x), 1);
+                nh = MAX(och + (ev.xmotion.y - y), 1);
+
+                nx = horizcorner ? ev.xmotion.x : c->x;
+			    ny = vertcorner ? ev.xmotion.y : c->y;
+
+                nw = MAX(horizcorner ? (ocx - nx) : nw, 1);
+                nh = MAX(vertcorner ? (ocy - ny)  : nh, 1);
+			    //nw = MAX(horizcorner ? (ocx - nx) : (ev.xmotion.x - ocx + c->w - 2 * c->bw + 1), 1);
+			    //nh = MAX(vertcorner ? (ocy - ny) : (ev.xmotion.y - ocy + c->h - 2 * c->bw + 1), 1);
+
+                if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
+                        && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
+                {
+                    if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
+                            && (abs(nw - c->w) > snap || abs(nh - c->h) > snap))
+                        togglefloating(NULL);
+                }
+                if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+                    //resize(c, c->x, c->y, nw, nh, 1);
+                    resize(c, nx, ny, nw, nh, 1);
+                break;
         }
     } while (ev.type != ButtonRelease);
     XUngrabPointer(dpy, CurrentTime);
@@ -1539,7 +1556,6 @@ resizemouse(const Arg *arg)
         focus(NULL);
     }
 }
-
 void
 restack(Monitor *m)
 {
@@ -1671,7 +1687,7 @@ setfocus(Client *c)
 void
 setfullscreen(Client *c, int fullscreen)
 {
-    if (!fullscreen && !c->isfullscreen) {
+    if (fullscreen && !c->isfullscreen) {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
         c->isfullscreen = 1;
@@ -1681,7 +1697,7 @@ setfullscreen(Client *c, int fullscreen)
         c->isfloating = 1;
         resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
         XRaiseWindow(dpy, c->win);
-    } else if (fullscreen && c->isfullscreen) {
+    } else if (!fullscreen && c->isfullscreen) {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)0, 0);
         c->isfullscreen = 0;
@@ -1763,11 +1779,7 @@ setup(void)
     netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
     /* init cursors */
     cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
-    //cursor[CurResize] = drw_cur_create(drw, XC_sizing);
-    cursor[CurResizeBR] = drw_cur_create(drw, XC_bottom_right_corner);
-    cursor[CurResizeBL] = drw_cur_create(drw, XC_bottom_left_corner);
-    cursor[CurResizeTR] = drw_cur_create(drw, XC_top_right_corner);
-    cursor[CurResizeTL] = drw_cur_create(drw, XC_top_left_corner);
+    cursor[CurResize] = drw_cur_create(drw, XC_sizing);
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
     /* init appearance */
@@ -1958,8 +1970,8 @@ altTab()
     }
 
     /* redraw tab */
-    XRaiseWindow(dpy, selmon->tabwin);
     drawTab(selmon->nTabs, 0, selmon);
+    XRaiseWindow(dpy, selmon->tabwin);
 }
 
 void
@@ -2248,8 +2260,20 @@ togglefloating(const Arg *arg)
 void
 togglefullscr(const Arg *arg)
 {
-    if(selmon->sel)
-        setfullscreen(selmon->sel, selmon->sel->isfullscreen);
+    Client *c;
+    Monitor *m;
+    m = selmon;
+
+    if(!m->sel)
+        return;
+    for (c = m->clients; c; c = c->next)
+    {
+        if(!ISVISIBLE(c)) continue;
+        /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
+        setfullscreen(c, !c->isfullscreen);
+    }
+    focus(m->sel);
+    restack(m);
 }
 
 void
