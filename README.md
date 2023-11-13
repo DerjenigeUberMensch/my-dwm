@@ -41,7 +41,5 @@ If you feel like **patching** Sd-WM **yourself** you may do so and find **docume
 Once you **finish** `rm config.h` if it exists and **recompile.**
 
 ## Troubleshoot
-This is an **_experimental_** build and may contain bugs, 
-
 You may need libraries such as x11 or "xlib" `sudo pacman -S libx11`
 
