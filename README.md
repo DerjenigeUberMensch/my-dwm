@@ -6,18 +6,32 @@
 
 ## Patches applied:
 
-1. **Actual fullscreen**
-2. **Alt-Tab**
-3. Alt-Tab minimal
-4. **maximize**
-5. **refreshrate**
-6. **resizehere**
-7. **resizecorners**
-8. Easy config
+1.  **Actual fullscreen**
+2.  **Alt Tab**
+3.  **maximize**
+4.  **refreshrate**
+5.  **noborderflicker**
+6.  resize anywhere
+7.  Alt-Tab minimal
 
 ## Preview:
 
 ![alttab](/cool_images/alt_tab.png "AltTab.")
+
+## Requirements
+1. pactl
+2. playerctl
+3. brightnessctl
+4. dmenu
+5. st
+6. scrot   
+7. x11 (xlib)
+
+You can download these via your package manager
+**Pacman && yay **
+```
+sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 && yay -S st
+```
 
 ## Usage 
 To **use** Sd-WM you must first **compile it**.
@@ -43,5 +57,4 @@ Once you **finish** `rm config.h` if it exists and **recompile.**
 ## Troubleshoot
 This is an **_experimental_** build and may contain bugs, 
 
-You may need libraries such as x11 or "xlib" `sudo pacman -S libx11`
-
+It is recommened to have vsync enabled in your compositor or driver settings as to remove tearing issues.

@@ -1,29 +1,32 @@
-/* See LICENSE file for copyright and license details. */
-/*4 Tab spaces; No tab characters use spaces for tabs  */
-
+/* See LICENSE file for copyright and license details. 
+ * 4 Tab spaces; No tab characters use spaces for tabs 
+ * Basic overview of dwm => https://ratfactor.com/dwm  
+ */
 /* appearance */
-static char WM_NAME[]               = "dwm.exe";        /* wm name displayed when using X (type neofetch to see this) */
-static const unsigned int borderpx  = 0;    /* border pixel of windows */
-static const unsigned int snap      = 15;   /* snap pixel */
-static const unsigned int windowrate= 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
-static const int hoverfocus         = 0;    /* 0 to disable; 1 on mouse hover focus that window */
+static char WM_NAME[]               = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
 
-static const int barpadding         = 0;    /* padding in pixels x 2 */
-static const int showbar            = 1;    /* 0 means no bar */
-static const int topbar             = 0;    /* 0 means bottom bar */
-static const int fastinputbar       = 0;    /* 0 means no fastinput; 1 prioritizes input over bar render */
+static const unsigned int borderpx  = 0;    /* border pixel of windows                                          */
+static const unsigned int snap      = 15;   /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
+static const unsigned int windowrate= 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
+static const int hoverfocus         = 0;    /* 1 on mouse hover focus that window; 0 to disable                 */
+
+static const int barpadding         = 0;    /* padding in pixels (both sides)                   */
+static const int showbar            = 1;    /* 1 to show bar; 0 to disable                      */
+static const int topbar             = 0;    /* 0 for bottom bar                                 */
+static const int fastinputbar       = 0;    /* prioritizes input over bar render; 0 to disable  */
+
 static const char *fonts[]          = {"monospace:size=15" };
 static const char dmenufont[]       = "monospace:size=15";
 
 /* alt-tab configuration */
 static const unsigned int tabModKey 		= 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
 static const unsigned int tabCycleKey 		= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
-static const unsigned int tabPosX 			= 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right */
-static const unsigned int tabPosY 			= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top */
-static const unsigned int centerTabText     = 1;    /* 0 to disable */
-static const unsigned int maxWTab 			= 600;	/* MAX tab menu width */
-static const unsigned int maxHTab 			= 200;	/* MAX tab menu height */
-static const unsigned int minWidthDraw      = 0;  /* if (textlength < minWidthDraw): add padding */
+static const unsigned int tabPosX 			= 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right  */
+static const unsigned int tabPosY 			= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top  */
+static const unsigned int centerTabText     = 1;    /* 0 to disable                                             */
+static const unsigned int maxWTab 			= 600;	/* MAX tab menu width                                       */
+static const unsigned int maxHTab 			= 200;	/* MAX tab menu height                                      */
+static const unsigned int minWidthDraw      = 0;    /* Add padding if text length is shorter; 0 to disable      */
 
 static char col_black[]       = "#000000";
 static char col_white[]       = "#ffffff";
@@ -69,6 +72,8 @@ static const Layout layouts[] = {
 #define TAB     XK_Tab
 /* #define ISO_LEVEL5_SHIFT Mod3Mask
  * #define ISO_LEVEL3_SHIFT Mod5Mask */
+
+/* TAGGING IS NOT IMPLEMENT IN THIS BUILD OF DWM and is left for user discretion */
 #define TAGKEYS(KEY,TAG) \
 { SUPER,                       KEY,      view,           {.ui = 1 << TAG} }, \
 { SUPER|CTRL,                  KEY,      toggleview,     {.ui = 1 << TAG} }, \
@@ -88,7 +93,6 @@ static const char *prev_vol[] = { "playerctl", "previous"};
 static const char *brighter[] = { "brightnessctl", "set", "1%+", NULL };
 static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 
-//refer here => https://ratfactor.com/dwm
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, topbar ? NULL : "-b", fastinputbar ? "-f" : NULL, NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */

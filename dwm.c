@@ -99,7 +99,7 @@ struct Client {
     int x, y, w, h;
     int oldx, oldy, oldw, oldh;
     int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
-    int bw, oldbw;
+    int bw, oldbw; /* border width */
     unsigned int tags;
     int ismax, wasfloating, isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
     Client *next;
@@ -261,6 +261,8 @@ static void zoom(const Arg *arg);
 void drawTab(int nwins, int first, Monitor *m);
 void altTabStart(const Arg *arg);
 static void altTabEnd();
+static void logText(char *format);
+static char *smprintf(char *fmt, ...);
 
 /* variables */
 static const char broken[] = "broken";
@@ -1461,14 +1463,21 @@ resizeclient(Client *c, int x, int y, int w, int h)
     configure(c);
     XSync(dpy, False);
 }
-
 void
 resizemouse(const Arg *arg)
 {
-    int x, y; /*client x, y location */
-    int ocw, och; /*client w and client h */
-    int nw, nh;
-
+    /* rcurx, rcury     old x/y Pos for root cursor
+     * ocw/och          old client width/height
+     * nw/nh            new width/height
+     * ocx/ocy          old client posX/posY
+     * nx/ny            new posX/posY
+     * horiz/vert       check if top left/bottom left of screen     
+     * di,dui,dummy     holder vars to pass check (useless aside from check)
+     */ 
+    int rcurx, rcury; 
+    int ocw, och; 
+    int nw, nh;    
+    int minw, minh;
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
@@ -1482,30 +1491,27 @@ resizemouse(const Arg *arg)
     XEvent ev;
     Time lasttime = 0;
 
+    /* client checks */
     if (!(c = selmon->sel))
         return;
     if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
+        return;
+    if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+                     None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
+        return;
+    if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
+		return;
+    if(!getrootptr(&rcurx, &rcury))
         return;
     restack(selmon);
 
     ocw = c->w;
     och = c->h;
-	ocx = c->x + c->w;
-	ocy = c->y + c->h;
+    ocx = c->x;
+    ocy = c->y;
 
-    if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
-        return;
-
-    if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
-		return;
-
-    horizcorner = nx < c->w / 2;
-	vertcorner  = ny < c->h / 2;
-
-    if(!getrootptr(&x, &y))
-        return;
-
+    horizcorner = nx < c->w >> 1;
+	vertcorner  = ny < c->h >> 1;
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
@@ -1521,19 +1527,13 @@ resizemouse(const Arg *arg)
                     if ((ev.xmotion.time - lasttime) <= (1000 / windowrate))
                         continue;
                 }
-
                 lasttime = ev.xmotion.time;
 
-                nw = MAX(ocw + (ev.xmotion.x - x), 1);
-                nh = MAX(och + (ev.xmotion.y - y), 1);
+                nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), 1) : MAX(ocw + (ev.xmotion.x - rcurx), 1);
+    			nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), 1) : MAX(och + (ev.xmotion.y - rcury), 1);
 
-                nx = horizcorner ? ev.xmotion.x : c->x;
-			    ny = vertcorner ? ev.xmotion.y : c->y;
-
-                nw = MAX(horizcorner ? (ocx - nx) : nw, 1);
-                nh = MAX(vertcorner ? (ocy - ny)  : nh, 1);
-			    //nw = MAX(horizcorner ? (ocx - nx) : (ev.xmotion.x - ocx + c->w - 2 * c->bw + 1), 1);
-			    //nh = MAX(vertcorner ? (ocy - ny) : (ev.xmotion.y - ocy + c->h - 2 * c->bw + 1), 1);
+                nx = horizcorner ? ocx + ocw - nw: c->x;
+			    ny = vertcorner  ? ocy + och - nh: c->y;
 
                 if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
                         && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
@@ -1543,7 +1543,6 @@ resizemouse(const Arg *arg)
                         togglefloating(NULL);
                 }
                 if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-                    //resize(c, c->x, c->y, nw, nh, 1);
                     resize(c, nx, ny, nw, nh, 1);
                 break;
         }
@@ -1556,6 +1555,7 @@ resizemouse(const Arg *arg)
         focus(NULL);
     }
 }
+
 void
 restack(Monitor *m)
 {
@@ -2681,6 +2681,42 @@ zoom(const Arg *arg)
     if (c == nexttiled(selmon->clients) && !(c = nexttiled(c->next)))
         return;
     pop(c);
+}
+char *smprintf(char *fmt, ...)
+{
+    va_list fmtargs;
+    char *ret;
+    int len;
+
+    va_start(fmtargs, fmt);
+    len = vsnprintf(NULL, 0, fmt, fmtargs);
+    va_end(fmtargs);
+
+    ret = malloc(++len);
+    if (!ret)
+    {
+        return "Failed to malloc memory at smprintf 'ret'";
+    }
+
+    va_start(fmtargs, fmt);
+    vsnprintf(ret, len, fmt, fmtargs);
+    va_end(fmtargs);
+    return ret;
+}
+void logText(char *text)
+{
+    const char *filename = "dwm.log";
+    FILE *file = fopen(filename, "a");
+    if (!file)
+    {
+        fprintf(stderr, "Error: Unable to open file %s for appending creating file...\n", filename);
+        file = fopen(filename, "w");
+        fclose(file);
+        file = fopen(filename, "a");
+    }
+    fprintf(file, "%s\n", text);  // Append text with newline
+    fclose(file);
+
 }
 
 int
