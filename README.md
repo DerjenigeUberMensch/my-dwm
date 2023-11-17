@@ -28,7 +28,8 @@
 7. x11 (xlib)
 
 You can download these via your package manager
-**Pacman && yay **
+
+**Pacman+yay**
 ```
 sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 && yay -S st
 ```
