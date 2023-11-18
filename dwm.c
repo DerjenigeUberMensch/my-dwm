@@ -66,7 +66,7 @@
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel, SchemeAltTab}; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeUrgent, SchemeWarn, SchemeAltTab, SchemeAltTabSelect}; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
        NetWMWindowTypeDialog, NetClientList, NetLast
@@ -90,7 +90,6 @@ typedef struct {
     void (*func)(const Arg *arg);
     const Arg arg;
 } Button;
-
 typedef struct Monitor Monitor;
 typedef struct Client Client;
 struct Client {
@@ -146,6 +145,7 @@ struct Monitor {
     Monitor *next;
     Window barwin;
     Window tabwin;
+    Window promptwin;
     const Layout *lt[2];
 };
 
@@ -174,13 +174,16 @@ static void configurenotify(XEvent *e);
 static void configurerequest(XEvent *e);
 static Monitor *createmon(void);
 static void destroynotify(XEvent *e);
+static void destroyprompt();
 static void detach(Client *c);
 static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
 static int  drawstatusbar(Monitor *m, int bh, char* text);
+static void drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *message);
 static void enternotify(XEvent *e);
+static void prompt(const char *title, const char *message, int wx, int wy, int ww, int wh);
 static void expose(XEvent *e);
 static void focus(Client *c);
 static void focusin(XEvent *e);
@@ -261,9 +264,11 @@ static void zoom(const Arg *arg);
 void drawTab(int nwins, int first, Monitor *m);
 void altTabStart(const Arg *arg);
 static void altTabEnd();
+
+/* debug */
 static void logText(char *format);
 static char *smprintf(char *fmt, ...);
-
+static void tester(const Arg *arg);
 /* variables */
 static const char broken[] = "broken";
 static char stext[1024];
@@ -696,6 +701,16 @@ destroynotify(XEvent *e)
         unmanage(c, 1);
 }
 
+void 
+destroyprompt()
+{
+    Monitor *m;
+    m = selmon;
+
+    XUnmapWindow(dpy, m->promptwin);
+    XDestroyWindow(dpy, m->promptwin);
+}
+
 void
 detach(Client *c)
 {
@@ -922,6 +937,82 @@ enternotify(XEvent *e)
     } else if (!c || c == selmon->sel)
         return;
     focus(c);
+}
+
+void
+prompt(const char *title, const char *message, int wx, int wy, int ww, int wh) /* buggy fix later */
+{
+    Monitor *m;
+
+    int PROMPT_X;
+    int PROMPT_Y;
+    int PROMPT_W;
+    int PROMPT_H;
+    
+    m = selmon;
+
+    PROMPT_W = m->ww / 3;
+    PROMPT_H = m->wh / 3;
+
+    PROMPT_X = m->mx / 3;
+    PROMPT_Y = m->my / 3;
+
+	if(!message)
+    {
+		logText("WARN: No message in prompt");
+		return;
+    }
+	if(!title)
+		title = message;
+	if(!wx)
+		wx = PROMPT_X;
+	if(!wy)
+		wy = PROMPT_Y;
+	if(!ww)
+		ww = PROMPT_W;
+	if(!wh)
+		wh = PROMPT_H;
+	drawprompt(wx, wy ,ww, wh, title, message);
+}
+
+void 
+drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *message)
+{
+    /* w		window
+     * wa 		window attributes
+     * m 		Current Monitor
+     * m->promptwin prompt obj in Curent monitor struct
+     * tbh      top window bar height
+     */
+    if(selmon->sel->isfullscreen)
+        {return;}
+
+    Monitor *m;
+    int tbh;
+    int middlespacing;
+    m = selmon;
+    tbh = drw->fonts->h + 2; /* 2px padding */
+    XSetWindowAttributes wa =
+    {
+        .override_redirect = True,
+        .background_pixmap = ParentRelative,
+        .event_mask = ButtonPressMask|ExposureMask
+    };
+
+    m->promptwin = XCreateWindow(dpy, root, wx, wy, ww, wh , 2, DefaultDepth(dpy, screen),
+            CopyFromParent, DefaultVisual(dpy, screen),
+            CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
+    XDefineCursor(dpy, m->promptwin, cursor[CurNormal]->cursor);
+    XMapRaised(dpy, m->promptwin);
+
+    middlespacing = MAX(ww - (TEXTW(title) - lrpad), 0) / 2;
+
+    drw_setscheme(drw, scheme[SchemeWarn]);
+    drw_text(drw, 0, 0, ww, tbh, middlespacing, title, 0); 
+    drw_setscheme(drw, scheme[SchemeWarn]);
+    drw_text(drw, 0, tbh, ww, 0, 0, message, 0);
+    drw_map(drw, m->promptwin, 0, 0, ww, wh);
+    XRaiseWindow(dpy, m->promptwin);
 }
 
 void
@@ -1197,7 +1288,6 @@ manage(Window w, XWindowAttributes *wa)
     c->w = c->oldw = wa->width;
     c->h = c->oldh = wa->height;
     c->oldbw = wa->border_width;
-
     updatetitle(c);
     if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
         c->mon = t->mon;
@@ -1477,7 +1567,6 @@ resizemouse(const Arg *arg)
     int rcurx, rcury; 
     int ocw, och; 
     int nw, nh;    
-    int minw, minh;
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
@@ -1711,7 +1800,6 @@ setfullscreen(Client *c, int fullscreen)
         arrange(c->mon);
     }
 }
-
 void
 setlayout(const Arg *arg)
 {
@@ -1959,27 +2047,28 @@ togglehorizontalmax(const Arg *arg) {
 void
 altTab()
 {
+    Monitor *m;
+    Client *c;
+    m = selmon;
+    c = selmon->sel;
     /* move to next window */
-    if (selmon->sel != NULL && selmon->sel->snext != NULL) {
-        selmon->altTabN++;
-        if (selmon->altTabN >= selmon->nTabs)
-            selmon->altTabN = 0; /* reset altTabN */
-
-        focus(selmon->altsnext[selmon->altTabN]);
-        restack(selmon);
+    if (c != NULL && c->snext != NULL) {
+        m->altTabN++;
+        if (m->altTabN >= m->nTabs)
+            m->altTabN = 0; /* reset altTabN */
+        focus(m->altsnext[m->altTabN]);
+        restack(m);
     }
-
     /* redraw tab */
-    drawTab(selmon->nTabs, 0, selmon);
-    XRaiseWindow(dpy, selmon->tabwin);
+    drawTab(m->nTabs, 0, m);
+    XRaiseWindow(dpy, m->tabwin);
 }
 
 void
 altTabEnd()
 {
-    if (selmon->isAlt == 0)
+    if (!selmon->isAlt)
         return;
-
     /*
      * move all clients between 1st and choosen position,
      * one down in stack and put choosen client to the first position
@@ -1995,14 +2084,11 @@ altTabEnd()
                 selmon->altsnext[selmon->altTabN] = selmon->altsnext[0];
             selmon->altsnext[0] = buff;
         }
-
         /* restack clients */
         for (int i = selmon->nTabs - 1; i >= 0; i--) {
             focus(selmon->altsnext[i]);
             restack(selmon);
-
         }
-
         free(selmon->altsnext); /* free list of clients */
     }
 
@@ -2037,7 +2123,7 @@ drawTab(int nwins, int first, Monitor *m)
 
     winopen = m->nTabs; /* windows opened */
     maxwNeeded = 0;
-    maxhNeeded = MIN(drw->fonts->h * m->nTabs, maxHTab);
+    maxhNeeded = MIN(drw->fonts->h * winopen, maxHTab);
     int namewpxl[winopen];
     for(int i = 0; i < winopen; ++i)
     {
@@ -2097,13 +2183,13 @@ drawTab(int nwins, int first, Monitor *m)
         c = m->altsnext[i];
         if(!ISVISIBLE(c)) continue;
         /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
-        drw_setscheme(drw, scheme[SchemeAltTab]);
+        c == selmon->sel ? drw_setscheme(drw, scheme[SchemeAltTabSelect]) : drw_setscheme(drw, scheme[SchemeAltTab]);
         middlespacing = centerTabText ? MAX((maxwNeeded - namewpxl[i]),0) / 2 : 0;
         drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, middlespacing, c->name, 0);
         y += maxhNeeded;
     }
 
-    drw_setscheme(drw, scheme[SchemeNorm]);
+    drw_setscheme(drw, scheme[SchemeNorm]); /* set scheme back to normal */
     drw_map(drw, m->tabwin, 0, 0, selmon->maxWTab, selmon->maxHTab);
 }
 
@@ -2114,7 +2200,7 @@ altTabStart(const Arg *arg)
     if (selmon->tabwin)
         altTabEnd();
 
-    if (selmon->isAlt == 1) {
+    if (selmon->isAlt) {
         altTabEnd();
     } else {
         selmon->isAlt = 1;
@@ -2256,21 +2342,24 @@ togglefloating(const Arg *arg)
     arrange(selmon);
 }
 
-//fullscreen
 void
 togglefullscr(const Arg *arg)
 {
     Client *c;
     Monitor *m;
-    m = selmon;
+    int winmode; /* if fullscreen or not */
 
-    if(!m->sel)
+
+    m = selmon;
+    if(!m->sel) /* no client focused */
         return;
+
+    winmode = !m->sel->isfullscreen;
     for (c = m->clients; c; c = c->next)
     {
         if(!ISVISIBLE(c)) continue;
         /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
-        setfullscreen(c, !c->isfullscreen);
+        setfullscreen(c, winmode);
     }
     focus(m->sel);
     restack(m);
@@ -2718,7 +2807,13 @@ void logText(char *text)
     fclose(file);
 
 }
-
+void tester(const Arg *arg)
+{
+    return;
+    if(selmon->promptwin)
+        destroyprompt();
+    prompt("WARN", "Memory leak", 0, 0, 0, 0);
+}
 int
 main(int argc, char *argv[])
 {
@@ -2743,3 +2838,64 @@ main(int argc, char *argv[])
     XCloseDisplay(dpy);
     return EXIT_SUCCESS;
 }
+/* Screen
+ * screen_num = DefaultScreen(display);
+ * screen_width = DisplayWidth(display, screen_num); 
+ * screen_height = DisplayHeight(display, screen_num);
+ * root_window_id = RootWindow(display, screen_num);
+ * white_pixel_value = WhitePixel(display, screen_num);
+ * black_pixel_value = BlackPixel(display, screen_num);
+ */
+
+/* Windows  (new window with "Window" )
+ * Windows must be created to "exists" and to draw on screen you must map them 
+ * create_win = 		XCreateWindow(display, parent, x, y, width. height , border_width, depth,
+							class, visual, valuemask, attributes );
+ * create_simple_win = 	XCreateSimpleWindow(display, parent, x, y, width, height, border_width,
+								border, background);
+ * map_window = 		XMapWindow(display, win);
+ */ 
+
+/* Events
+* XSelectInput(display, win, ExposureMask);
+* { ExposureEventMask,  ,NotEventMask, 
+* 
+* 
+* 
+* 
+* 
+* 
+*/
+
+/* Graphics Context (GC)
+ * Gc gc; 		 					GC return handler 
+ * XGCValues values;  					values assigned to gc
+ * unsigned long valuemask 					values in values (settings)
+ * 
+ * gc = XCreateGC(display, win, valuemask, &values); 	creates gc
+ * XSetForeground(display, gc, color);  			sets colour of foreground which is usually tied to text colour 
+ * XSetBackground(display, gc, color); 			sets background color
+ * Useless stuff
+ * 
+ * XSetFIllStyle(display, gc, FillType); 			sets fill style, 
+ * {FillSolid, FillTiled, FillStippled, FIllOpaqueStippled}
+ * 
+ * XSetLineAttributes(display, gc, line_width, line_style, cap_style, join_style)
+ * line_style { LineSolid, LineOnOffDash, LineDoubleDash }
+ * cap_style { CapNotLast, CapButt, CapRound, CapProjecting }
+ * join_style { JoinMiter, JoinRound, JoinBevel }
+ * 
+ * XDrawPoint(display, win, gc, x, y);
+ * XDrawLine(display, win, gc, x1, y1, x2, y2); draw from point x1 to x2; y1 to y2
+ * XDrawLines(display, win, gc, points, npoints, CoordmodeType)
+ * XDrawArc(display, win, gc, x, y, w, h, angle1, angle) x - (w/2) for center && y;
+ * XPoint points[] = 
+	{
+		{x, y},
+	};
+*  npoints = sizeof(points)/sizeof(XPoint);
+* XDrawLines(display, win, gc, points, npoints, CoordmodeType)
+* XDrawRectangle(display, win, gc, x, y, width, height); 
+ * XFillRectangle(display, win, gc, ...);
+ */
+

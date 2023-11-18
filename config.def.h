@@ -1,6 +1,6 @@
-/* See LICENSE file for copyright and license details. 
- * 4 Tab spaces; No tab characters use spaces for tabs 
- * Basic overview of dwm => https://ratfactor.com/dwm  
+/* See LICENSE file for copyright and license details.
+ * 4 Tab spaces; No tab characters use spaces for tabs
+ * Basic overview of dwm => https://ratfactor.com/dwm
  */
 /* appearance */
 static char WM_NAME[]               = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
@@ -19,24 +19,34 @@ static const char *fonts[]          = {"monospace:size=15" };
 static const char dmenufont[]       = "monospace:size=15";
 
 /* alt-tab configuration */
-static const unsigned int tabModKey 		= 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
-static const unsigned int tabCycleKey 		= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
-static const unsigned int tabPosX 			= 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right  */
-static const unsigned int tabPosY 			= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top  */
-static const unsigned int centerTabText     = 1;    /* 0 to disable                                             */
-static const unsigned int maxWTab 			= 600;	/* MAX tab menu width                                       */
-static const unsigned int maxHTab 			= 200;	/* MAX tab menu height                                      */
-static const unsigned int minWidthDraw      = 0;    /* Add padding if text length is shorter; 0 to disable      */
+static const unsigned int tabModKey 	= 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
+static const unsigned int tabCycleKey 	= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
+static const unsigned int tabPosX 		= 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right  */
+static const unsigned int tabPosY 		= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top  */
+static const unsigned int centerTabText = 1;    /* 0 to disable                                             */
+static const unsigned int maxWTab 		= 600;	/* MAX tab menu width                                       */
+static const unsigned int maxHTab 		= 200;	/* MAX tab menu height                                      */
+static const unsigned int minWidthDraw  = 0;    /* Add padding if text length is shorter; 0 to disable      */
 
-static char col_black[]       = "#000000";
-static char col_white[]       = "#ffffff";
-/*static char col_term_blue[]   = "#ecffff"; */
-static char *colors[][3]      = {
+static char col_black[]     = "#000000";
+static char col_white[]     = "#ffffff";
+
+static char col_grey[]      = "#C0C0C0";
+static char col_red[]       = "#ff0000";
+static char col_pink[]      = "#FF00FF";
+static char col_blue[]      = "#0000FF";
+static char col_yellow[]    = "#FFFF00";
+/* static char col_term_blue[]   = "#ecffff"; */
+static char *colors[][3] = {
     /*					fg         bg          border   */
     /*                  fg=textColour                   */
-    [SchemeNorm]    = { col_white, col_black, col_white},
-    [SchemeSel]     = { col_white, col_black, col_white},
-    [SchemeAltTab]  = { col_white, col_black, col_white},
+    [SchemeNorm]        = { col_white, col_black, col_white },
+    [SchemeSel]         = { col_white, col_black, col_white },
+    [SchemeUrgent]      = { col_blue,  col_red,   col_blue },
+    [SchemeWarn]        = { col_white, col_yellow, col_white},
+
+    [SchemeAltTab]      = { col_white, col_black, col_black },
+    [SchemeAltTabSelect]= { col_black, col_white, col_white},
 };
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -101,6 +111,7 @@ static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshot
 
 static const Key keys[] = {
     /* modifier                     key        function        argument */
+    { SUPER,                        XK_n,       tester,         {0} },
     { SUPER,                        XK_d,       spawn,          {.v = dmenucmd } },
     { SUPER,                        XK_Return,  spawn,          {.v = termcmd } },
     { SUPER,                        XK_Print,   spawn,          {.v = screenshotcmd } },

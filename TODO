@@ -2,7 +2,8 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-*** Fix Alt-tab screen artifacts (fullscreen)
+*** Fix Alt-tab not working when creating new fullscreen windows
+**  Fix Alt-tab screen artifacts (fullscreen)
 *** Fix scrot screenshotcmd
 **  Rework Window functionality and how floating windows behave
 *   Create extra windows? to reduces space from alttab of windows without long names
