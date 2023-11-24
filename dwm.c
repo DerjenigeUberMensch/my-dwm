@@ -65,16 +65,31 @@
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 /* enums */
-enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel, SchemeUrgent, SchemeWarn, SchemeAltTab, SchemeAltTabSelect}; /* color schemes */
+/* cursor */
+enum { CurNormal, CurResize, CurMove, CurLast }; 
+
+/* color schemes */
+enum {
+    SchemeNorm, SchemeSel,                   /* default */
+    SchemeUrgent, SchemeWarn,                   /* signals */
+    SchemeAltTab, SchemeAltTabSelect,           /* alt tab */
+    SchemeBarTabActive, SchemeBarTabInactive,   /* bar tab */
+    SchemeTagActive, SchemeTagInactive,         /*  tags   */
+}; 
+
+/* EWMH atoms */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMFullscreen, NetActiveWindow, NetWMWindowType,
        NetWMWindowTypeDialog, NetClientList, NetLast
-     }; /* EWMH atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
+     }; 
+
+/* default atoms */
+enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; 
+
+/* clicks */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
        ClkClientWin, ClkRootWin, ClkLast
-     }; /* clicks */
+     }; 
 
 typedef union {
     int i;
@@ -264,10 +279,7 @@ static void zoom(const Arg *arg);
 void drawTab(int nwins, int first, Monitor *m);
 void altTabStart(const Arg *arg);
 static void altTabEnd();
-
 /* debug */
-static void logText(char *format);
-static char *smprintf(char *fmt, ...);
 static void tester(const Arg *arg);
 /* variables */
 static const char broken[] = "broken";
@@ -416,6 +428,108 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
 }
 
 void
+bartabdraw(Monitor *m, Client *c, int unused, int x, int w, int groupactive) {
+	if (!c) return;
+	int i, nclienttags = 0, nviewtags = 0;
+    int isactc; /* active (current) client */
+    int schemetype;
+
+    isactc = c == m->sel;
+    if(BARTAB_SHARE_GROUP_COL)
+    {
+		schemetype = isactc ? SchemeSel : (groupactive ? SchemeBarTabActive: SchemeBarTabInactive);
+    }
+    else
+    {
+        schemetype = !isactc ? SchemeBarTabInactive : SchemeBarTabActive;
+    }
+
+	drw_setscheme(drw, scheme[schemetype]);
+	drw_text(drw, x, 0, w, bh, lrpad / 2, c->name, 0);
+
+	// Floating win indicator
+	if (c->isfloating) drw_rect(drw, x + 2, 2, 5, 5, 0, 0);
+
+	// Optional borders between tabs
+	if (BARTAB_BORDERS) {
+		XSetForeground(drw->dpy, drw->gc, drw->scheme[ColBorder].pixel);
+		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, 0, 1, bh);
+		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x + w, 0, 1, bh);
+	}
+
+	// Optional tags icons
+	for (i = 0; i < LENGTH(tags); i++) {
+		if ((m->tagset[m->seltags] >> i) & 1) { nviewtags++; }
+		if ((c->tags >> i) & 1) { nclienttags++; }
+	}
+	if (BARTAB_TAGSINDICATOR == 2 || nclienttags > 1 || nviewtags > 1) {
+		for (i = 0; i < LENGTH(tags); i++) {
+			drw_rect(drw,
+				( x + w - 2 - ((LENGTH(tags) / BARTAB_TAGSROWS) * BARTAB_TAGSPX)
+					- (i % (LENGTH(tags)/BARTAB_TAGSROWS)) + ((i % (LENGTH(tags) / BARTAB_TAGSROWS)) * BARTAB_TAGSPX)
+				),
+				( 2 + ((i / (LENGTH(tags)/BARTAB_TAGSROWS)) * BARTAB_TAGSPX)
+					- ((i / (LENGTH(tags)/BARTAB_TAGSROWS)))
+				),
+				BARTAB_TAGSPX, BARTAB_TAGSPX, (c->tags >> i) & 1, 0
+			);
+		}
+	}
+}
+
+void
+battabclick(Monitor *m, Client *c, int passx, int x, int w, int unused) {
+	if (passx >= x && passx <= x + w) {
+		focus(c);
+		restack(selmon);
+	}
+}
+
+void
+bartabcalculate(
+	Monitor *m, int offx, int sw, int passx,
+	void(*tabfn)(Monitor *, Client *, int, int, int, int)
+) {
+	Client *c;
+	int
+		i, clientsnmaster = 0, clientsnstack = 0, clientsnfloating = 0,
+		masteractive = 0, fulllayout = 0, floatlayout = 0,
+		x, w, tgactive;
+
+	for (i = 0, c = m->clients; c; c = c->next) {
+		if (!ISVISIBLE(c)) continue;
+		if (c->isfloating) { clientsnfloating++; continue; }
+		if (m->sel == c) { masteractive = i < m->nmaster; }
+		if (i < m->nmaster) { clientsnmaster++; } else { clientsnstack++; }
+		i++;
+	}
+	for (i = 0; i < LENGTH(bartabfloatfns); i++) if (m ->lt[m->sellt]->arrange == bartabfloatfns[i]) { floatlayout = 1; break; }
+	for (i = 0; i < LENGTH(bartabmonfns); i++) if (m ->lt[m->sellt]->arrange == bartabmonfns[i]) { fulllayout = 1; break; }
+	for (c = m->clients, i = 0; c; c = c->next) {
+		if (!ISVISIBLE(c)) continue;
+		if (clientsnmaster + clientsnstack == 0 || floatlayout) {
+			 x = offx + (((m->mw - offx - sw) / (clientsnmaster + clientsnstack + clientsnfloating)) * i);
+			 w = (m->mw - offx - sw) / (clientsnmaster + clientsnstack + clientsnfloating);
+			 tgactive = 1;
+		} else if (!c->isfloating && (fulllayout || ((clientsnmaster == 0) ^ (clientsnstack == 0)))) {
+			 x = offx + (((m->mw - offx - sw) / (clientsnmaster + clientsnstack)) * i);
+			 w = (m->mw - offx - sw) / (clientsnmaster + clientsnstack);
+			 tgactive = 1;
+		} else if (i < m->nmaster && !c->isfloating) {
+			 x = offx + ((((m->mw * m->mfact) - offx) /clientsnmaster) * i);
+			 w = ((m->mw * m->mfact) - offx) / clientsnmaster;
+			 tgactive = masteractive;
+		} else if (!c->isfloating) {
+			 x = (m->mw * m->mfact) + ((((m->mw * (1 - m->mfact)) - sw) / clientsnstack) * (i - m->nmaster));
+			 w = ((m->mw * (1 - m->mfact)) - sw) / clientsnstack;
+			 tgactive = !masteractive;
+		} else continue;
+		tabfn(m, c, passx, x, w, tgactive);
+		i++;
+	}
+}
+
+void
 arrange(Monitor *m)
 {
     if (m)
@@ -479,8 +593,9 @@ buttonpress(XEvent *e)
             click = ClkLtSymbol;
         else if (ev->x > selmon->ww - (int)TEXTW(stext))
             click = ClkStatusText;
-        else
-            click = ClkWinTitle;
+        else /* Focus clicked tab bar item */
+			bartabcalculate(selmon, x, TEXTW(stext) - lrpad + 2, ev->x, battabclick);
+            /* click = ClkWinTitle; */
     } else if ((c = wintoclient(ev->window))) {
         focus(c);
         restack(selmon);
@@ -862,7 +977,7 @@ drawbar(Monitor *m)
 {
     int x, w, tw = 0;
     int boxs = drw->fonts->h / 9;
-    int boxw = drw->fonts->h / 6 + 2;
+    int boxw = drw->fonts->h / 9 + 2;
     unsigned int i, occ = 0, urg = 0;
 
     Client *c;
@@ -883,28 +998,27 @@ drawbar(Monitor *m)
     x = 0;
     for (i = 0; i < LENGTH(tags); i++) {
         w = TEXTW(tags[i]);
-        drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
-        drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
+        drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm ]);
+        drw_text(drw, x, 0, w, bh, lrpad >> 1, tags[i], urg & 1 << i);
+        drw_setscheme(drw, scheme[SchemeTagInactive]);
         if (occ & 1 << i)
-            drw_rect(drw, x + boxs, boxs, boxw, boxw,
-                     m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
-                     urg & 1 << i);
+            drw_rect(drw, x + boxw, MAX(bh - boxw, 0), w - ( ( boxw << 1) + 1), boxw,
+			    m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
+			    urg & 1 << i);
         x += w;
     }
     w = TEXTW(m->ltsymbol);
     drw_setscheme(drw, scheme[SchemeNorm]);
-    x = drw_text(drw, x, 0, w, bh, lrpad / 2, m->ltsymbol, 0);
+    x = drw_text(drw, x, 0, w, bh, lrpad >> 1, m->ltsymbol, 0);
+    /* Draw bartabgroups */
+    drw_rect(drw, x, 0, m->ww - tw - x, bh, 1, 1);
 
     if ((w = m->ww - tw - x) > bh) {
-        if (m->sel) {
-            drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]);
-            drw_text(drw, x, 0, w, bh, lrpad / 2, m->sel->name, 0);
-            if (m->sel->isfloating)
-                drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
-        } else {
-            drw_setscheme(drw, scheme[SchemeNorm]);
-            drw_rect(drw, x, 0, w, bh, 1, 1);
-        }
+        bartabcalculate(m, x, tw, -1, bartabdraw);
+		if (BARTAB_BOTTOMBORDER) {
+			drw_setscheme(drw, scheme[SchemeBarTabActive]);
+			drw_rect(drw, 0, bh - 1, m->ww, 1, 1, 0);
+ 		}
     }
     drw_map(drw, m->barwin, 0, 0, m->ww, bh);
 }
@@ -959,7 +1073,7 @@ prompt(const char *title, const char *message, int wx, int wy, int ww, int wh) /
 
 	if(!message)
     {
-		logText("WARN: No message in prompt");
+		syslog("WARN: No message in prompt");
 		return;
     }
 	if(!title)
@@ -2120,10 +2234,12 @@ drawTab(int nwins, int first, Monitor *m)
     int maxhNeeded;
     int maxwNeeded;
     int winopen;
+    int txtpad; /*text padding */
 
     winopen = m->nTabs; /* windows opened */
     maxwNeeded = 0;
     maxhNeeded = MIN(drw->fonts->h * winopen, maxHTab);
+    txtpad = 0;
     int namewpxl[winopen];
     for(int i = 0; i < winopen; ++i)
     {
@@ -2146,29 +2262,26 @@ drawTab(int nwins, int first, Monitor *m)
         selmon->maxHTab = maxHTab;
 
         /* decide position of tabwin */
-        int posX = selmon->mx;
-        int posY = selmon->my;
+        int posx = selmon->mx;
+        int posy = selmon->my;
 
-        if (tabPosX == 1)
-            posX += (selmon->mw / 2) - (maxwNeeded / 2);
-        else if(tabPosX == 0)
-            posX += 0;
-        else if(tabPosX == 2)
-            posX += selmon->mw - maxwNeeded;
-
-        if (tabPosY == 1)
-            posY += (selmon->mh / 2) - (maxHTab / 2);
-        else if (tabPosY == 0)
-            posY += selmon->mh - maxHTab;
-        else if (tabPosY == 2)
-            posY += 0;
-
+        switch(tabposx)
+        {   case 0: posx += 0;                                      break;
+            case 1: posx += (selmon->mw >> 1) - (maxwNeeded >> 1);  break;
+            case 2: posx += selmon->mw - maxwNeeded;                break;
+            default: posx += 0;                                     break;
+        }
+        switch(tabposy)
+        {   case 0: posy += selmon->mh - maxHTab;               break;
+            case 1: posy += (selmon->mh >> 1) - (maxHTab >> 1); break;
+            case 2: posy += 0;                                  break;
+        }
         if (showbar)
-            posY+=bh;
+            posy+=bh;
         //h = selmon->maxHTab;
 
         /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
-        m->tabwin = XCreateWindow(dpy, root, posX, posY, maxwNeeded, maxhNeeded, 2, DefaultDepth(dpy, screen),
+        m->tabwin = XCreateWindow(dpy, root, posx, posy, maxwNeeded, maxhNeeded, 2, DefaultDepth(dpy, screen),
                                   CopyFromParent, DefaultVisual(dpy, screen),
                                   CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa); /* create tabwin */
 
@@ -2176,16 +2289,23 @@ drawTab(int nwins, int first, Monitor *m)
         XMapRaised(dpy, m->tabwin);
     }
     int y = 0;
-    int middlespacing;
-
     maxhNeeded/=winopen;
+
     for (int i = 0; i < winopen; i++) { /* draw all clients into tabwin */
         c = m->altsnext[i];
         if(!ISVISIBLE(c)) continue;
         /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
-        c == selmon->sel ? drw_setscheme(drw, scheme[SchemeAltTabSelect]) : drw_setscheme(drw, scheme[SchemeAltTab]);
-        middlespacing = centerTabText ? MAX((maxwNeeded - namewpxl[i]),0) / 2 : 0;
-        drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, middlespacing, c->name, 0);
+        if(!(c == selmon->sel))
+            drw_setscheme(drw, scheme[SchemeAltTab]);
+        else
+            drw_setscheme(drw, scheme[SchemeAltTabSelect]);
+
+        switch(tabtextposx)
+        {   case 0: txtpad = 0;                                     break;
+            case 1: txtpad = MAX(maxwNeeded - namewpxl[i], 0) >> 1; break;
+            case 2: txtpad = MAX(maxwNeeded - namewpxl[i], 0);      break;
+        }
+        drw_text(drw, 0, y, selmon->maxWTab, maxhNeeded, txtpad, c->name, 0);
         y += maxhNeeded;
     }
 
@@ -2250,10 +2370,10 @@ altTabStart(const Arg *arg)
                 while (grabbed) {
                     XNextEvent(dpy, &event);
                     if (event.type == KeyPress || event.type == KeyRelease) {
-                        if (event.type == KeyRelease && event.xkey.keycode == tabModKey) { /* if super key is released break cycle */
+                        if (event.type == KeyRelease && event.xkey.keycode == tabmodkey) { /* if super key is released break cycle */
                             break;
                         } else if (event.type == KeyPress) {
-                            if (event.xkey.keycode == tabCycleKey) {/* if XK_s is pressed move to the next window */
+                            if (event.xkey.keycode == tabcyclekey) {/* if XK_s is pressed move to the next window */
                                 altTab();
                             }
                         }
@@ -2771,43 +2891,9 @@ zoom(const Arg *arg)
         return;
     pop(c);
 }
-char *smprintf(char *fmt, ...)
-{
-    va_list fmtargs;
-    char *ret;
-    int len;
 
-    va_start(fmtargs, fmt);
-    len = vsnprintf(NULL, 0, fmt, fmtargs);
-    va_end(fmtargs);
-
-    ret = malloc(++len);
-    if (!ret)
-    {
-        return "Failed to malloc memory at smprintf 'ret'";
-    }
-
-    va_start(fmtargs, fmt);
-    vsnprintf(ret, len, fmt, fmtargs);
-    va_end(fmtargs);
-    return ret;
-}
-void logText(char *text)
-{
-    const char *filename = "dwm.log";
-    FILE *file = fopen(filename, "a");
-    if (!file)
-    {
-        fprintf(stderr, "Error: Unable to open file %s for appending creating file...\n", filename);
-        file = fopen(filename, "w");
-        fclose(file);
-        file = fopen(filename, "a");
-    }
-    fprintf(file, "%s\n", text);  // Append text with newline
-    fclose(file);
-
-}
-void tester(const Arg *arg)
+void 
+tester(const Arg *arg)
 {
     return;
     if(selmon->promptwin)
@@ -2831,7 +2917,7 @@ main(int argc, char *argv[])
 #ifdef __OpenBSD__
     if (pledge("stdio rpath proc exec", NULL) == -1)
         die("pledge");
-#endif /* __OpenBSD__ */
+#endif 
     scan();
     run();
     cleanup();
