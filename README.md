@@ -11,6 +11,11 @@
 3.  **maximize**
 4.  **refreshrate**
 5.  **noborderflicker**
+6.  **activetagindicatorbar**
+7.  **activemonitor**
+8.  **bartabgroups**
+
+
 6.  resize anywhere
 7.  Alt-Tab minimal
 
@@ -26,11 +31,13 @@
 5. st
 6. scrot   
 7. x11 (xlib)
-
+8. xorg
+9. xorg-xinit
+10. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
 You can download these via your package manager
 **Pacman && yay **
 ```
-sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 && yay -S st
+sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit && yay -S st
 ```
 
 ## Usage 

@@ -5,28 +5,28 @@
 /* appearance */
 static char WM_NAME[]               = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
 
-static const unsigned int borderpx  = 0;    /* border pixel of windows                                          */
-static const unsigned int snap      = 15;   /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
-static const unsigned int windowrate= 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
-static const int hoverfocus         = 0;    /* 1 on mouse hover focus that window; 0 to disable                 */
+static unsigned int borderpx  = 0;    /* border pixel of windows                                          */
+static unsigned int snap      = 15;   /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
+static unsigned int windowrate= 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
+static int hoverfocus         = 0;    /* 1 on mouse hover focus that window; 0 to disable                 */
 
-static const int barpadding         = 0;    /* padding in pixels (both sides)                   */
-static const int showbar            = 1;    /* 1 to show bar; 0 to disable                      */
+static int barpadding         = 0;    /* padding in pixels (both sides)                   */
+static int showbar            = 1;    /* 1 to show bar; 0 to disable                      */
 static const int topbar             = 0;    /* 0 for bottom bar                                 */
 static const int fastinputbar       = 0;    /* prioritizes input over bar render; 0 to disable  */
 
-static const char *fonts[]          = {"monospace:size=15" };
-static const char dmenufont[]       = "monospace:size=15";
+static const char *fonts[]          = {"monospace:size=12" };
+static const char dmenufont[]       = "monospace:size=12";
 
 /* alt-tab configuration */
-static const unsigned int tabModKey 	= 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
-static const unsigned int tabCycleKey 	= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
-static const unsigned int tabPosX 		= 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right  */
-static const unsigned int tabPosY 		= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top  */
-static const unsigned int centerTabText = 1;    /* 0 to disable                                             */
-static const unsigned int maxWTab 		= 600;	/* MAX tab menu width                                       */
-static const unsigned int maxHTab 		= 200;	/* MAX tab menu height                                      */
-static const unsigned int minWidthDraw  = 0;    /* Add padding if text length is shorter; 0 to disable      */
+static unsigned int tabmodkey = 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
+static unsigned int tabcyclekey= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
+static unsigned int tabposx         = 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right  */
+static unsigned int tabposy 		= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top  */
+static unsigned int tabtextposx     = 1;    /* tab position on x axis, 0 = left , 1 = center, 2 = right */
+static unsigned int maxWTab 		= 600;	/* MAX tab menu width                                       */
+static unsigned int maxHTab 		= 200;	/* MAX tab menu height                                      */
+static unsigned int minWidthDraw    = 0;    /* Add padding if text length is shorter; 0 to disable      */
 
 static char col_black[]     = "#000000";
 static char col_white[]     = "#ffffff";
@@ -47,6 +47,12 @@ static char *colors[][3] = {
 
     [SchemeAltTab]      = { col_white, col_black, col_black },
     [SchemeAltTabSelect]= { col_black, col_white, col_white},
+
+    [SchemeBarTabActive]   = { col_black, col_white, col_white},
+	[SchemeBarTabInactive] = { col_white, col_black, col_black },
+    [SchemeTagActive]      = { col_black, col_white, col_white},
+    [SchemeTagInactive]    = { col_white, col_black, col_black }
+
 };
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -59,6 +65,19 @@ static const Rule rules[] = {
     /* class      instance    title       tags mask     isfloating   monitor */
     { "Gimp",     NULL,       NULL,       0,            1,           -1 },
 };
+
+/* Bartab */
+static const int BARTAB_BORDERS = 1;                /* 1 to show borders; 0 to disable          */
+static const int BARTAB_BOTTOMBORDER = 1;           /* 1 to show bottom border; 0 to disable    */
+static const int BARTAB_TAGSINDICATOR = 1;          /* 1 to show tags in tabs; 0 to disable     */
+static const int BARTAB_TAGSPX = 5;                 /* # pixels for tag grid boxes              */
+static const int BARTAB_TAGSROWS= 3;                /* # rows in tag grid (9 tags, e.g. 3x3)    */
+static const int BARTAB_SHARE_GROUP_COL = 0;        /* 1 same window type share same colour; 0 to disable  (recommended) */
+static void (*bartabmonfns[])(Monitor *) = { monocle /* , customlayoutfn */ };
+static void (*bartabfloatfns[])(Monitor *) = { NULL /* , customlayoutfn */ };
+
+
+
 
 /* layout(s) */
 static const float mfact     = 0.55; /* factor of master area size [0.05..0.95]      */
