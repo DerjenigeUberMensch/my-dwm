@@ -27,6 +27,7 @@ static unsigned int tabtextposx     = 1;    /* tab position on x axis, 0 = left 
 static unsigned int maxWTab 		= 600;	/* MAX tab menu width                                       */
 static unsigned int maxHTab 		= 200;	/* MAX tab menu height                                      */
 static unsigned int minWidthDraw    = 0;    /* Add padding if text length is shorter; 0 to disable      */
+static unsigned int tabshowpreview  = 1;    /* shows window preview when alt tabbing */
 
 static char col_black[]     = "#000000";
 static char col_white[]     = "#ffffff";
