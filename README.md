@@ -14,10 +14,8 @@
 6.  **activetagindicatorbar**
 7.  **activemonitor**
 8.  **bartabgroups**
-
-
-6.  resize anywhere
-7.  Alt-Tab minimal
+9.  resize anywhere
+10.  Alt-Tab minimal
 
 ## Preview:
 
