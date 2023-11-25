@@ -50,7 +50,7 @@ static char *colors[][3] = {
     [SchemeAltTabSelect]= { col_black, col_white, col_white},
 
     [SchemeBarTabActive]   = { col_black, col_white, col_white},
-	[SchemeBarTabInactive] = { col_white, col_black, col_black },
+    [SchemeBarTabInactive] = { col_white, col_black, col_black },
     [SchemeTagActive]      = { col_black, col_white, col_white},
     [SchemeTagInactive]    = { col_white, col_black, col_black }
 
@@ -76,9 +76,6 @@ static const int BARTAB_TAGSROWS= 3;                /* # rows in tag grid (9 tag
 static const int BARTAB_SHARE_GROUP_COL = 0;        /* 1 same window type share same colour; 0 to disable  (recommended) */
 static void (*bartabmonfns[])(Monitor *) = { monocle /* , customlayoutfn */ };
 static void (*bartabfloatfns[])(Monitor *) = { NULL /* , customlayoutfn */ };
-
-
-
 
 /* layout(s) */
 static const float mfact     = 0.55; /* factor of master area size [0.05..0.95]      */
