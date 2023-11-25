@@ -4,11 +4,6 @@
 
 **_Not for long._**
 
-# NOTE 
-Due to the fact that I no longer hold the current experimental build due to personal reasons.
-
-Future development will be slowed greatly(temporarily) as I focus on recovering and rebuilding back to the previous state of my machine.
-
 ## Patches applied:
 
 1. **Actual fullscreen**
