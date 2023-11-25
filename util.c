@@ -37,23 +37,23 @@ ecalloc(size_t nmemb, size_t size)
 char *
 smprintf(char *fmt, ...)
 {
-	va_list fmtargs;
-	char *ret;
-	int len;
+    va_list fmtargs;
+    char *ret;
+    int len;
 
-	va_start(fmtargs, fmt);
-	len = vsnprintf(NULL, 0, fmt, fmtargs);
-	va_end(fmtargs);
+    va_start(fmtargs, fmt);
+    len = vsnprintf(NULL, 0, fmt, fmtargs);
+    va_end(fmtargs);
 
-	ret = malloc(++len);
-	if(!ret)
-		return "Failed to malloc memory at smprintf 'ret'";
-	va_start(fmtargs, fmt);
-	vsnprintf(ret, len, fmt, fmtargs);
-	va_end(fmtargs);
-	return ret;
+    ret = malloc(++len);
+    if(!ret)
+        return "Failed to malloc memory at smprintf 'ret'";
+    va_start(fmtargs, fmt);
+    vsnprintf(ret, len, fmt, fmtargs);
+    va_end(fmtargs);
+    return ret;
 }
-void 
+void
 syslog(char *text)
 {
     const char *filename = "~/.config/dwm/dwm.log";
@@ -69,4 +69,3 @@ syslog(char *text)
     fclose(file);
 
 }
-
