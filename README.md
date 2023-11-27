@@ -48,13 +48,11 @@ Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 ## Compiling
 1. Clone this repository: 
 https://github.com/DerjenigeUberMensch/Sd-WM.git
-2. `cd Sd-WM` into the repository
+2. ```cd Sd-WM``` into the repository
+3. ```git checkout origin/Experimental```
 3. Configure it See **Configuration** (Optional)
 4. `sudo make clean install` to compiled
-5. Ignore any warnings (compiled with O0)
-5. Enjoy!
-
-*-O1+ compilation not fully supported.*
+6. Enjoy!
 
 ## Configuration
 To **configure** Sd-WM head on over to `config.def.h` and change the variables there to fit your needs.
