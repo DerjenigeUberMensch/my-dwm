@@ -34,7 +34,8 @@
 9. xorg-xinit
 10. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
 You can download these via your package manager
-**Pacman && yay **
+
+**Pacman && yay**
 ```
 sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit && yay -S st
 ```
