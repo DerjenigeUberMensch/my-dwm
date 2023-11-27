@@ -5,13 +5,13 @@
 /* appearance */
 static char WM_NAME[]               = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
 
-static unsigned int borderpx  = 0;    /* border pixel of windows                                          */
-static unsigned int snap      = 15;   /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
-static unsigned int windowrate= 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
-static int hoverfocus         = 0;    /* 1 on mouse hover focus that window; 0 to disable                 */
+static unsigned int borderpx        = 0;    /* border pixel of windows                                          */
+static unsigned int snap            = 15;   /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
+static unsigned int windowrate      = 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
+static int hoverfocus               = 0;    /* 1 on mouse hover focus that window; 0 to disable                 */
 
-static int barpadding         = 0;    /* padding in pixels (both sides)                   */
-static int showbar            = 1;    /* 1 to show bar; 0 to disable                      */
+static int barpadding               = 0;    /* padding in pixels (both sides)                   */
+static int showbar                  = 1;    /* 1 to show bar; 0 to disable                      */
 static const int topbar             = 0;    /* 0 for bottom bar                                 */
 static const int fastinputbar       = 0;    /* prioritizes input over bar render; 0 to disable  */
 
@@ -19,8 +19,8 @@ static const char *fonts[]          = {"monospace:size=12" };
 static const char dmenufont[]       = "monospace:size=12";
 
 /* alt-tab configuration */
-static unsigned int tabmodkey = 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
-static unsigned int tabcyclekey= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
+static unsigned int tabmodkey       = 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
+static unsigned int tabcyclekey     = 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
 static unsigned int tabposx         = 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right  */
 static unsigned int tabposy 		= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top  */
 static unsigned int tabtextposx     = 1;    /* tab position on x axis, 0 = left , 1 = center, 2 = right */
@@ -89,7 +89,6 @@ static const Layout layouts[] = {
     { "[F]",      NULL },    /* no layout function means floating behavior */
     { "[M]",      monocle },
 };
-
 /* key definitions */
 #define ALT     Mod1Mask
 #define NUMLOCK Mod2Mask

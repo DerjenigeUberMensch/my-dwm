@@ -14,8 +14,9 @@
 6.  **activetagindicatorbar**
 7.  **activemonitor**
 8.  **bartabgroups**
-9.  resize anywhere
-10.  Alt-Tab minimal
+9.  **stacker**
+10.  resize anywhere
+11.  Alt-Tab minimal
 
 ## Preview:
 
@@ -32,8 +33,8 @@
 8. xorg
 9. xorg-xinit
 10. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
-
-**Pacman && yay**
+You can download these via your package manager
+**Pacman && yay **
 ```
 sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit && yay -S st
 ```

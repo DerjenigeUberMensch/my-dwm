@@ -56,7 +56,7 @@ smprintf(char *fmt, ...)
 void
 syslog(char *text)
 {
-    const char *filename = "~/.config/dwm/dwm.log";
+    const char *filename = "dwm.log";
     FILE *file = fopen(filename, "a");
     if (!file)
     {
