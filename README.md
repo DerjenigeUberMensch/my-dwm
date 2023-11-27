@@ -25,6 +25,7 @@ Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 
 
 ## Compiling
+**NOTE See experimental for current build**
 1. Clone this repository: 
 https://github.com/DerjenigeUberMensch/Sd-WM.git
 2. `cd Sd-WM` into the repository
