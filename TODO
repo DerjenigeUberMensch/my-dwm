@@ -5,7 +5,7 @@
 **  (Fix) Alt-tab not working when creating new fullscreen windows
 **  (Fix) Alt-tab screen artifacts (fullscreen)
 **  (Fix) Alt-tab Add limit to stop undefined behaviour with too many windows
-**  (Fix) Alt-tab Needing to restack everytime (slow)
+**  (Fix) Alt-tab Needing to restack everytime (slow) see stacker patch 'shiftstack'
 **  (Fix) scrot screenshotcmd
 **  Finish conf parser (debug build only)
 *   Rework Window functionality and how floating windows behave
