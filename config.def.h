@@ -2,9 +2,6 @@
  * 4 Tab spaces; No tab characters use spaces for tabs
  * Basic overview of dwm => https://ratfactor.com/dwm
  */
- /* config.mk reminder 
- LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender -lImlib2 
- */
 /* appearance */
 static char WM_NAME[]               = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
 
@@ -17,7 +14,7 @@ static int barpadding               = 0;    /* padding in pixels (both sides)   
 static int showbar                  = 1;    /* 1 to show bar; 0 to disable                      */
 static const int topbar             = 0;    /* 0 for bottom bar                                 */
 static const int fastinputbar       = 0;    /* prioritizes input over bar render; 0 to disable  */
-static const int  ICONSIZE          = 16;            /* icon size */
+static const int ICONSIZE           = 16;            /* icon size */
 static const int ICONSPACING        = 5;          /* space between icon and title */
 static const char *fonts[]          = {"monospace:size=12" };
 static const char dmenufont[]       = "monospace:size=12";
@@ -146,8 +143,8 @@ static const Key keys[] = {
     { SUPER,                        XK_z,       setlayout,      {.v = &layouts[0]} },/* TILED    */
     { SUPER,                        XK_x,       setlayout,      {.v = &layouts[1]} },/* FLOATING */
     { SUPER,                        XK_c,       setlayout,      {.v = &layouts[2]} },/* MONOCLE  */
-    { SUPER,                       XK_g,       setlayout,      {.v = &layouts[3]} },/*GRID*/
-    { SUPER,                       XK_o,       winview,        {0} },
+    { SUPER,                        XK_g,       setlayout,      {.v = &layouts[3]} },/*GRID*/
+    { SUPER,                        XK_o,       winview,        {0} }, /*broken*/
     { 0,                            XK_F11,     togglefullscr,  {0} },
 
     { ALT,             		        TAB,        altTabStart,	{0} },
