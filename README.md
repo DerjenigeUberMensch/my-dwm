@@ -16,6 +16,7 @@
 8.  **bartabgroups**
 9.  **stacker**
 10. **winview**
+11. **grid**
 11. **winicon**
 12.  resize anywhere
 13.  Alt-Tab minimal
