@@ -15,8 +15,10 @@
 7.  **activemonitor**
 8.  **bartabgroups**
 9.  **stacker**
-10.  resize anywhere
-11.  Alt-Tab minimal
+10. **winview**
+11. **winicon**
+12.  resize anywhere
+13.  Alt-Tab minimal
 
 ## Preview:
 
@@ -52,7 +54,7 @@ https://github.com/DerjenigeUberMensch/Sd-WM.git
 3. ```git checkout origin/Experimental```
 3. Configure it See **Configuration** (Optional)
 4. `sudo make clean install` to compiled
-6. Enjoy!
+5. Done.
 
 ## Configuration
 To **configure** Sd-WM head on over to `config.def.h` and change the variables there to fit your needs.
@@ -61,5 +63,4 @@ Once you **finish** `rm config.h` if it exists and **recompile.**
 
 ## Troubleshoot
 This is an **_experimental_** build and may contain bugs, 
-
-It is recommened to have vsync enabled in your compositor or driver settings as to remove tearing issues.
+Screen tearing can be mitigated by using a compositor or by enabling it in your driver setting
