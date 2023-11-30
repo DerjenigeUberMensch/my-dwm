@@ -18,8 +18,10 @@
 10. **winview**
 11. **grid**
 11. **winicon**
-12.  resize anywhere
-13.  Alt-Tab minimal
+12. **restartrig**
+13. **restoreafterrestart**
+14.  resize anywhere
+15.  Alt-Tab minimal
 
 ## Preview:
 

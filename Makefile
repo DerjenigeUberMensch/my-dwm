@@ -17,10 +17,12 @@ options:
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk
+${OBJ}: config.h keybinds.h config.mk
 
 config.h:
 	cp config.def.h $@
+keybinds.h:
+	cp keybinds.def.h $@
 
 dwm: ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS}
@@ -35,6 +37,7 @@ dist: clean
 	tar -cf dwm-${VERSION}.tar dwm-${VERSION}
 	gzip dwm-${VERSION}.tar
 	rm -rf dwm-${VERSION}
+	rm -f *.o *~ 
 
 install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin

@@ -47,7 +47,10 @@ smprintf(char *fmt, ...)
 
     ret = malloc(++len);
     if(!ret)
-        return "Failed to malloc memory at smprintf 'ret'";
+    {
+        perror("smprintf Failed: ");
+        return "NULL";
+    }
     va_start(fmtargs, fmt);
     vsnprintf(ret, len, fmt, fmtargs);
     va_end(fmtargs);
