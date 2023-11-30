@@ -2,6 +2,9 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
+**  Rework makefile
+**  (Fix) Alt-tab not inversing when shifting stack left (bargroups)
+**  (Fix) Alt-tabs (faster) implementation issues with width
 **  (Fix) Alt-tab not working when creating new fullscreen windows
 **  (Fix) Alt-tab screen artifacts (fullscreen)
 **  (Fix) Alt-tab Add limit to stop undefined behaviour with too many windows
