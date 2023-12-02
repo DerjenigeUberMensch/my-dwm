@@ -1,5 +1,7 @@
 
 static void focusmon(const Arg *arg);
+static void focusnext(const Arg *arg);
+static void focusnext(const Arg *arg);
 static void incnmaster(const Arg *arg);
 static void killclient(const Arg *arg);
 static void forcekillclient(const Arg *arg);
@@ -23,7 +25,8 @@ static void toggleview(const Arg *arg);
 static void view(const Arg *arg);
 static void zoom(const Arg *arg);
 static void winview(const Arg* arg);
-void altTabStart(const Arg *arg);
-
+/* static void altTabStart(const Arg *arg); */
+static void alttab(const Arg *arg);
+static void alttabs();
 /* debug */
 static void tester(const Arg *arg);

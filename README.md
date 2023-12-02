@@ -7,7 +7,7 @@
 ## Patches applied:
 
 1.  **Actual fullscreen**
-2.  **Alt Tab**
+2.  **Alt-Tab2**
 3.  **maximize**
 4.  **refreshrate**
 5.  **noborderflicker**

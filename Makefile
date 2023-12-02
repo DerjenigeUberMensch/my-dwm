@@ -21,6 +21,7 @@ ${OBJ}: config.h keybinds.h config.mk
 
 config.h:
 	cp config.def.h $@
+
 keybinds.h:
 	cp keybinds.def.h $@
 
