@@ -56,7 +56,7 @@ static const Key keys[] = {
     { KeyPress,                     SUPER,                        XK_o,         winview,        {0} }, /*broken*/
     { KeyPress,                     0,                            XK_F11,       togglefullscr,  {0} },
 
-    { KeyPress,                     ALT,             		        TAB,        alttab,	{0} },
+    { KeyPress,                     ALT,             		        TAB,        alttabstart,	{0} },
 
     { KeyPress,                     0, XF86XK_AudioMute,                        spawn, {.v = mute_vol } },
     { KeyPress,                     0, XF86XK_AudioLowerVolume,                 spawn, {.v = down_vol } },

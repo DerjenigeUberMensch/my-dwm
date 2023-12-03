@@ -4,9 +4,6 @@
 void
 tester(const Arg *arg)
 {
-    return;
-    if(selmon->promptwin)
-        destroyprompt();
 }
 
 
@@ -95,7 +92,7 @@ movemouse(const Arg *arg)
 
     if (!(c = selmon->sel))
         return;
-    if (c->state == FULLSCREEN) /* no support moving fullscreen windows by mouse */
+    if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
         return;
     restack(selmon);
     ocx = c->x;
@@ -130,17 +127,16 @@ movemouse(const Arg *arg)
                 ny = selmon->wy;
             else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < cfg.snap)
                 ny = selmon->wy + selmon->wh - HEIGHT(c);
-            if (c->state != FLOATING && selmon->lt[selmon->sellt]->arrange
+            if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
                     && (abs(nx - c->x) > cfg.snap || abs(ny - c->y) > cfg.snap))
                 togglefloating(NULL);
-            if (!selmon->lt[selmon->sellt]->arrange || c->state == FLOATING)
+            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
                 resize(c, nx, ny, c->w, c->h, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
-    /* On release dockwindow */
     if(dockablewindow(c))
-        setcstate(selmon->sel, DOCKED);
+        c->isfloating = 0;
     XUngrabPointer(dpy, CurrentTime);
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
         sendmon(c, m);
@@ -187,7 +183,7 @@ resizemouse(const Arg *arg)
     /* client checks */
     if (!(c = selmon->sel))
         return;
-    if (c->state == FULLSCREEN) /* no support resizing fullscreen windows by mouse */
+    if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
         return;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
@@ -231,15 +227,17 @@ resizemouse(const Arg *arg)
             if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
                     && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
             {
-                if (c->state != FLOATING && selmon->lt[selmon->sellt]->arrange
+                if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
                         && (abs(nw - c->w) > cfg.snap || abs(nh - c->h) > cfg.snap))
                     togglefloating(NULL);
             }
-            if (!selmon->lt[selmon->sellt]->arrange || c->state == FLOATING)
+            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
                 resize(c, nx, ny, nw, nh, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
+    if(dockablewindow(c))
+        c->isfloating = 0;
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -291,7 +289,7 @@ spawn(const Arg *arg)
 void
 togglemaximize(const Arg *arg) {
     maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
-    selmon->sel->state = DOCKED;
+    selmon->sel->isfloating = 0;
 }
 
 void
@@ -303,80 +301,8 @@ void
 togglehorizontalmax(const Arg *arg) {
     maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * cfg.borderpx, selmon->sel->h);
 }
-/* maybe works */
 void
-alttab(const Arg *arg)
-{
-    static int alt_tab_direction = 0;
-	view(&(Arg){ .ui = ~0 });
-	focusnext(&(Arg){ .i = alt_tab_direction });
-
-	int grabbed = 1;
-	int grabbed_keyboard = 1000;
-	for (int i = 0; i < 100; i += 1) {
-		struct timespec ts;
-		ts.tv_sec = 0;
-		ts.tv_nsec = 1000000;
-
-		if (grabbed_keyboard != GrabSuccess) {
-			grabbed_keyboard = XGrabKeyboard(dpy, DefaultRootWindow(dpy), True,
-											 GrabModeAsync, GrabModeAsync, CurrentTime);
-		}
-		if (grabbed_keyboard == GrabSuccess) {
-			XGrabButton(dpy, AnyButton, AnyModifier, None, False,
-						BUTTONMASK, GrabModeAsync, GrabModeAsync,
-						None, None);
-			break;
-		}
-		nanosleep(&ts, NULL);
-		if (i == 100 - 1)
-			grabbed = 0;
-	}
-
-	XEvent event;
-	Client *c;
-	Monitor *m;
-	XButtonPressedEvent *ev;
-
-	while (grabbed) {
-		XNextEvent(dpy, &event);
-		switch (event.type) {
-		case KeyPress:
-			if (event.xkey.keycode == cfg.tabcyclekey)
-				focusnext(&(Arg){ .i = alt_tab_direction });
-			break;
-		case KeyRelease:
-			if (event.xkey.keycode == cfg.tabmodkey) {
-				XUngrabKeyboard(dpy, CurrentTime);
-				XUngrabButton(dpy, AnyButton, AnyModifier, None);
-				grabbed = 0;
-				alt_tab_direction = !alt_tab_direction;
-				winview(0);
-			}
-			break;
-	    case ButtonPress:
-			ev = &(event.xbutton);
-			if ((m = wintomon(ev->window)) && m != selmon) {
-				unfocus(selmon->sel, 1);
-				selmon = m;
-				focus(NULL);
-			}
-			if ((c = wintoclient(ev->window)))
-				focus(c);
-			XAllowEvents(dpy, AsyncBoth, CurrentTime);
-			break;
-		case ButtonRelease:
-			XUngrabKeyboard(dpy, CurrentTime);
-			XUngrabButton(dpy, AnyButton, AnyModifier, None);
-			grabbed = 0;
-			alt_tab_direction = !alt_tab_direction;
-			winview(0);
-			break;
-		}
-	}
-}
-void
-altTabStart(const Arg *arg)
+alttabstart(const Arg *arg)
 {
     selmon->altsnext = NULL;
     if (selmon->tabwin)
@@ -492,12 +418,12 @@ togglefloating(const Arg *arg)
     togglefloat = 0;
     if (!c)
         return;
-    if (c->state == FULLSCREEN) /* no support for fullscreen windows */
+    if (c->isfullscreen) /* no support for fullscreen windows */
         return;
-    togglefloat = c->state != FLOATING || c->isfixed;
+    togglefloat = !selmon->sel->isfloating || selmon->sel->isfixed;
     if(togglefloat)
     {
-        setcstate(c, FLOATING);
+        c->isfloating = togglefloat;
         resize(c, c->x, c->y, c->w, c->h, 0);
     }
     arrange(selmon);
@@ -514,11 +440,10 @@ togglefullscr(const Arg *arg)
     if(!m->sel) /* no client focused */
         return;
 
-    winmode = m->sel->state != FULLSCREEN;
+    winmode = !m->sel->isfullscreen;
     for (c = m->clients; c; c = c->next)
     {
         if(!ISVISIBLE(c)) continue;
-        /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
         setfullscreen(c, winmode);
     }
     focus(m->sel);
@@ -569,7 +494,7 @@ zoom(const Arg *arg)
 {
     Client *c = selmon->sel;
 
-    if (!selmon->lt[selmon->sellt]->arrange || !c || c->state == FLOATING)
+    if (!selmon->lt[selmon->sellt]->arrange || !c || c->isfloating)
         return;
     if (c == nexttiled(selmon->clients) && !(c = nexttiled(c->next)))
         return;
