@@ -37,7 +37,7 @@ CFLAGS   = -p -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
 # DEBUG
 #CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
 # SZ
-CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
+#CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
 
 
 
