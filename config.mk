@@ -28,14 +28,13 @@ LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender -lImlib2
 # flags
 # -g -> debug
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -p -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
-
+CFLAGS   = -pg -DNDEBUG -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra
 # Compile for better cpu usage ~1% decrease Xorg cpu usage may cause memory leak
 #CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
 
 # compile for Size
 # DEBUG
-#CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
+# CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
 # SZ
 #CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
 
@@ -44,12 +43,14 @@ CFLAGS   = -p -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
 
 
 # Release
-# CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
+# CFLAGS   = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
-
-LDFLAGS  = ${LIBS}
+#DEBUG 
+LDFLAGS  = -pg ${LIBS}
+#Release
+#LDFLAGS  = ${LIBS}
 
 # compiler and linker
 CC = cc
