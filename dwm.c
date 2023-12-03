@@ -2160,21 +2160,8 @@ dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselecte
 
     isfloating = c->isfloating;
 
-    //Window already docked/non dockable
-    if(!isfloating)
-        return 0;
-
     /* Check if dockable -> same height width, location, as monitor */
-    if(wh != mh)
-        return 0;
-    if(ww != mw)
-        return 0;
-    if(wx != mx)
-        return 0;
-    if(wy != my)
-        return 0;
-
-    return 1;
+    return !(mx - wx + my - wy + mw - ww + mh - wh) * isfloating;
 }
 
 void
@@ -2183,6 +2170,7 @@ maximize(int x, int y, int w, int h) {
 
     if(!selmon->sel || selmon->sel->isfixed)
         return;
+
     XRaiseWindow(dpy, selmon->sel->win);
     if(!selmon->sel->ismax) {
         if(!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
@@ -2195,7 +2183,7 @@ maximize(int x, int y, int w, int h) {
         selmon->sel->oldy = selmon->sel->y;
         selmon->sel->oldw = selmon->sel->w;
         selmon->sel->oldh = selmon->sel->h;
-        resize(selmon->sel, x, y, w, h, True);
+        resize(selmon->sel, x, y, w, h, 1);
         selmon->sel->ismax = 1;
     }
     else {
@@ -2233,18 +2221,12 @@ altTab()
 void
 drawTab(int nwins, int first, Monitor *m)
 {
-    /* little documentation of functions
-     * void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
-     * int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
-     * void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
-     * maxWTab -> config.def.h setting
-     * maxHTab -> config.def.h setting
-     */
     Client *c;
     int maxhNeeded; /*max height needed to draw alt-tab*/
     int maxwNeeded; /*see above (width)*/
     int winopen;    /* windows opened */
     int txtpad;     /*text padding */
+
     winopen = m->nTabs; 
     maxwNeeded = 0;
     maxhNeeded = MIN(lrpad * winopen, cfg.maxhtab); /* breaks with too many clients MAX is not recommended */
@@ -2255,9 +2237,9 @@ drawTab(int nwins, int first, Monitor *m)
 
     for(int i = 0; i < winopen; ++i)
     {
-        cnames[i]  = m->altsnext[i]->name; 
+        cnames[i]   = m->altsnext[i]->name; 
         namewpxl[i] = TEXTW(cnames[i]) - lrpad;
-        maxwNeeded = MAX(namewpxl[i], maxwNeeded);
+        maxwNeeded  = MAX(namewpxl[i], maxwNeeded);
     }
     maxwNeeded = MIN(maxwNeeded + cfg.minwdraw, cfg.maxwtab);
 
