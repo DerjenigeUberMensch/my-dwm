@@ -102,6 +102,11 @@ enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
 enum {  BEFORE, PREVSEL, NEXT,
         FIRST, SECOND, THIRD, LAST
 };
+/* layouts */
+enum 
+{
+    TILED ,FLOATING, MONOCLE, GRID
+};
 typedef union {
     int i;
     unsigned int ui;
@@ -159,7 +164,7 @@ struct Monitor {
     int altTabN;		  /* move that many clients forward */
     int nTabs;			  /* number of active clients in tag */
     int isAlt; 			  /* 1,0 */
-
+    unsigned short layout;
     unsigned int seltags;
     unsigned int sellt;
     unsigned int tagset[2];
@@ -249,6 +254,7 @@ static void scan(void);
 static int  sendevent(Client *c, Atom proto);
 static void sendmon(Client *c, Monitor *m);
 static void setclientstate(Client *c, long state);
+static void setclientlayout(Monitor *m, int layout);
 static void setfocus(Client *c);
 static void setfullscreen(Client *c, int fullscreen);
 static void setup(void);
@@ -1438,7 +1444,6 @@ void
 grid(Monitor *m) {
 	unsigned int i, n, cx, cy, cw, ch, aw, ah, cols, rows;
 	Client *c;
-
 	for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next))
 		n++;
 
@@ -1584,7 +1589,6 @@ monocle(Monitor *m)
 {
     unsigned int n = 0;
     Client *c;
-
     for (c = m->clients; c; c = c->next)
         if (ISVISIBLE(c))
             n++;
@@ -1701,7 +1705,7 @@ savesession(void)
 {
 	FILE *fw = fopen(SESSION_FILE, "w");
 	for (Client *c = selmon->clients; c != NULL; c = c->next) { // get all the clients with their tags and write them to the file
-		fprintf(fw, "%lu %u\n", c->win, c->tags);
+		fprintf(fw, "%lu %u %d\n", c->win, c->tags, c->mon->layout);
 	}
 	fclose(fw);
 }
@@ -1710,9 +1714,10 @@ void
 restoresession(void)
 {
     const int MAX_LENGTH = 23;
-    const int CHECK_SUM = 2;
+    const int CHECK_SUM = 3;
     long unsigned int winId;
 	unsigned int tagsForWin;
+    unsigned int winlayout;
     int check;
 	// restore session
 	FILE *fr = fopen(SESSION_FILE, "r");
@@ -1722,22 +1727,23 @@ restoresession(void)
     /* malloc enough for input*/
 	char *str = malloc(MAX_LENGTH * sizeof(char));
 	while (fscanf(fr, "%[^\n] ", str) != EOF) { // read file till the end
-		check = sscanf(str, "%lu %u", &winId, &tagsForWin);
+		check = sscanf(str, "%lu %u %d", &winId, &tagsForWin, &winlayout);
 		if (check != CHECK_SUM) break;
-		
 		for (Client *c = selmon->clients; c ; c = c->next) { // add tags to every window by winId
 			if (c->win == winId) {
 				c->tags = tagsForWin;
+                c->mon->layout = winlayout;
+                setclientlayout(c->mon, winlayout);
 				break;
 			}
 		}
     }
-
+    setclientlayout(selmon, winlayout);
+    /* fix later */
 	for (Client *c = selmon->clients; c ; c = c->next) { // refocus on windows
 		focus(c);
 		restack(c->mon);
 	}
-
 	for (Monitor *m = selmon; m; m = m->next) // rearrange all monitors
 		arrange(m);
 
@@ -1958,7 +1964,18 @@ sendevent(Client *c, Atom proto)
     }
     return exists;
 }
-
+void
+setclientlayout(Monitor *m, int layout)
+{
+    switch(layout)
+    {
+        case TILED:    m->lt[selmon->sellt] = (Layout *)&layouts[0];break;
+        case FLOATING: m->lt[selmon->sellt] = (Layout *)&layouts[1];break; 
+        case MONOCLE:  m->lt[selmon->sellt] = (Layout *)&layouts[2];break;
+        case GRID:     m->lt[selmon->sellt] = (Layout *)&layouts[3];break;
+    }
+    m->layout = layout;
+}
 void
 setfocus(Client *c)
 {
@@ -2036,7 +2053,7 @@ setup(void)
     netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
     netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
     netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-     netatom[NetWMAlwaysOnTop] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
+    netatom[NetWMAlwaysOnTop] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
     netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
     netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
@@ -2577,7 +2594,6 @@ int
 updategeom(void)
 {
     int dirty = 0;
-
 #ifdef XINERAMA
     if (XineramaIsActive(dpy)) {
         int i, j, n, nn;
@@ -2743,7 +2759,8 @@ updatewindowtype(Client *c)
 {
     Atom state = getatomprop(c, netatom[NetWMState]);
     Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
-
+    if (state == netatom[NetWMAlwaysOnTop])
+        c->isfloating = 1;
     if (state == netatom[NetWMFullscreen])
         setfullscreen(c, 1);
     if (wtype == netatom[NetWMWindowTypeDialog])
@@ -2836,9 +2853,6 @@ xerrorstart(Display *dpy, XErrorEvent *ee)
     die("WARN: another window manager is already running");
     return -1;
 }
-
-
-
 
 int
 main(int argc, char *argv[])

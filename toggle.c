@@ -249,15 +249,32 @@ resizemouse(const Arg *arg)
 void
 setlayout(const Arg *arg)
 {
-    if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
-        selmon->sellt ^= 1;
+    Monitor *m;
+
+    m = selmon;
+
+    if(!m)
+        return;
+
+    if ((!arg || !arg->v || arg->v != m->lt[selmon->sellt]))
+        m->sellt ^= 1;
     if (arg && arg->v)
-        selmon->lt[selmon->sellt] = (Layout *)arg->v;
-    strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, sizeof selmon->ltsymbol);
-    if (selmon->sel)
-        arrange(selmon);
+    {
+        m->lt[selmon->sellt] = (Layout *)arg->v;
+        if(arg->v == &layouts[0])
+            m->layout = TILED;
+        else if(arg->v == &layouts[1])
+            m->layout = FLOATING;
+        else if(arg->v == &layouts[2])
+            m->layout = MONOCLE;
+        else if(arg->v == &layouts[3])
+            m->layout = GRID;
+    }
+    strncpy(m->ltsymbol, m->lt[selmon->sellt]->symbol, sizeof m->ltsymbol);
+    if (m->sel)
+        arrange(m);
     else
-        drawbar(selmon);
+        drawbar(m);
 }
 
 /* arg > 1.0 will set mfact absolutely */
