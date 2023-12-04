@@ -535,37 +535,33 @@ bartabcalculate(
             clientsnfloating++;
             continue;
         }
+        int cposlessmaster = i < m->nmaster;
         if (m->sel == c) {
-            masteractive = i < m->nmaster;
+            masteractive = cposlessmaster;
         }
-        if (i < m->nmaster) {
-            clientsnmaster++;
-        }
-        else {
-            clientsnstack++;
-        }
+        clientsnmaster  += cposlessmaster;
+        clientsnstack   += !cposlessmaster;
         i++;
         mintabdrawsize = MAX(mintabdrawsize, c->icw);
     }
     if(i * mintabdrawsize > (m->mw * (1 - m->mfact)) - sw ) return -1; /* too many tabs to draw */
 
-    for (i = 0; i < LENGTH(bartabfloatfns); i++) if (m ->lt[m->sellt]->arrange == bartabfloatfns[i]) {
-            floatlayout = 1;
-            break;
-        }
-    for (i = 0; i < LENGTH(bartabmonfns); i++) if (m ->lt[m->sellt]->arrange == bartabmonfns[i]) {
-            fulllayout = 1;
-            break;
-        }
+    for (i = 0; i < LENGTH(bartabfloatfns); i++)
+        floatlayout += m->lt[m->sellt]->arrange == bartabfloatfns[i];
+    for (i = 0; i < LENGTH(bartabmonfns); i++) 
+        fulllayout += m->lt[m->sellt]->arrange == bartabmonfns[i];
+
+    int nocms = clientsnstack + clientsnmaster;
+    int fullcms = fulllayout || ((clientsnmaster == 0) ^ (clientsnstack == 0));
     for (c = m->clients, i = 0; c; c = c->next) {
         if (!ISVISIBLE(c)) continue;
-        if (clientsnmaster + clientsnstack == 0 || floatlayout) {
-            x = offx + (((m->mw - offx - sw) / (clientsnmaster + clientsnstack + clientsnfloating)) * i);
-            w = (m->mw - offx - sw) / (clientsnmaster + clientsnstack + clientsnfloating);
+        if (!nocms || floatlayout) {
+            x = offx + (((m->mw - offx - sw) / (nocms + clientsnfloating)) * i);
+            w = (m->mw - offx - sw) / (nocms + clientsnfloating);
             tgactive = 1;
-        } else if (!c->isfloating && (fulllayout || ((clientsnmaster == 0) ^ (clientsnstack == 0)))) {
-            x = offx + (((m->mw - offx - sw) / (clientsnmaster + clientsnstack)) * i);
-            w = (m->mw - offx - sw) / (clientsnmaster + clientsnstack);
+        } else if (!c->isfloating && fullcms) {
+            x = offx + (((m->mw - offx - sw) / (nocms)) * i);
+            w = (m->mw - offx - sw) / (nocms);
             tgactive = 1;
         } else if (i < m->nmaster && !c->isfloating) {
             x = offx + ((((m->mw * m->mfact) - offx) /clientsnmaster) * i);
@@ -2161,7 +2157,7 @@ dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselecte
     isfloating = c->isfloating;
 
     /* Check if dockable -> same height width, location, as monitor */
-    return !(mx - wx + my - wy + mw - ww + mh - wh) * isfloating;
+    return !((mx != wx) + (my != wy) + (mw != ww) + (mh != wh)) * isfloating;
 }
 
 void
