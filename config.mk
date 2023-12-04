@@ -26,9 +26,10 @@ INCS = -I${X11INC} -I${FREETYPEINC}
 LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender -lImlib2 
 
 # flags
+# WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
 # -g -> debug
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -pg -DNDEBUG -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra
+CFLAGS   = -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra
 # Compile for better cpu usage ~1% decrease Xorg cpu usage may cause memory leak
 #CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
 
@@ -43,14 +44,14 @@ CFLAGS   = -pg -DNDEBUG -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra
 
 
 # Release
-# CFLAGS   = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
+#CFLAGS   = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
 #DEBUG 
-LDFLAGS  = -pg ${LIBS}
+#LDFLAGS  = -pg ${LIBS}
 #Release
-#LDFLAGS  = ${LIBS}
+LDFLAGS  = ${LIBS}
 
 # compiler and linker
 CC = cc
