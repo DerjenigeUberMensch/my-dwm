@@ -1,4 +1,3 @@
-//Dynamic window manager(dwm) NOTES:
 /* See LICENSE file for copyright and license details.
  *
  * dynamic window manager is designed like any other X client as well. It is
@@ -472,7 +471,7 @@ bartabdraw(Monitor *m, Client *c, int unused, int x, int w, int groupactive) {
     txtpad*= cfg.btcentertxt * (txtpad < w);
 
     /* if no center tab text fall back else if text too big fall back; */
-    txtpad = !txtpad ? (lrpad >> 1) + iconspacing : MAX(txtpad, 0);/*MAX so text doesnt teleport back*/
+    txtpad = txtpad * MAX(txtpad, 0) + !txtpad * ((lrpad >> 1) + iconspacing);
     drw_text(drw, x, 0, w, bh, txtpad, c->name, 0);
 
     if (c->icon) 
@@ -489,13 +488,9 @@ bartabdraw(Monitor *m, Client *c, int unused, int x, int w, int groupactive) {
     }
 
     // Optional tags icons
-    for (i = 0; i < LENGTH(tags); i++) {
-        if ((m->tagset[m->seltags] >> i) & 1) {
-            nviewtags++;
-        }
-        if ((c->tags >> i) & 1) {
-            nclienttags++;
-        }
+    for (i = 0; i < (int)LENGTH(tags); i++) {
+        nviewtags   += !!((m->tagset[m->seltags] >> i) & 1);
+        nclienttags += !!((c->tags >> i) & 1);
     }
     /* tag indicators */
 
@@ -579,7 +574,7 @@ bartabcalculate(
             tgactive = !masteractive;
         } else continue;
         tabfn(m, c, passx, x, w, tgactive); /* draw tabs */
-        i++;
+        ++i;
     }
     return 0;
 }
@@ -728,15 +723,14 @@ clientmessage(XEvent *e)
 
     if (!c)
         return;
-    if(cme->message_type)
-    {
-
-    }
     if (cme->message_type == netatom[NetWMState]) {
         if (cme->data.l[1] == netatom[NetWMFullscreen]
                 || cme->data.l[2] == netatom[NetWMFullscreen])
             setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
                               || (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
+        if(cme->data.l[1] == netatom[NetWMAlwaysOnTop]
+                || cme->data.l[2] == netatom[NetWMAlwaysOnTop])
+            c->isfloating = 1;
     } else if (cme->message_type == netatom[NetActiveWindow]) {
         if (c != selmon->sel && !c->isurgent)
             seturgent(c, 1);
@@ -1630,46 +1624,45 @@ pop(Client *c)
     focus(c);
     arrange(c->mon);
 }
-
+/* when a window changes properties for what ever reason this is called */
 void
 propertynotify(XEvent *e)
 {
     Client *c;
     Window trans;
     XPropertyEvent *ev = &e->xproperty;
-
-    if ((ev->window == root) && (ev->atom == XA_WM_NAME))
+    int evatxaname;
+    int updatebar;
+    evatxaname = ev->atom == XA_WM_NAME;
+    if ((ev->window == root) && evatxaname)
         updatestatus();
     else if (ev->state == PropertyDelete)
         return; /* ignore */
     else if ((c = wintoclient(ev->window))) {
         switch(ev->atom) 
-        {default: break;
-        case XA_WM_TRANSIENT_FOR:
+        {case XA_WM_TRANSIENT_FOR:
             if (!c->isfloating && (XGetTransientForHint(dpy, c->win, &trans)) &&
                     (c->isfloating = (wintoclient(trans)) != NULL))
                 arrange(c->mon);
             break;
-        case XA_WM_NORMAL_HINTS: c->hintsvalid = 0; break;
-        case XA_WM_HINTS:
-            updatewmhints(c);
-            drawbars();
-            break;
+        case XA_WM_NORMAL_HINTS:c->hintsvalid = 0;              break;
+        case XA_WM_HINTS:       updatewmhints(c); drawbars();   break;
+        default: break;
         }
-        if (ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName])
+        if (evatxaname || ev->atom == netatom[NetWMName])
         {
             updatetitle(c);
-            if (c == c->mon->sel)
-                drawbar(c->mon);
+            updatebar = 1;
         }
-        else if (ev->atom == netatom[NetWMIcon]) 
+        if (ev->atom == netatom[NetWMIcon]) 
         {
 			updateicon(c);
-			if (c == c->mon->sel)
-				drawbar(c->mon);
-		}
+            updatebar = 1;
+        }
         if (ev->atom == netatom[NetWMWindowType])
             updatewindowtype(c);
+        if(updatebar)
+            drawbar(c->mon);
     }
 }
 
@@ -1727,7 +1720,7 @@ restoresession(void)
     /* malloc enough for input*/
 	char *str = malloc(MAX_LENGTH * sizeof(char));
 	while (fscanf(fr, "%[^\n] ", str) != EOF) { // read file till the end
-		check = sscanf(str, "%lu %u %d", &winId, &tagsForWin, &winlayout);
+		check = sscanf(str, "%lu %u %u", &winId, &tagsForWin, &winlayout);
 		if (check != CHECK_SUM) break;
 		for (Client *c = selmon->clients; c ; c = c->next) { // add tags to every window by winId
 			if (c->win == winId) {
@@ -1757,7 +1750,6 @@ void
 restart(void)
 {
     RESTART = 1;
-    savesession();
     quit();
 }
 
@@ -2180,30 +2172,33 @@ dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselecte
 void
 maximize(int x, int y, int w, int h) {
     XEvent ev;
+    Client *c;
 
-    if(!selmon->sel || selmon->sel->isfixed)
+    c = selmon->sel;
+
+    if(!c || c->isfixed)
         return;
 
-    XRaiseWindow(dpy, selmon->sel->win);
-    if(!selmon->sel->ismax) {
-        if(!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
-            selmon->sel->wasfloating = 1;
+    XRaiseWindow(dpy, c->win);
+    if(!c->ismax) {
+        if(!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+            c->wasfloating = 1;
         else {
             togglefloating(NULL);
-            selmon->sel->wasfloating = 0;
+            c->wasfloating = 0;
         }
-        selmon->sel->oldx = selmon->sel->x;
-        selmon->sel->oldy = selmon->sel->y;
-        selmon->sel->oldw = selmon->sel->w;
-        selmon->sel->oldh = selmon->sel->h;
-        resize(selmon->sel, x, y, w, h, 1);
-        selmon->sel->ismax = 1;
+        c->oldx = c->x;
+        c->oldy = c->y;
+        c->oldw = c->w;
+        c->oldh = c->h;
+        resize(c, x, y, w, h, 1);
+        c->ismax = 1;
     }
     else {
-        resize(selmon->sel, selmon->sel->oldx, selmon->sel->oldy, selmon->sel->oldw, selmon->sel->oldh, True);
-        if(!selmon->sel->wasfloating)
+        resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+        if(!c->wasfloating)
             togglefloating(NULL);
-        selmon->sel->ismax = 0;
+        c->ismax = 0;
     }
     drawbar(selmon);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
