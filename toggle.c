@@ -45,7 +45,7 @@ focusnext(const Arg *arg) {
 void
 incnmaster(const Arg *arg)
 {
-    selmon->nmaster = MAX(selmon->nmaster + arg->i, 0);
+    selmon->nmaster = MAX((selmon->nmaster + arg->i), 0);
     arrange(selmon);
 }
 
@@ -88,11 +88,13 @@ movemouse(const Arg *arg)
     Client *c;
     Monitor *m;
     XEvent ev;
-    Time lasttime = 0;
 
-    if (!(c = selmon->sel))
+    Time lasttime = 0;
+    c = selmon->sel;
+
+    if (!c)
         return;
-    if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
+    if (c->state->isfullscreen) /* no support moving fullscreen windows by mouse */
         return;
     restack(selmon);
     ocx = c->x;
@@ -127,16 +129,16 @@ movemouse(const Arg *arg)
                 ny = selmon->wy;
             else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < cfg.snap)
                 ny = selmon->wy + selmon->wh - HEIGHT(c);
-            if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
+            if (!c->state->isfloating && selmon->lt[selmon->sellt]->arrange
                     && (abs(nx - c->x) > cfg.snap || abs(ny - c->y) > cfg.snap))
                 togglefloating(NULL);
-            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+            if (!selmon->lt[selmon->sellt]->arrange || c->state->isfloating)
                 resize(c, nx, ny, c->w, c->h, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     if(dockablewindow(c))
-        c->isfloating = 0;
+        c->state->isfloating = 0;
     XUngrabPointer(dpy, CurrentTime);
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
         sendmon(c, m);
@@ -180,10 +182,11 @@ resizemouse(const Arg *arg)
     XEvent ev;
     Time lasttime = 0;
 
+    c = selmon->sel;
     /* client checks */
-    if (!(c = selmon->sel))
+    if (!c)
         return;
-    if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
+    if (c->state->isfullscreen) /* no support resizing fullscreen windows by mouse */
         return;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
@@ -198,9 +201,9 @@ resizemouse(const Arg *arg)
     och = c->h;
     ocx = c->x;
     ocy = c->y;
-
-    horizcorner = nx < c->w >> 1;
-    vertcorner  = ny < c->h >> 1;
+    
+    horizcorner = nx < c->w >> 1 ? -1 : 1;
+    vertcorner  = ny < c->h >> 1 ? -1 : 1;
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
@@ -211,33 +214,34 @@ resizemouse(const Arg *arg)
             handler[ev.type](&ev);
             break;
         case MotionNotify:
-            if(cfg.windowrate != 0)
+            if(cfg.windowrate)
             {
                 if ((ev.xmotion.time - lasttime) <= (1000 / cfg.windowrate))
                     continue;
+                lasttime = ev.xmotion.time;
             }
-            lasttime = ev.xmotion.time;
+            nw = ocw + (horizcorner * (ev.xmotion.x - rcurx));
+            nh = och + (vertcorner * (ev.xmotion.y - rcury));
+            nw = MAX(nw, 1);
+            nh = MAX(nh, 1);
 
-            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), 1) : MAX(ocw + (ev.xmotion.x - rcurx), 1);
-            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), 1) : MAX(och + (ev.xmotion.y - rcury), 1);
-
-            nx = horizcorner ? ocx + ocw - nw: c->x;
-            ny = vertcorner  ? ocy + och - nh: c->y;
+            nx = horizcorner * (ocx + ocw - nw) + !horizcorner * c->x;
+            ny = vertcorner * (ocy + och - nh) + !vertcorner * c->y;
 
             if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
                     && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
             {
-                if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
+                if (!c->state->isfloating && selmon->lt[selmon->sellt]->arrange
                         && (abs(nw - c->w) > cfg.snap || abs(nh - c->h) > cfg.snap))
                     togglefloating(NULL);
             }
-            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
+            if (!selmon->lt[selmon->sellt]->arrange || c->state->isfloating)
                 resize(c, nx, ny, nw, nh, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     if(dockablewindow(c))
-        c->isfloating = 0;
+        c->state->isfloating = 0;
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -306,7 +310,7 @@ spawn(const Arg *arg)
 void
 togglemaximize(const Arg *arg) {
     maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
-    selmon->sel->isfloating = 0;
+    selmon->sel->state->isfloating = 0;
 }
 
 void
@@ -435,12 +439,12 @@ togglefloating(const Arg *arg)
     togglefloat = 0;
     if (!c)
         return;
-    if (c->isfullscreen) /* no support for fullscreen windows */
+    if (c->state->isfullscreen) /* no support for fullscreen windows */
         return;
-    togglefloat = !selmon->sel->isfloating || selmon->sel->isfixed;
+    togglefloat = !c->state->isfloating || c->state->isfixed;
     if(togglefloat)
     {
-        c->isfloating = togglefloat;
+        c->state->isfloating = togglefloat;
         resize(c, c->x, c->y, c->w, c->h, 0);
     }
     arrange(selmon);
@@ -457,7 +461,7 @@ togglefullscr(const Arg *arg)
     if(!m->sel) /* no client focused */
         return;
 
-    winmode = !m->sel->isfullscreen;
+    winmode = !m->sel->state->isfullscreen;
     for (c = m->clients; c; c = c->next)
     {
         if(!ISVISIBLE(c)) continue;
@@ -511,7 +515,7 @@ zoom(const Arg *arg)
 {
     Client *c = selmon->sel;
 
-    if (!selmon->lt[selmon->sellt]->arrange || !c || c->isfloating)
+    if (!selmon->lt[selmon->sellt]->arrange || !c || c->state->isfloating)
         return;
     if (c == nexttiled(selmon->clients) && !(c = nexttiled(c->next)))
         return;

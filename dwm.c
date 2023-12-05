@@ -58,8 +58,8 @@
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
 #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
-#define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
-        * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
+#define INTERSECT(x,y,w,h,m)    (MAX(0, (MIN((x)+(w),(m)->wx+(m)->ww)) - MAX((x),((m)->wx))) \
+        * MAX(0, MIN(((y)+(h)),((m)->wy+(m)->wh)) - MAX((y),((m)->wy))))
 #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
 #define LENGTH(X)               (sizeof X / sizeof X[0])
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
@@ -92,7 +92,8 @@ enum { NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
      };
 
 /* default atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast };
+enum { WMProtocols, WMDelete, WMState, WMTakeFocus, 
+      WMLast };
 
 /* clicks */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
@@ -139,7 +140,16 @@ struct Client {
     int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
     int bw, oldbw; /* border width */
     unsigned int tags;
-    int ismax, wasfloating, isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+    struct 
+    {
+        unsigned int ismax : 1;
+        unsigned int isfixed : 1;
+        unsigned int isfloating : 1;
+        unsigned int isurgent : 1;
+        unsigned int neverfocus : 1;
+        unsigned int wasfloating : 1;
+        unsigned int isfullscreen : 1;
+    } *state;
     unsigned int icw, ich; Picture icon;
     Client *next;
     Client *snext;
@@ -348,7 +358,7 @@ applyrules(Client *c)
     XClassHint ch = { NULL, NULL };
 
     /* rule matching */
-    c->isfloating = 0;
+    c->state->isfloating = 0;
     c->tags = 0;
     XGetClassHint(dpy, c->win, &ch);
     class    = ch.res_class ? ch.res_class : broken;
@@ -360,7 +370,7 @@ applyrules(Client *c)
                 && (!r->class || strstr(class, r->class))
                 && (!r->instance || strstr(instance, r->instance)))
         {
-            c->isfloating = r->isfloating;
+            c->state->isfloating = r->isfloating;
             c->tags |= r->tags;
             for (m = mons; m && m->num != r->monitor; m = m->next);
             if (m)
@@ -381,8 +391,8 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
     Monitor *m = c->mon;
 
     /* set minimum possible */
-    *w = MAX(1, *w);
-    *h = MAX(1, *h);
+    *w = MAX(1, (*w));
+    *h = MAX(1, (*h));
     if (interact) {
         if (*x > sw)
             *x = sw - WIDTH(c);
@@ -406,7 +416,7 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
         *h = bh;
     if (*w < bh)
         *w = bh;
-    if (cfg.resizehints || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
+    if (cfg.resizehints || c->state->isfloating || !c->mon->lt[c->mon->sellt]->arrange) {
         if (!c->hintsvalid)
             updatesizehints(c);
         /* see last two sentences in ICCCM 4.1.2.3 */
@@ -432,8 +442,8 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
         if (c->inch)
             *h -= *h % c->inch;
         /* restore base dimensions */
-        *w = MAX(*w + c->basew, c->minw);
-        *h = MAX(*h + c->baseh, c->minh);
+        *w = MAX((*w + c->basew), c->minw);
+        *h = MAX((*h + c->baseh), c->minh);
         if (c->maxw)
             *w = MIN(*w, c->maxw);
         if (c->maxh)
@@ -468,18 +478,18 @@ bartabdraw(Monitor *m, Client *c, int unused, int x, int w, int groupactive) {
     drw_setscheme(drw, scheme[schemetype]);
 
     /* set center padding */
-    txtpad = (w - TEXTW(c->name) - iconspacing) >> 1;
+    txtpad = (w - (int)TEXTW(c->name) - iconspacing) >> 1;
     txtpad*= cfg.btcentertxt * (txtpad < w);
 
     /* if no center tab text fall back else if text too big fall back; */
-    txtpad = !txtpad ? (lrpad >> 1) + iconspacing : MAX(txtpad, 0);/*MAX so text doesnt teleport back*/
+    txtpad = txtpad * MAX(txtpad, 0) + !txtpad * ((lrpad >> 1) + iconspacing);
     drw_text(drw, x, 0, w, bh, txtpad, c->name, 0);
 
     if (c->icon) 
         drw_pic(drw, x + (lrpad >> 1), (bh - c->ich) >> 1, c->icw, c->ich, c->icon);
 
     // Floating win indicator
-    if (c->isfloating) drw_rect(drw, x + 2, 2, 5, 5, 0, 0);
+    if (c->state->isfloating) drw_rect(drw, x + 2, 2, 5, 5, 0, 0);
 
     // Optional borders between tabs
     if (cfg.btborders) {
@@ -489,21 +499,17 @@ bartabdraw(Monitor *m, Client *c, int unused, int x, int w, int groupactive) {
     }
 
     // Optional tags icons
-    for (i = 0; i < LENGTH(tags); i++) {
-        if ((m->tagset[m->seltags] >> i) & 1) {
-            nviewtags++;
-        }
-        if ((c->tags >> i) & 1) {
-            nclienttags++;
-        }
+    for (i = 0; i < (int)LENGTH(tags); i++) {
+        nviewtags +=   !!((m->tagset[m->seltags] >> i) & 1);
+        nclienttags += !!((c->tags >> i) & 1);
     }
     /* tag indicators */
 
     if (cfg.bttag == 2 || nclienttags > 1 || nviewtags > 1) {
-        for (i = 0; i < LENGTH(tags); i++) {
+        for (i = 0; i < (int)LENGTH(tags); i++) {
                         /* what */
-            tgx = ( x + w - 2 - ((LENGTH(tags) / cfg.bttagrow) * cfg.bttagpx) - (i % (LENGTH(tags)/cfg.bttagrow)) + ((i % (LENGTH(tags) / cfg.bttagrow)) * cfg.bttagpx));
-            tgy =( 2 + ((i / (LENGTH(tags)/cfg.bttagrow)) * cfg.bttagpx) - ((i / (LENGTH(tags)/cfg.bttagrow))));
+            tgx = ( x + w - 2 - (((int)LENGTH(tags) / cfg.bttagrow) * cfg.bttagpx) - (i % ((int)LENGTH(tags)/cfg.bttagrow)) + ((i % ((int)LENGTH(tags) / cfg.bttagrow)) * cfg.bttagpx));
+            tgy =( 2 + ((i / ((int)LENGTH(tags)/cfg.bttagrow)) * cfg.bttagpx) - ((i / ((int)LENGTH(tags)/cfg.bttagrow))));
             tgw = cfg.bttagpx;
             tgh = cfg.bttagpx;
             tgfilled = (c->tags >> i) & 1;
@@ -533,11 +539,11 @@ bartabcalculate(
        x, w, tgactive;
     int mintabdrawsize;
 
-    mintabdrawsize = TEXTW("..") - lrpad;
+    mintabdrawsize = (int)TEXTW("..") - lrpad;
 
     for (i = 0, c = m->clients; c; c = c->next) {
         if (!ISVISIBLE(c)) continue;
-        if (c->isfloating) {
+        if (c->state->isfloating) {
             clientsnfloating++;
             continue;
         }
@@ -548,13 +554,13 @@ bartabcalculate(
         clientsnmaster  += cposlessmaster;
         clientsnstack   += !cposlessmaster;
         i++;
-        mintabdrawsize = MAX(mintabdrawsize, c->icw);
+        mintabdrawsize = MAX((int)mintabdrawsize, c->icw);
     }
     if(i * mintabdrawsize > (m->mw * (1 - m->mfact)) - sw ) return -1; /* too many tabs to draw */
 
-    for (i = 0; i < LENGTH(bartabfloatfns); i++)
+    for (i = 0; i < (int)LENGTH(bartabfloatfns); i++)
         floatlayout += m->lt[m->sellt]->arrange == bartabfloatfns[i];
-    for (i = 0; i < LENGTH(bartabmonfns); i++) 
+    for (i = 0; i < (int)LENGTH(bartabmonfns); i++) 
         fulllayout += m->lt[m->sellt]->arrange == bartabmonfns[i];
 
     int nocms = clientsnstack + clientsnmaster;
@@ -565,15 +571,15 @@ bartabcalculate(
             x = offx + (((m->mw - offx - sw) / (nocms + clientsnfloating)) * i);
             w = (m->mw - offx - sw) / (nocms + clientsnfloating);
             tgactive = 1;
-        } else if (!c->isfloating && fullcms) {
+        } else if (!c->state->isfloating && fullcms) {
             x = offx + (((m->mw - offx - sw) / (nocms)) * i);
             w = (m->mw - offx - sw) / (nocms);
             tgactive = 1;
-        } else if (i < m->nmaster && !c->isfloating) {
+        } else if (i < m->nmaster && !c->state->isfloating) {
             x = offx + ((((m->mw * m->mfact) - offx) /clientsnmaster) * i);
             w = ((m->mw * m->mfact) - offx) / clientsnmaster;
             tgactive = masteractive;
-        } else if (!c->isfloating) {
+        } else if (!c->state->isfloating) {
             x = (m->mw * m->mfact) + ((((m->mw * (1 - m->mfact)) - sw) / clientsnstack) * (i - m->nmaster));
             w = ((m->mw * (1 - m->mfact)) - sw) / clientsnstack;
             tgactive = !masteractive;
@@ -728,17 +734,16 @@ clientmessage(XEvent *e)
 
     if (!c)
         return;
-    if(cme->message_type)
-    {
-
-    }
     if (cme->message_type == netatom[NetWMState]) {
         if (cme->data.l[1] == netatom[NetWMFullscreen]
                 || cme->data.l[2] == netatom[NetWMFullscreen])
             setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
-                              || (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
+                              || (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->state->isfullscreen)));
+        if(cme->data.l[1] == netatom[NetWMFullscreen] 
+           || cme->data.l[2] == netatom[NetWMFullscreen])
+           c->state->isfloating = 1;
     } else if (cme->message_type == netatom[NetActiveWindow]) {
-        if (c != selmon->sel && !c->isurgent)
+        if (c != selmon->sel && !c->state->isurgent)
             seturgent(c, 1);
     }
 
@@ -781,7 +786,7 @@ configurenotify(XEvent *e)
             updatebars();
             for (m = mons; m; m = m->next) {
                 for (c = m->clients; c; c = c->next)
-                    if (c->isfullscreen)
+                    if (c->state->isfullscreen)
                         resizeclient(c, m->mx, m->my, m->mw, m->mh);
                 XMoveResizeWindow(dpy, m->barwin, m->wx, m->by, m->ww, bh);
             }
@@ -802,7 +807,7 @@ configurerequest(XEvent *e)
     if ((c = wintoclient(ev->window))) {
         if (ev->value_mask & CWBorderWidth)
             c->bw = ev->border_width;
-        else if (c->isfloating || !selmon->lt[selmon->sellt]->arrange) {
+        else if (c->state->isfloating || !selmon->lt[selmon->sellt]->arrange) {
             m = c->mon;
             if (ev->value_mask & CWX) {
                 c->oldx = c->x;
@@ -820,9 +825,9 @@ configurerequest(XEvent *e)
                 c->oldh = c->h;
                 c->h = ev->height;
             }
-            if ((c->x + c->w) > m->mx + m->mw && c->isfloating)
+            if ((c->x + c->w) > m->mx + m->mw && c->state->isfloating)
                 c->x = m->mx + ((m->mw >> 1) - (WIDTH(c) >> 1)); /* center in x direction */
-            if ((c->y + c->h) > m->my + m->mh && c->isfloating)
+            if ((c->y + c->h) > m->my + m->mh && c->state->isfloating)
                 c->y = m->my + ((m->mh >> 1) - (HEIGHT(c) >> 1)); /* center in y direction */
             if ((ev->value_mask & (CWX|CWY)) && !(ev->value_mask & (CWWidth|CWHeight)))
                 configure(c);
@@ -1048,7 +1053,7 @@ drawbar(Monitor *m)
 
     for (c = m->clients; c; c = c->next) {
         occ |= c->tags;
-        if (c->isurgent)
+        if (c->state->isurgent)
             urg |= c->tags;
     }
     x = 0;
@@ -1059,7 +1064,7 @@ drawbar(Monitor *m)
         drw_text(drw, x, 0, w, bh, lrpad >> 1, tags[i], urg & 1 << i);
         drw_setscheme(drw, scheme[SchemeTagInactive]);
         if (occ & 1 << i)
-            drw_rect(drw, x + boxw, MAX(bh - boxw, 0), w - ( ( boxw << 1) + 1), boxw,
+            drw_rect(drw, x + boxw, MAX((bh - boxw), 0), w - ( ( boxw << 1) + 1), boxw,
                      m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
                      urg & 1 << i);
         x += w;
@@ -1085,8 +1090,8 @@ drawbar(Monitor *m)
                         (lrpad >> 1) + (m->sel->icon ? m->sel->icw + cfg.iconspace : 0), m->sel->name, 0);
 			    if (m->sel->icon) 
                     drw_pic(drw, x + (lrpad >> 1), (bh - m->sel->ich) >> 1, m->sel->icw, m->sel->ich, m->sel->icon);
-                if (m->sel->isfloating)
-                    drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
+                if (m->sel->state->isfloating)
+                    drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->state->isfixed, 0);
             }
             else /* else if none selected draw empty bar*/
             {
@@ -1177,7 +1182,7 @@ drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *messag
      * m->promptwin prompt obj in Curent monitor struct
      * tbh      top window bar height
      */
-    if(selmon->sel->isfullscreen)
+    if(selmon->sel->state->isfullscreen)
     {
         return;
     }
@@ -1200,7 +1205,7 @@ drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *messag
     XDefineCursor(dpy, m->promptwin, cursor[CurNormal]->cursor);
     XMapRaised(dpy, m->promptwin);
 
-    middlespacing = MAX(ww - (TEXTW(title) - lrpad), 0) >> 1;
+    middlespacing = MAX((ww - (TEXTW(title) - lrpad)), 0) >> 1;
 
     drw_setscheme(drw, scheme[SchemeWarn]);
     drw_text(drw, 0, 0, ww, tbh, middlespacing, title, 0);
@@ -1230,7 +1235,7 @@ focus(Client *c)
     if (c) {
         if (c->mon != selmon)
             selmon = c->mon;
-        if (c->isurgent)
+        if (c->state->isurgent)
             seturgent(c, 0);
         detachstack(c);
         attachstack(c);
@@ -1542,11 +1547,11 @@ manage(Window w, XWindowAttributes *wa)
     updatewmhints(c);
     XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
     grabbuttons(c, 0);
-    c->wasfloating = 0;
-    c->ismax = 0;
-    if (!c->isfloating)
-        c->isfloating = c->oldstate = trans != None || c->isfixed;
-    if (c->isfloating)
+    c->state->wasfloating = 0;
+    c->state->ismax = 0;
+    if (!c->state->isfloating)
+        c->state->isfloating = c->state->wasfloating = trans != None || c->state->isfixed;
+    if (c->state->isfloating)
         XRaiseWindow(dpy, c->win);
     attach(c);
     attachstack(c);
@@ -1618,7 +1623,7 @@ motionnotify(XEvent *e)
 Client *
 nexttiled(Client *c)
 {
-    for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
+    for (; c && (c->state->isfloating || !ISVISIBLE(c)); c = c->next);
     return c;
 }
 
@@ -1646,8 +1651,8 @@ propertynotify(XEvent *e)
         switch(ev->atom) 
         {default: break;
         case XA_WM_TRANSIENT_FOR:
-            if (!c->isfloating && (XGetTransientForHint(dpy, c->win, &trans)) &&
-                    (c->isfloating = (wintoclient(trans)) != NULL))
+            if (!c->state->isfloating && (XGetTransientForHint(dpy, c->win, &trans)) &&
+                    (c->state->isfloating = (wintoclient(trans)) != NULL))
                 arrange(c->mon);
             break;
         case XA_WM_NORMAL_HINTS: c->hintsvalid = 0; break;
@@ -1727,7 +1732,7 @@ restoresession(void)
     /* malloc enough for input*/
 	char *str = malloc(MAX_LENGTH * sizeof(char));
 	while (fscanf(fr, "%[^\n] ", str) != EOF) { // read file till the end
-		check = sscanf(str, "%lu %u %d", &winId, &tagsForWin, &winlayout);
+		check = sscanf(str, "%lu %u %u", &winId, &tagsForWin, &(winlayout));
 		if (check != CHECK_SUM) break;
 		for (Client *c = selmon->clients; c ; c = c->next) { // add tags to every window by winId
 			if (c->win == winId) {
@@ -1856,7 +1861,7 @@ restack(Monitor *m)
     drawbar(m);
     if (!m->sel)
         return;
-    if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
+    if (m->sel->state->isfloating || !m->lt[m->sellt]->arrange)
         XRaiseWindow(dpy, m->sel->win);
     if (m->lt[m->sellt]->arrange) {
         wc.stack_mode = Below;
@@ -1864,7 +1869,7 @@ restack(Monitor *m)
         for (c = m->stack; c; c = c->snext)
         {
             if(!ISVISIBLE(c)) continue;
-            if (!c->isfloating) 
+            if (!c->state->isfloating) 
             {
                 XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
                 wc.sibling = c->win;
@@ -1979,7 +1984,7 @@ setclientlayout(Monitor *m, int layout)
 void
 setfocus(Client *c)
 {
-    if (!c->neverfocus) {
+    if (!c->state->neverfocus) {
         XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
         XChangeProperty(dpy, root, netatom[NetActiveWindow],
                         XA_WINDOW, 32, PropModeReplace,
@@ -1991,21 +1996,21 @@ setfocus(Client *c)
 void
 setfullscreen(Client *c, int fullscreen)
 {
-    if (fullscreen && !c->isfullscreen) {
+    if (fullscreen && !c->state->isfullscreen) {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
-        c->isfullscreen = 1;
-        c->oldstate = c->isfloating;
+        c->state->isfullscreen = 1;
+        c->state->wasfloating = c->state->isfloating;
         c->oldbw = c->bw;
         c->bw = 0;
-        c->isfloating = 1;
+        c->state->isfloating = 1;
         resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
         XRaiseWindow(dpy, c->win);
-    } else if (!fullscreen && c->isfullscreen) {
+    } else if (!fullscreen && c->state->isfullscreen) {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)0, 0);
-        c->isfullscreen = 0;
-        c->isfloating = c->oldstate;
+        c->state->isfullscreen = 0;
+        c->state->isfloating = c->state->wasfloating;
         c->bw = c->oldbw;
         c->x = c->oldx;
         c->y = c->oldy;
@@ -2099,7 +2104,7 @@ seturgent(Client *c, int urg)
 {
     XWMHints *wmh;
 
-    c->isurgent = urg;
+    c->state->isurgent = urg;
     if (!(wmh = XGetWMHints(dpy, c->win)))
         return;
     wmh->flags = urg ? (wmh->flags | XUrgencyHint) : (wmh->flags & ~XUrgencyHint);
@@ -2115,7 +2120,7 @@ showhide(Client *c)
     if (ISVISIBLE(c)) {
         /* show clients top down */
         XMoveWindow(dpy, c->win, c->x, c->y);
-        if ((!c->mon->lt[c->mon->sellt]->arrange || c->isfloating) && !c->isfullscreen)
+        if ((!c->mon->lt[c->mon->sellt]->arrange || c->state->isfloating) && !c->state->isfullscreen)
             resize(c, c->x, c->y, c->w, c->h, 0);
         showhide(c->snext);
     } else {
@@ -2171,7 +2176,7 @@ dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselecte
     mw = c->mon->ww;
     mh = c->mon->wh;
 
-    isfloating = c->isfloating;
+    isfloating = c->state->isfloating;
 
     /* Check if dockable -> same height width, location, as monitor */
     return !((mx != wx) + (my != wy) + (mw != ww) + (mh != wh)) * isfloating;
@@ -2180,30 +2185,33 @@ dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselecte
 void
 maximize(int x, int y, int w, int h) {
     XEvent ev;
+    Client *c;
 
-    if(!selmon->sel || selmon->sel->isfixed)
+    c = selmon->sel;
+
+    if(!c || c->state->isfixed)
         return;
 
-    XRaiseWindow(dpy, selmon->sel->win);
-    if(!selmon->sel->ismax) {
-        if(!selmon->lt[selmon->sellt]->arrange || selmon->sel->isfloating)
-            selmon->sel->wasfloating = 1;
+    XRaiseWindow(dpy, c->win);
+    if(!c->state->ismax) {
+        if(!selmon->lt[selmon->sellt]->arrange || c->state->isfloating)
+            c->state->wasfloating = 1;
         else {
             togglefloating(NULL);
-            selmon->sel->wasfloating = 0;
+            c->state->wasfloating = 0;
         }
-        selmon->sel->oldx = selmon->sel->x;
-        selmon->sel->oldy = selmon->sel->y;
-        selmon->sel->oldw = selmon->sel->w;
-        selmon->sel->oldh = selmon->sel->h;
-        resize(selmon->sel, x, y, w, h, 1);
-        selmon->sel->ismax = 1;
+        c->oldx = c->x;
+        c->oldy = c->y;
+        c->oldw = c->w;
+        c->oldh = c->h;
+        resize(c, x, y, w, h, 1);
+        c->state->ismax = 1;
     }
     else {
-        resize(selmon->sel, selmon->sel->oldx, selmon->sel->oldy, selmon->sel->oldw, selmon->sel->oldh, True);
-        if(!selmon->sel->wasfloating)
+        resize(c, c->oldx, c->oldy, c->oldw, c->oldh, True);
+        if(!c->state->wasfloating)
             togglefloating(NULL);
-        selmon->sel->ismax = 0;
+        c->state->ismax = 0;
     }
     drawbar(selmon);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
@@ -2242,7 +2250,7 @@ drawTab(int nwins, int first, Monitor *m)
 
     winopen = m->nTabs; 
     maxwNeeded = 0;
-    maxhNeeded = MIN(lrpad * winopen, cfg.maxhtab); /* breaks with too many clients MAX is not recommended */
+    maxhNeeded = MIN((lrpad * winopen), cfg.maxhtab); /* breaks with too many clients MAX is not recommended */
     txtpad = 0;
 
     int namewpxl[winopen]; /* array of each px width for every tab name*/
@@ -2254,7 +2262,7 @@ drawTab(int nwins, int first, Monitor *m)
         namewpxl[i] = TEXTW(cnames[i]) - lrpad;
         maxwNeeded  = MAX(namewpxl[i], maxwNeeded);
     }
-    maxwNeeded = MIN(maxwNeeded + cfg.minwdraw, cfg.maxwtab);
+    maxwNeeded = MIN((maxwNeeded + cfg.minwdraw), cfg.maxwtab);
 
     if (first)
     {
@@ -2305,8 +2313,8 @@ drawTab(int nwins, int first, Monitor *m)
         drw_setscheme(drw, scheme[schemecol]);
         switch(cfg.tabtextposx)
         {case 0: txtpad = 0;                                    break;
-         case 1: txtpad = MAX(maxwNeeded - namewpxl[i], 0) >> 1;break;
-         case 2: txtpad = MAX(maxwNeeded - namewpxl[i], 0);     break;
+         case 1: txtpad = MAX((maxwNeeded - namewpxl[i]), 0) >> 1;break;
+         case 2: txtpad = MAX((maxwNeeded - namewpxl[i]), 0);     break;
         }
         drw_text(drw, 0, y, cfg.maxwtab, maxhNeeded, txtpad, cnames[i], 0);
         y += maxhNeeded;
@@ -2336,7 +2344,7 @@ drawTabs(int nwins, int first, Monitor *m)
     char *cname;    /* client names */
     winopen = m->nTabs; 
     maxwNeeded = 0;
-    maxhNeeded = MIN(lrpad * winopen, cfg.maxhtab); /* breaks with too many clients MAX is not recommended */
+    maxhNeeded = MIN((lrpad * winopen), cfg.maxhtab); /* breaks with too many clients MAX is not recommended */
     txtpad = 0;
     txtsz = 0;
     int y = 0;
@@ -2348,12 +2356,12 @@ drawTabs(int nwins, int first, Monitor *m)
         cname = c->name; 
         txtsz = TEXTW(cname) - lrpad;
         maxwNeeded = MAX(txtsz, maxwNeeded);
-        maxwNeeded = MIN(maxwNeeded + cfg.minwdraw, cfg.maxwtab);
+        maxwNeeded = MIN((maxwNeeded + cfg.minwdraw), cfg.maxwtab);
         if(!ISVISIBLE(c)) continue;
         switch(cfg.tabtextposx)
         {case 0: txtpad = 0;                                break;
-         case 1: txtpad = MAX(maxwNeeded - txtsz, 0) >> 1;  break;
-         case 2: txtpad = MAX(maxwNeeded - txtsz, 0);       break;
+         case 1: txtpad = MAX((maxwNeeded - txtsz), 0) >> 1;  break;
+         case 2: txtpad = MAX((maxwNeeded - txtsz), 0);       break;
         }
         schemecol = !(m->altsnext[i] == selmon->sel) ? SchemeAltTab : SchemeAltTabSelect;
         drw_setscheme(drw, scheme[schemecol]);
@@ -2723,7 +2731,7 @@ updatesizehints(Client *c)
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
     } else
         c->maxa = c->mina = 0.0;
-    c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
+    c->state->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
     c->hintsvalid = 1;
 }
 
@@ -2760,11 +2768,11 @@ updatewindowtype(Client *c)
     Atom state = getatomprop(c, netatom[NetWMState]);
     Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
     if (state == netatom[NetWMAlwaysOnTop])
-        c->isfloating = 1;
+        c->state->isfloating = 1;
     if (state == netatom[NetWMFullscreen])
         setfullscreen(c, 1);
     if (wtype == netatom[NetWMWindowTypeDialog])
-        c->isfloating = 1;
+        c->state->isfloating = 1;
 }
 
 void
@@ -2777,11 +2785,11 @@ updatewmhints(Client *c)
             wmh->flags &= ~XUrgencyHint;
             XSetWMHints(dpy, c->win, wmh);
         } else
-            c->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
+            c->state->isurgent = (wmh->flags & XUrgencyHint) ? 1 : 0;
         if (wmh->flags & InputHint)
-            c->neverfocus = !wmh->input;
+            c->state->neverfocus = !wmh->input;
         else
-            c->neverfocus = 0;
+            c->state->neverfocus = 0;
         XFree(wmh);
     }
 }
