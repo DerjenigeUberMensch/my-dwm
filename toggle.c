@@ -89,8 +89,8 @@ movemouse(const Arg *arg)
     Monitor *m;
     XEvent ev;
     Time lasttime = 0;
-
-    if (!(c = selmon->sel))
+    c = selmon->sel;
+    if (!c)
         return;
     if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
         return;
@@ -179,9 +179,9 @@ resizemouse(const Arg *arg)
     Monitor *m;
     XEvent ev;
     Time lasttime = 0;
-
+    c = selmon->sel;
     /* client checks */
-    if (!(c = selmon->sel))
+    if (!c)
         return;
     if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
         return;
@@ -199,8 +199,8 @@ resizemouse(const Arg *arg)
     ocx = c->x;
     ocy = c->y;
 
-    horizcorner = nx < c->w >> 1;
-    vertcorner  = ny < c->h >> 1;
+    horizcorner = nx < c->w >> 1 ? -1 : 1;
+    vertcorner  = ny < c->h >> 1 ? -1 : 1;
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
@@ -215,15 +215,14 @@ resizemouse(const Arg *arg)
             {
                 if ((ev.xmotion.time - lasttime) <= (1000 / cfg.windowrate))
                     continue;
+                lasttime = ev.xmotion.time;
             }
-            lasttime = ev.xmotion.time;
-
-            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), 1) : MAX(ocw + (ev.xmotion.x - rcurx), 1);
-            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), 1) : MAX(och + (ev.xmotion.y - rcury), 1);
-
-            nx = horizcorner ? ocx + ocw - nw: c->x;
-            ny = vertcorner  ? ocy + och - nh: c->y;
-
+            nw = ocw + (horizcorner * (ev.xmotion.x - rcurx));
+            nh = och + (vertcorner * (ev.xmotion.y - rcury));
+            nw = (nw > 1)* nw + (nw < 1);
+            nh = (nh > 1)* nh + (nh < 1);
+            nx = (horizcorner == -1) * (ocx + ocw - nw) + !(horizcorner == -1)* c->x;
+            ny = (vertcorner == -1) * (ocy + och - nh) + !(vertcorner  == -1)* c->y;
             if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
                     && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
             {
