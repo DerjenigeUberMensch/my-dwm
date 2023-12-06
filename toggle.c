@@ -171,6 +171,10 @@ resizemouse(const Arg *arg)
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
+    int cszcheck; /*client size check */
+
+    float frametime;
+
     int di;
     unsigned int dui;
     Window dummy;
@@ -181,9 +185,7 @@ resizemouse(const Arg *arg)
     Time lasttime = 0;
     c = selmon->sel;
     /* client checks */
-    if (!c)
-        return;
-    if (c->isfullscreen) /* no support resizing fullscreen windows by mouse */
+    if (!c || c->isfullscreen) /* no support resizing fullscreen windows by mouse */
         return;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
@@ -192,51 +194,46 @@ resizemouse(const Arg *arg)
         return;
     if(!getrootptr(&rcurx, &rcury))
         return;
+    if (!c->isfloating || selmon->lt[selmon->sellt]->arrange)
+        togglefloating(NULL);
     restack(selmon);
 
+    frametime = 1000 / (cfg.windowrate + !cfg.windowrate); /*prevent 0 division errors */
     ocw = c->w;
     och = c->h;
     ocx = c->x;
     ocy = c->y;
 
-    horizcorner = nx < c->w >> 1 ? -1 : 1;
-    vertcorner  = ny < c->h >> 1 ? -1 : 1;
+    horizcorner = nx < c->w >> 1;
+    vertcorner  = ny < c->h >> 1;
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
         {
         case ConfigureRequest:
         case Expose:
-        case MapRequest:
-            handler[ev.type](&ev);
-            break;
+        case MapRequest: handler[ev.type](&ev); break;
         case MotionNotify:
-            if(cfg.windowrate != 0)
-            {
-                if ((ev.xmotion.time - lasttime) <= (1000 / cfg.windowrate))
-                    continue;
-                lasttime = ev.xmotion.time;
-            }
-            nw = ocw + (horizcorner * (ev.xmotion.x - rcurx));
-            nh = och + (vertcorner * (ev.xmotion.y - rcury));
-            nw = (nw > 1)* nw + (nw < 1);
-            nh = (nh > 1)* nh + (nh < 1);
-            nx = (horizcorner == -1) * (ocx + ocw - nw) + !(horizcorner == -1)* c->x;
-            ny = (vertcorner == -1) * (ocy + och - nh) + !(vertcorner  == -1)* c->y;
-            if (c->mon->wx + nw >= selmon->wx && c->mon->wx + nw <= selmon->wx + selmon->ww
-                    && c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
-            {
-                if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
-                        && (abs(nw - c->w) > cfg.snap || abs(nh - c->h) > cfg.snap))
-                    togglefloating(NULL);
-            }
-            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-                resize(c, nx, ny, nw, nh, 1);
+            if ((ev.xmotion.time - lasttime) <= frametime)
+                continue;
+            lasttime = ev.xmotion.time;
+            /* leave as is cpu will always predict branch */
+            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), 1) : MAX(ocw + (ev.xmotion.x - rcurx), 1);
+            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), 1) : MAX(och + (ev.xmotion.y - rcury), 1);
+            nx = horizcorner ? ocx + ocw - nw: c->x;
+            ny = vertcorner  ? ocy + och - nh: c->y;
+            resize(c, nx, ny, nw, nh, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     if(dockablewindow(c))
         c->isfloating = 0;
+    /* add if w + x > monx || w + x < 0 resize */
+    /* fix later */
+    if(c->w > c->mon->ww)
+        resize(c, c->x, c->y, c->mon->ww - c->w, c->h, 1);
+    if(c->h > c->mon->wh)
+        resize(c, c->x, c->y, c->w, c->mon->wh - c->h, 1);
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
