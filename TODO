@@ -2,7 +2,7 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-**  Rework makefile
+**  (Fix) resizemouse snap to monitor x,y if too big
 **  (Fix) Alt-tab not inversing when shifting stack left (bargroups)
 **  (Fix) Alt-tabs (faster) implementation issues with width
 **  (Fix) Alt-tab not working when creating new fullscreen windows
