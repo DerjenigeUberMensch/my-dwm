@@ -20,8 +20,10 @@
 11. **winicon**
 12. **restartrig**
 13. **restoreafterrestart**
-14.  resize anywhere
-15.  Alt-Tab minimal
+14. **windowmap**
+16. **rainbowtags**
+17.  resize anywhere
+18.  Alt-Tab minimal
 
 ## Preview:
 
