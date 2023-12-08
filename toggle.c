@@ -136,7 +136,11 @@ movemouse(const Arg *arg)
         }
     } while (ev.type != ButtonRelease);
     if(dockablewindow(c))
-        c->isfloating = 0;
+    {
+        maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
+        c->oldx+=cfg.snap;
+        c->oldy+=cfg.snap;
+    }
     XUngrabPointer(dpy, CurrentTime);
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
         sendmon(c, m);
@@ -203,7 +207,6 @@ resizemouse(const Arg *arg)
     och = c->h;
     ocx = c->x;
     ocy = c->y;
-
     horizcorner = nx < c->w >> 1;
     vertcorner  = ny < c->h >> 1;
     do {
@@ -226,14 +229,18 @@ resizemouse(const Arg *arg)
             break;
         }
     } while (ev.type != ButtonRelease);
-    if(dockablewindow(c))
-        c->isfloating = 0;
     /* add if w + x > monx || w + x < 0 resize */
-    /* fix later */
     if(c->w > c->mon->ww)
-        resize(c, c->x, c->y, c->mon->ww - c->w, c->h, 1);
+        togglehorizontalmax(NULL);
     if(c->h > c->mon->wh)
-        resize(c, c->x, c->y, c->w, c->mon->wh - c->h, 1);
+        toggleverticalmax(NULL);
+    if(dockablewindow(c))
+    {
+        maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
+        c->oldx+=cfg.snap;
+        c->oldy+=cfg.snap;
+    }
+
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -300,29 +307,33 @@ spawn(const Arg *arg)
     }
 }
 void
-togglemaximize(const Arg *arg) {
+togglemaximize(const Arg *arg) 
+{
     maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
     selmon->sel->isfloating = 0;
 }
 
+
 void
 toggleverticalmax(const Arg *arg) {
     maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * cfg.borderpx);
+    selmon->sel->ismax = 0; /* no such thing as vertmax being fully maxed */
 }
 
 void
 togglehorizontalmax(const Arg *arg) {
     maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * cfg.borderpx, selmon->sel->h);
+    selmon->sel->ismax = 0; /* no such thing as horzmax being fully maxed */
 }
 void
 alttabstart(const Arg *arg)
 {
     selmon->altsnext = NULL;
     if (selmon->tabwin)
-        altTabEnd();
+        alttabend();
 
     if (selmon->isAlt) {
-        altTabEnd();
+        alttabend();
     } else {
         selmon->isAlt = 1;
         selmon->altTabN = 0;
@@ -334,7 +345,6 @@ alttabstart(const Arg *arg)
         for(c = m->clients; c; c = c->next) { /* count clients */
             if(!ISVISIBLE(c)) continue;
             /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
-
             ++m->nTabs;
         }
 
@@ -345,12 +355,9 @@ alttabstart(const Arg *arg)
             for(c = m->stack; c; c = c->snext) { /* add clients to the list */
                 if(!ISVISIBLE(c)) continue;
                 /* if (HIDDEN(c)) continue; uncomment if you're using awesomebar patch */
-
                 m->altsnext[listIndex++] = c;
             }
-
-            drawTab(m->nTabs, 1, m);
-
+            drawtab(m->nTabs, 1, m);
             struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
 
             /* grab keyboard (take all input from keyboard) */
@@ -364,9 +371,9 @@ alttabstart(const Arg *arg)
             }
 
             XEvent event;
-            altTab();
+            alttab();
             if (grabbed == 0) {
-                altTabEnd();
+                alttabend();
             } else {
                 while (grabbed) {
                     XNextEvent(dpy, &event);
@@ -375,21 +382,21 @@ alttabstart(const Arg *arg)
                             break;
                         } else if (event.type == KeyPress) {
                             if (event.xkey.keycode == cfg.tabcyclekey) {/* if XK_s is pressed move to the next window */
-                                altTab();
+                                alttab();
                             }
                         }
                     }
                 }
 
                 c = selmon->sel;
-                altTabEnd(); /* end the alt-tab functionality */
+                alttabend(); /* end the alt-tab functionality */
                 /* XUngrabKeyboard(display, time); just a reference */
                 XUngrabKeyboard(dpy, CurrentTime); /* stop taking all input from keyboard */
                 focus(c);
                 restack(selmon);
             }
         } else {
-            altTabEnd(); /* end the alt-tab functionality */
+            alttabend(); /* end the alt-tab functionality */
         }
     }
 }
@@ -452,8 +459,8 @@ togglefullscr(const Arg *arg)
     m = selmon;
     if(!m->sel) /* no client focused */
         return;
-
-    winmode = !m->sel->isfullscreen;
+    m->isfullscreen = !m->isfullscreen;
+    winmode = m->isfullscreen;
     for (c = m->clients; c; c = c->next)
     {
         if(!ISVISIBLE(c)) continue;

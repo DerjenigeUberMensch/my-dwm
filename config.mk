@@ -29,13 +29,10 @@ LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender -lImlib2
 # WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
 # -g -> debug
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra
-# Compile for better cpu usage ~1% decrease Xorg cpu usage may cause memory leak
-#CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
-
+CFLAGS   = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra -Wshadow
 # compile for Size
 # DEBUG
-# CFLAGS   = -pg -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
+# CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
 # SZ
 #CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
 
@@ -44,12 +41,12 @@ CFLAGS   = -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra
 
 
 # Release
-#CFLAGS   = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
+CFLAGS= -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -O2 ${INCS} ${CPPFLAGS} -ftree-vectorize
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
 #DEBUG 
-#LDFLAGS  = -pg ${LIBS}
+#LDFLAGS  = ${LIBS}
 #Release
 LDFLAGS  = ${LIBS}
 

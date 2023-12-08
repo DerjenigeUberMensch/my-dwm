@@ -2,13 +2,10 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-**  (Fix) resizemouse snap to monitor x,y if too big
-**  (Fix) Alt-tab not inversing when shifting stack left (bargroups)
-**  (Fix) Alt-tabs (faster) implementation issues with width
-**  (Fix) Alt-tab not working when creating new fullscreen windows
+**  (Fix) Fix maximize issues when moving windows (movemouse)
 **  (Fix) Alt-tab screen artifacts (fullscreen)
 **  (Fix) Alt-tab Add limit to stop undefined behaviour with too many windows
-**  (Fix) Alt-tab Needing to restack everytime (slow) see stacker patch 'shiftstack'
+**  (Feature) Have panic mode (incase of a freeze) that allows some functionality (enough to fix the problem)
 **  (Fix) scrot screenshotcmd
 **  Finish conf parser (debug build only)
 *   Rework Window functionality and how floating windows behave
