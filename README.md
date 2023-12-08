@@ -22,8 +22,9 @@
 13. **restoreafterrestart**
 14. **windowmap**
 16. **rainbowtags**
-17.  resize anywhere
-18.  Alt-Tab minimal
+17. **updatemotifhints**
+18.  resize anywhere
+19.  Alt-Tab minimal
 
 ## Preview:
 
