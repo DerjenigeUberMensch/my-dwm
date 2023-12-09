@@ -50,10 +50,10 @@
 #endif /* XINERAMA */
 #include <X11/Xft/Xft.h>
 
-#include <time.h> //ALT TAB
+#include <time.h> /* ALT TAB */
 
 #include "drw.h"
-#include "util.h" //Include near dpy defintions due to conflicting variables
+#include "util.h" /* Include near dpy defintions due to conflicting variables */
 /* macros */
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
 #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
@@ -209,7 +209,9 @@ static void buttonpress(XEvent *e);
 static void checkotherwm(void);
 static void cleanup(void);
 static void cleanupmon(Monitor *mon);
+static void cleanupsbar(Monitor *m);
 static void clientmessage(XEvent *e);
+static void crashhandler();
 static void configure(Client *c);
 static void configurenotify(XEvent *e);
 static void configurerequest(XEvent *e);
@@ -222,7 +224,7 @@ static Monitor *dirtomon(int dir);
 static int  dockablewindow(Client *c);
 static void drawbar(Monitor *m);
 static void drawbars(void);
-static int  drawstatusbar(Monitor *m, int bh, char* text);
+static int  drawstatusbar(Monitor *m);
 static void drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *message);
 static void enternotify(XEvent *e);
 static void prompt(const char *title, const char *message, int wx, int wy, int ww, int wh);
@@ -299,6 +301,7 @@ static Monitor *wintomon(Window w);
 static int  xerror(Display *dpy, XErrorEvent *ee);
 static int  xerrordummy(Display *dpy, XErrorEvent *ee);
 static int  xerrorstart(Display *dpy, XErrorEvent *ee);
+
 
 static void alttab();
 static void drawtab(int nwins, int first, Monitor *m);
@@ -513,15 +516,14 @@ buttonpress(XEvent *e)
         do
             x += TEXTW(tags[i]);
         while (ev->x >= x && ++i < LENGTH(tags));
-        if (i < LENGTH(tags)) {
+        if (i < LENGTH(tags)) 
+        {
             click = ClkTagBar;
             arg.ui = 1 << i;
         } else if (ev->x < x + TEXTW(selmon->ltsymbol))
             click = ClkLtSymbol;
         else if (ev->x > selmon->ww - (int)TEXTW(stext))
             click = ClkStatusText;
-        else /* Focus clicked tab bar item */
-            printf("%s", "Missing");
         /* click = ClkWinTitle; */
     } else if ((c = wintoclient(ev->window))) {
         focus(c);
@@ -579,6 +581,7 @@ void
 cleanupmon(Monitor *mon)
 {
     Monitor *m;
+    size_t i;
 
     if (mon == mons)
         mons = mons->next;
@@ -586,10 +589,15 @@ cleanupmon(Monitor *mon)
         for (m = mons; m && m->next != mon; m = m->next);
         m->next = mon->next;
     }
-    XUnmapWindow(dpy, mon->barwin);
-
-    XDestroyWindow(dpy, mon->barwin);
+    cleanupsbar(mon);
     free(mon);
+}
+
+void
+cleanupsbar(Monitor *m) /* status bar */
+{
+    XUnmapWindow(dpy, m->barwin);
+    XDestroyWindow(dpy, m->barwin);
 }
 
 void
@@ -617,7 +625,26 @@ clientmessage(XEvent *e)
     }
 
 }
+void
+crashhandler(void)
+{
+    if(!running) return;
+    char *filename;
+    FILE *f;
 
+    filename = "/var/log/dwm.log";
+    f = fopen(filename, "a");
+    if(!f) fopen(filename, "w");
+
+    /* time handler */
+    time_t mytime = time(NULL);
+    char * time_str = ctime(&mytime);
+    time_str[strlen(time_str)-1] = '\0';
+    fprintf(f, "%s %s\n", strerror(errno), time_str);
+
+    fclose(f);
+
+}
 void
 configure(Client *c)
 {
@@ -794,7 +821,7 @@ dirtomon(int dir)
     return m;
 }
 int
-drawstatusbar(Monitor *m, int bh, char* stext) {
+drawstatusbar(Monitor *m) {
     int ret, i, w, x, len;
     short isCode = 0;
     char *text;
@@ -914,18 +941,15 @@ drawbar(Monitor *m)
     int tagselected;
     Client *c;
 
-    if (!m->showbar)
-        return;
-
+    if (!m->showbar) return;
     /* draw status first so it can be overdrawn by tags later */
     if (m == selmon) { /* status is only drawn on selected monitor */
-        tw = m->ww - drawstatusbar(m, bh, stext);
+        tw = m->ww - drawstatusbar(m);
     }
 
     for (c = m->clients; c; c = c->next) {
         occ |= c->tags;
-        if (c->isurgent)
-            urg |= c->tags;
+        if (c->isurgent) urg |= c->tags;
     }
     x = 0;
     /* drw tags */
@@ -954,11 +978,12 @@ drawbar(Monitor *m)
         if (m->sel)
         {
             /* drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]); */
-            iconspace = m->sel->icon ? m->sel->icw + cfg.iconspace : 0;
+            iconspace = m->sel->icon ? m->sel->icw + cfg.iconspace : lrpad;
             drw_setscheme(drw, scheme[SchemeBarTabActive]);
             drw_text(drw, x, 0, w, bh, iconspace, m->sel->name, 0);
             if (m->sel->icon) 
-                drw_pic(drw, x + iconspace - lrpad, (bh - m->sel->ich) >> 1, m->sel->icw, m->sel->ich, m->sel->icon);
+                drw_pic(drw, x + iconspace - lrpad, 
+                (bh - m->sel->ich) >> 1, m->sel->icw, m->sel->ich, m->sel->icon);
             if (m->sel->isfloating)
                 drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
         }
@@ -1046,10 +1071,7 @@ drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *messag
      * m->promptwin prompt obj in Curent monitor struct
      * tbh      top window bar height
      */
-    if(selmon->sel->isfullscreen)
-    {
-        return;
-    }
+    if(!selmon || !selmon->sel  || selmon->sel->isfullscreen) return;
 
     Monitor *m;
     int tbh;
@@ -1204,13 +1226,15 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 
 	if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) { XFree(p); return None; }
 
-	uint32_t icw, ich;
-	if (w <= h) {
-		ich = cfg.iconsz ; icw = w * cfg.iconsz / h;
-		if (icw == 0) icw = 1;
+    uint32_t icw, ich;
+    if (w <= h) {
+        ich = cfg.iconsz;
+        icw = w * cfg.iconsz / h;
+        if (icw == 0) icw = 1;
 	}
 	else {
-		icw = cfg.iconsz; ich = h * cfg.iconsz / w;
+		icw = cfg.iconsz;
+        ich = h * cfg.iconsz / w;
 		if (ich == 0) ich = 1;
 	}
 	*picw = icw; *pich = ich;
@@ -1552,8 +1576,7 @@ propertynotify(XEvent *e)
             updatewindowtype(c);
         if (ev->atom == motifatom)
 			updatemotifhints(c);
-        if(updatebar)
-            drawbar(c->mon);
+        if(updatebar) drawbar(c->mon);
     }
 }
 
@@ -1589,7 +1612,7 @@ savesession(void)
 {
 	FILE *fw = fopen(SESSION_FILE, "w");
 	for (Client *c = selmon->clients; c != NULL; c = c->next) { // get all the clients with their tags and write them to the file
-		fprintf(fw, "%lu %u %d\n", c->win, c->tags, c->mon->layout);
+		fprintf(fw, "%lu %u %d %d\n", c->win, c->tags, c->mon->layout, (selmon->sel == c));
 	}
 	fclose(fw);
 }
@@ -1597,43 +1620,47 @@ savesession(void)
 void
 restoresession(void)
 {
-    const int MAX_LENGTH = 23;
-    const int CHECK_SUM = 3;
+    const int MAX_LENGTH = 1024;
+    const int CHECK_SUM = 4;
     long unsigned int winId;
 	unsigned int tagsForWin;
     unsigned int winlayout;
     int check;
-	// restore session
 	FILE *fr = fopen(SESSION_FILE, "r");
-	if (!fr)
-		return;
-
+    Client *c;
+    Client *selc; /* selected client */
+    int selcpos;
+	if (!fr) return;
     /* malloc enough for input*/
 	char *str = malloc(MAX_LENGTH * sizeof(char));
 	while (fscanf(fr, "%[^\n] ", str) != EOF) { // read file till the end
-		check = sscanf(str, "%lu %u %u", &winId, &tagsForWin, &winlayout);
-		if (check != CHECK_SUM) break;
-		for (Client *c = selmon->clients; c ; c = c->next) { // add tags to every window by winId
-			if (c->win == winId) {
+		check = sscanf(str, "%lu %u %u %d", &winId, &tagsForWin, &winlayout, &selcpos);
+		if (check != CHECK_SUM) continue;
+		for (c = selmon->clients; c ; c = c->next) { // add tags to every window by winId
+			if (c->win == winId) 
+            {
 				c->tags = tagsForWin;
                 c->mon->layout = winlayout;
                 setclientlayout(c->mon, winlayout);
+                if(selcpos) selc = c;
 				break;
 			}
 		}
     }
-    setclientlayout(selmon, winlayout);
-    /* fix later */
-	for (Client *c = selmon->clients; c ; c = c->next) { // refocus on windows
-		focus(c);
-		restack(c->mon);
-	}
-	for (Monitor *m = selmon; m; m = m->next) // rearrange all monitors
+    if(!selc) goto END;
+    for (Client *c = selmon->clients; c != NULL; c = c->next) 
+    { 
+        focus(c);
+        restack(c->mon);
+    }
+	for (Monitor *m = selmon; m; m = m->next)
 		arrange(m);
-
+    focus(selc);
+    restack(selc->mon);
+    goto END;
+END:
 	free(str);
 	fclose(fr);
-	
 	// delete a file
 	remove(SESSION_FILE);
 }
@@ -1647,7 +1674,6 @@ restart(void)
 void
 quit(void)
 {
-    savesession();
     running = 0;
 }
 
@@ -2396,13 +2422,12 @@ updatebars(void)
     XSetWindowAttributes wa = {
         .override_redirect = True, /*patch */
         .background_pixmap = ParentRelative,
- 		.event_mask = ButtonPressMask|ExposureMask
+        .event_mask = ButtonPressMask|ExposureMask,
     };
     XClassHint ch = {WM_NAME, WM_NAME};
     for (m = mons; m; m = m->next) 
     {
-        if (m->barwin)
-            continue;
+        if (m->barwin) continue;
          m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
                                   CopyFromParent, DefaultVisual(dpy, screen),
                                   CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
@@ -2421,8 +2446,7 @@ updatebarpos(Monitor *m)
         m->wh -= bh;
         m->by = m->topbar ? m->wy : m->wy + m->wh;
         m->wy = m->topbar ? m->wy + bh : m->wy;
-    } else
-        m->by = -bh;
+    } else m->by = -bh;
 }
 
 void
@@ -2759,10 +2783,11 @@ main(int argc, char *argv[])
 #endif
     scan();
     restoresession();
-    run();
+    run(); /* main event loop */
     if(RESTART) execvp(argv[0], argv);
     cleanup();
     XCloseDisplay(dpy);
+    atexit(crashhandler);
     return EXIT_SUCCESS;
 }
 /* Screen
