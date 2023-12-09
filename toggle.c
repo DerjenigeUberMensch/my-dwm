@@ -12,10 +12,8 @@ focusmon(const Arg *arg)
 {
     Monitor *m;
 
-    if (!mons->next)
-        return;
-    if ((m = dirtomon(arg->i)) == selmon)
-        return;
+    if (!mons->next) return;
+    if ((m = dirtomon(arg->i)) == selmon) return;
     unfocus(selmon->sel, 0);
     selmon = m;
     focus(NULL);
@@ -39,7 +37,6 @@ focusnext(const Arg *arg) {
 		for (c = m->clients; c->next != last; c = c->next);
 	}
 	focus(c);
-	return;
 }
 
 void
@@ -52,8 +49,7 @@ incnmaster(const Arg *arg)
 void
 killclient(const Arg *arg)
 {
-    if (!selmon->sel)
-        return;
+    if (!selmon->sel) return;
     if (!sendevent(selmon->sel, wmatom[WMDelete])) {
         XGrabServer(dpy);
         XSetErrorHandler(xerrordummy);
@@ -67,8 +63,7 @@ killclient(const Arg *arg)
 void
 forcekillclient(const Arg *arg) //Destroys window disregarding any errors that may occur in the process
 {
-    if(!selmon->sel)
-        return;
+    if(!selmon->sel) return;
     if(!sendevent(selmon->sel, wmatom[WMDelete]))
     {
         XGrabServer(dpy);
@@ -90,18 +85,14 @@ movemouse(const Arg *arg)
     XEvent ev;
     Time lasttime = 0;
     c = selmon->sel;
-    if (!c)
-        return;
-    if (c->isfullscreen) /* no support moving fullscreen windows by mouse */
-        return;
+    if (!c) return;
+    if (c->isfullscreen) return; /* no support moving fullscreen windows by mouse */
     restack(selmon);
     ocx = c->x;
     ocy = c->y;
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess)
-        return;
-    if (!getrootptr(&x, &y))
-        return;
+                     None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess) return;
+    if (!getrootptr(&x, &y)) return;
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type) {
@@ -148,13 +139,17 @@ movemouse(const Arg *arg)
         focus(NULL);
     }
 }
+
+
 void restartdwm(const Arg *arg)
 {
+    savesession();
     restart();
 }
 void
 quitdwm(const Arg *arg)
 {
+    savesession();
     quit();
 }
 
@@ -175,7 +170,6 @@ resizemouse(const Arg *arg)
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
-    int cszcheck; /*client size check */
 
     float frametime;
 
@@ -189,17 +183,12 @@ resizemouse(const Arg *arg)
     Time lasttime = 0;
     c = selmon->sel;
     /* client checks */
-    if (!c || c->isfullscreen) /* no support resizing fullscreen windows by mouse */
-        return;
+    if (!c || c->isfullscreen) return;/* no support resizing fullscreen windows by mouse */
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess)
-        return;
-    if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui))
-        return;
-    if(!getrootptr(&rcurx, &rcury))
-        return;
-    if (!c->isfloating || selmon->lt[selmon->sellt]->arrange)
-        togglefloating(NULL);
+                     None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess) return;
+    if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui)) return;
+    if(!getrootptr(&rcurx, &rcury)) return;
+    if (!c->isfloating || selmon->lt[selmon->sellt]->arrange) togglefloating(NULL);
     restack(selmon);
 
     frametime = 1000 / (cfg.windowrate + !cfg.windowrate); /*prevent 0 division errors */
@@ -249,6 +238,7 @@ resizemouse(const Arg *arg)
         focus(NULL);
     }
 }
+
 void
 setlayout(const Arg *arg)
 {
@@ -256,8 +246,7 @@ setlayout(const Arg *arg)
 
     m = selmon;
 
-    if(!m)
-        return;
+    if(!m) return;
 
     if ((!arg || !arg->v || arg->v != m->lt[selmon->sellt]))
         m->sellt ^= 1;
@@ -286,11 +275,9 @@ setmfact(const Arg *arg)
 {
     float f;
 
-    if (!arg || !selmon->lt[selmon->sellt]->arrange)
-        return;
+    if (!arg || !selmon->lt[selmon->sellt]->arrange) return;
     f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
-    if (f < 0.05 || f > 0.95)
-        return;
+    if (f < 0.05 || f > 0.95) return;
     selmon->mfact = f;
     arrange(selmon);
 }
@@ -414,8 +401,7 @@ tag(const Arg *arg)
 void
 tagmon(const Arg *arg)
 {
-    if (!selmon->sel || !mons->next)
-        return;
+    if (!selmon->sel || !mons->next) return;
     sendmon(selmon->sel, dirtomon(arg->i));
 }
 
@@ -436,10 +422,8 @@ togglefloating(const Arg *arg)
 
     c = selmon->sel;
     togglefloat = 0;
-    if (!c)
-        return;
-    if (c->isfullscreen) /* no support for fullscreen windows */
-        return;
+    if (!c) return;
+    if (c->isfullscreen) return; /* no support for fullscreen windows */
     togglefloat = !selmon->sel->isfloating || selmon->sel->isfixed;
     if(togglefloat)
     {
@@ -457,8 +441,7 @@ togglefullscr(const Arg *arg)
     int winmode; /* if fullscreen or not */
 
     m = selmon;
-    if(!m->sel) /* no client focused */
-        return;
+    if(!m->sel) return; /* no client focused */
     m->isfullscreen = !m->isfullscreen;
     winmode = m->isfullscreen;
     for (c = m->clients; c; c = c->next)
@@ -475,8 +458,7 @@ toggletag(const Arg *arg)
 {
     unsigned int newtags;
 
-    if (!selmon->sel)
-        return;
+    if (!selmon->sel) return;
     newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
     if (newtags) {
         selmon->sel->tags = newtags;
@@ -500,8 +482,7 @@ toggleview(const Arg *arg)
 void
 view(const Arg *arg)
 {
-    if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
-        return;
+    if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) return;
     selmon->seltags ^= 1; /* toggle sel tagset */
     if (arg->ui & TAGMASK)
         selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
@@ -514,29 +495,7 @@ zoom(const Arg *arg)
 {
     Client *c = selmon->sel;
 
-    if (!selmon->lt[selmon->sellt]->arrange || !c || c->isfloating)
-        return;
-    if (c == nexttiled(selmon->clients) && !(c = nexttiled(c->next)))
-        return;
+    if (!selmon->lt[selmon->sellt]->arrange || !c || c->isfloating) return;
+    if (c == nexttiled(selmon->clients) && !(c = nexttiled(c->next))) return;
     pop(c);
 }
-/* Selects for the view of the focused window. The list of tags */
-/* to be displayed is matched to the focused window tag list. */
-void
-winview(const Arg* arg){
-	Window win, win_r, win_p, *win_c;
-	unsigned nc;
-	int unused;
-	Client* c;
-	Arg a;
-
-	if (!XGetInputFocus(dpy, &win, &unused)) return;
-	while(XQueryTree(dpy, win, &win_r, &win_p, &win_c, &nc)
-	      && win_p != win_r) win = win_p;
-
-	if (!(c = wintoclient(win))) return;
-
-	a.ui = c->tags;
-	view(&a);
-}
-

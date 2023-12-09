@@ -24,7 +24,6 @@ static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void view(const Arg *arg);
 static void zoom(const Arg *arg);
-static void winview(const Arg* arg);
 /* static void altTabStart(const Arg *arg); */
 static void alttabstart(const Arg *arg);
 /* debug */

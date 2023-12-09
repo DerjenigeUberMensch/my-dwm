@@ -15,7 +15,7 @@
 { KeyPress,                     SUPER,                       KEY,      view,           {.ui = 1 << TAG} }, \
 { KeyPress,                     SUPER|CTRL,                  KEY,      toggleview,     {.ui = 1 << TAG} }, \
 { KeyPress,                     SUPER|SHIFT,                 KEY,      tag,            {.ui = 1 << TAG} }, \
-{ KeyPress,                     SUPER|CTRL|SHIFT,            KEY,      toggletag,      {.ui = 1 << TAG} },
+
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
@@ -38,26 +38,24 @@ static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshot
 
 static const Key keys[] = {
     /*Action                        modifier                     key        function        argument */
-    { KeyPress,                     SUPER,                        XK_n,         tester,         {0} },
-    { KeyPress,                     SUPER,                        XK_d,         spawn,          {.v = dmenucmd } },
-    { KeyPress,                     SUPER,                        XK_Return,    spawn,          {.v = termcmd } },
-    { KeyRelease,                   SUPER,                        XK_Print,     spawn,          {.v = screenshotcmd } },
-    { KeyPress,                     SUPER,                        XK_b,         togglebar,      {0} },
-    { KeyPress,                     SUPER,                        XK_q,	        view,           {0} },
-    { KeyPress,                     SUPER|SHIFT,                  XK_q,         killclient,     {0} },
-    { KeyPress,                     CTRL|ALT,                     XK_q,	        forcekillclient,{0} },
-    { KeyPress,                     SUPER,                        XK_w,         togglemaximize, {0} },
-    { KeyRelease,                   SUPER|SHIFT,                  XK_p,         quitdwm,        {0} },
-    { KeyPress,                     SUPER|CTRL,                   XK_p,         restartdwm,     {1} }, 
-    { KeyPress,                     SUPER,                        XK_z,         setlayout,      {.v = &layouts[0]} },/* TILED    */
-    { KeyPress,                     SUPER,                        XK_x,         setlayout,      {.v = &layouts[1]} },/* FLOATING */
-    { KeyPress,                     SUPER,                        XK_c,         setlayout,      {.v = &layouts[2]} },/* MONOCLE  */
-    { KeyPress,                     SUPER,                        XK_g,         setlayout,      {.v = &layouts[3]} },/* GRID     */
-    { KeyPress,                     SUPER,                        XK_o,         winview,        {0} }, /*broken*/
-    { KeyPress,                     0,                            XK_F11,       togglefullscr,  {0} },
+    { KeyPress,                     SUPER,          XK_n,       tester,         {0} },
+    { KeyPress,                     SUPER,          XK_d,       spawn,          {.v = dmenucmd } },
+    { KeyPress,                     SUPER,          XK_Return,  spawn,          {.v = termcmd } },
+    { KeyRelease,                   SUPER,          XK_Print,   spawn,          {.v = screenshotcmd } },
+    { KeyPress,                     SUPER,          XK_b,       togglebar,      {0} },
+    { KeyPress,                     SUPER,          XK_q,	    view,           {0} },
+    { KeyPress,                     SUPER|SHIFT,    XK_q,       killclient,     {0} },
+    { KeyPress,                     CTRL|ALT,       XK_q,	    forcekillclient,{0} },
+    { KeyPress,                     SUPER,          XK_w,       togglemaximize, {0} },
+    { KeyRelease,                   SUPER|SHIFT,    XK_p,       quitdwm,        {0} },
+    { KeyPress,                     SUPER|CTRL,     XK_p,       restartdwm,     {1} }, 
+    { KeyPress,                     SUPER,          XK_z,       setlayout,      {.v = &layouts[0]} },/* TILED    */
+    { KeyPress,                     SUPER,          XK_x,       setlayout,      {.v = &layouts[1]} },/* FLOATING */
+    { KeyPress,                     SUPER,          XK_c,       setlayout,      {.v = &layouts[2]} },/* MONOCLE  */
+    { KeyPress,                     SUPER,          XK_g,       setlayout,      {.v = &layouts[3]} },/* GRID     */
+    { KeyPress,                     0,              XK_F11,     togglefullscr,  {0} },
 
-    { KeyPress,                     ALT,             		        TAB,        alttabstart,	{0} },
-
+    { KeyPress,                     ALT,            TAB,        alttabstart,	{0} },
     { KeyPress,                     0, XF86XK_AudioMute,                        spawn, {.v = mute_vol } },
     { KeyPress,                     0, XF86XK_AudioLowerVolume,                 spawn, {.v = down_vol } },
     { KeyPress,                     0, XF86XK_AudioRaiseVolume,                 spawn, {.v = up_vol } },

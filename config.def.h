@@ -33,7 +33,6 @@ struct Config
 
 
     unsigned int bttagrow :          5;
-    unsigned int scalepreview :      5;
 
     unsigned int tabposx :           2;
     unsigned int tabposy :           2;
@@ -42,7 +41,6 @@ struct Config
 
     unsigned int hoverfocus :        1;
     unsigned int showbar :           1;
-    unsigned int previewbar :        1;
     unsigned int tabshowpreview :    1;
     unsigned int tabtextposxf :      1;
     unsigned int ignoredecorhints :  1;
@@ -67,8 +65,6 @@ void initcfg()
     /* alt-tab configuration */
     cfg.tabmodkey       = 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `                                          */
     cfg.tabcyclekey     = 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart                    */
-    cfg.scalepreview    = 4;    /* preview scaling (display w and h / scalepreview)                 */
-    cfg.previewbar      = 1;    /* show the bar in the preview window                               */
     cfg.tabposx         = 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right          */
     cfg.tabposy 		= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top          */
     cfg.tabtextposx     = 1;    /* tab position on x axis, 0 = left , 1 = center, 2 = right         */

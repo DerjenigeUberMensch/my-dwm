@@ -14,6 +14,13 @@ X11LIB = /usr/X11R6/lib
 XINERAMALIBS  = -lXinerama
 XINERAMAFLAGS = -DXINERAMA
 
+
+# Imlib2 (tag previews)
+IMLIB2LIBS = -lImlib2
+
+# lXrender (window icons)
+XRENDER = -lXrender
+
 # freetype
 FREETYPELIBS = -lfontconfig -lXft
 FREETYPEINC = /usr/include/freetype2
@@ -23,7 +30,7 @@ FREETYPEINC = /usr/include/freetype2
 
 # includes and libs
 INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender -lImlib2 
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER}
 
 # flags
 # WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
@@ -41,7 +48,7 @@ CFLAGS   = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra -Wshadow
 
 
 # Release
-CFLAGS= -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -O2 ${INCS} ${CPPFLAGS} -ftree-vectorize
+#CFLAGS= -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -O2 ${INCS} ${CPPFLAGS} -ftree-vectorize
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
