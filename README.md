@@ -1,10 +1,15 @@
-# dwm
+# deprecated see branch/Experimental for current build
+
+
+
+
+## dwm
 
 > _"dwm is an extremely fast, small, and dynamic window manager for X."_
 
 **_Not for long._**
 
-## Patches applied:
+### Patches applied:
 
 1. **Actual fullscreen**
 2. **Alt-Tab**
@@ -15,16 +20,16 @@
 7. **resizecorners** (Not fully supported)
 8. Easy config
 
-## Preview:
+### Preview:
 
 ![alttab](/cool_images/alt_tab.png "AltTab.")
 
-## Usage 
+### Usage 
 To **use** Sd-WM you must first **compile it**.
 Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 
 
-## Compiling
+### Compiling
 **NOTE See experimental for current build**
 1. Clone this repository: 
 https://github.com/DerjenigeUberMensch/Sd-WM.git
@@ -36,12 +41,12 @@ https://github.com/DerjenigeUberMensch/Sd-WM.git
 
 *-O1+ compilation not fully supported.*
 
-## Configuration
+### Configuration
 To **configure** Sd-WM head on over to `config.def.h` and change the variables there to fit your needs.
 If you feel like **patching** Sd-WM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**. 
 Once you **finish** `rm config.h` if it exists and **recompile.**
 
-## Troubleshoot
+### Troubleshoot
 
 You may need libraries such as x11 or "xlib" `sudo pacman -S libx11`
 
