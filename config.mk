@@ -14,12 +14,9 @@ X11LIB = /usr/X11R6/lib
 XINERAMALIBS  = -lXinerama
 XINERAMAFLAGS = -DXINERAMA
 
-
-# Imlib2 (tag previews)
-IMLIB2LIBS = -lImlib2
-
 # lXrender (window icons)
 XRENDER = -lXrender
+IMLIB2LIBS = -lImlib2
 
 # freetype
 FREETYPELIBS = -lfontconfig -lXft

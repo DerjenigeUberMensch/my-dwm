@@ -6,25 +6,24 @@
 
 ## Patches applied:
 
-1.  **Actual fullscreen**
-2.  **Alt-Tab**
-3.  **maximize**
-4.  **refreshrate**
-5.  **noborderflicker**
-6.  **activetagindicatorbar**
-7.  **activemonitor**
-8.  **bartabgroups**
-9.  **stacker**
-10. **winview**
-11. **grid**
-11. **winicon**
-12. **restartrig**
-13. **restoreafterrestart**
-14. **windowmap**
-16. **rainbowtags**
-17. **updatemotifhints**
-18.  resize anywhere
-19.  Alt-Tab minimal
+- **Actual fullscreen**
+- **Alt-Tab**
+- **maximize**
+- **refreshrate**
+- **noborderflicker**
+- **activetagindicatorbar**
+- **activemonitor**
+- **bartabgroups**
+- **stacker**
+- **grid**
+- **winicon**
+- **restartrig**
+- **restoreafterrestart**
+- **windowmap**
+- **rainbowtags**
+- **updatemotifhints**
+- resize anywhere
+- Alt-Tab minimal
 
 ## Preview:
 

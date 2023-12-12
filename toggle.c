@@ -35,7 +35,7 @@ focusnext(const Arg *arg) {
 		if (last == m->clients)
 			last = NULL;
 		for (c = m->clients; c->next != last; c = c->next);
-	}
+	}; /* prevent 0 division errors */
 	focus(c);
 }
 
@@ -83,16 +83,22 @@ movemouse(const Arg *arg)
     Client *c;
     Monitor *m;
     XEvent ev;
-    Time lasttime = 0;
+    Time lasttime;
+
+    float frametime;
+
     c = selmon->sel;
     if (!c) return;
     if (c->isfullscreen) return; /* no support moving fullscreen windows by mouse */
     restack(selmon);
-    ocx = c->x;
-    ocy = c->y;
+    if (!c->isfloating || selmon->lt[selmon->sellt]->arrange) togglefloating(NULL);
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess) return;
     if (!getrootptr(&x, &y)) return;
+    frametime = 1000 / (cfg.windowrate + !cfg.windowrate); /* prevent 0 division errors */
+    lasttime = 0;
+    ocx = c->x;
+    ocy = c->y;
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type) {
@@ -104,8 +110,7 @@ movemouse(const Arg *arg)
         case MotionNotify:
             if(cfg.windowrate != 0)
             {
-                if ((ev.xmotion.time - lasttime) <= (1000 / cfg.windowrate))
-                    continue;
+                if ((ev.xmotion.time - lasttime) <= frametime) continue;
                 lasttime = ev.xmotion.time;
             }
             nx = ocx + (ev.xmotion.x - x);
@@ -116,22 +121,19 @@ movemouse(const Arg *arg)
                 nx = selmon->wx + selmon->ww - WIDTH(c);
             if (abs(selmon->wy - ny) < cfg.snap)
                 ny = selmon->wy;
-            else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < cfg.snap)
-                ny = selmon->wy + selmon->wh - HEIGHT(c);
-            if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
-                    && (abs(nx - c->x) > cfg.snap || abs(ny - c->y) > cfg.snap))
-                togglefloating(NULL);
-            if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-                resize(c, nx, ny, c->w, c->h, 1);
+            resize(c, nx, ny, c->w, c->h, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     if(dockablewindow(c))
     {
+        /* workaround as setting c->isfloating c->ismax 0|1 doesnt work properly */
         maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
         c->oldx+=cfg.snap;
         c->oldy+=cfg.snap;
+        c->ismax = 1; 
     }
+    else c->ismax = 0;
     XUngrabPointer(dpy, CurrentTime);
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
         sendmon(c, m);
@@ -163,6 +165,9 @@ resizemouse(const Arg *arg)
      * nx/ny            new posX/posY
      * horiz/vert       check if top left/bottom left of screen
      * di,dui,dummy     holder vars to pass check (useless aside from check)
+     * basew            Minimum client request size (wont go smaller)
+     * baseh            See above
+     * rszbase(w/h)     base window (w/h) when resizing assuming resize hints wasnt set / too small
      */
     int rcurx, rcury;
     int ocw, och;
@@ -170,7 +175,7 @@ resizemouse(const Arg *arg)
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
-
+    int basew, baseh;
     float frametime;
 
     int di;
@@ -182,6 +187,7 @@ resizemouse(const Arg *arg)
     XEvent ev;
     Time lasttime = 0;
     c = selmon->sel;
+
     /* client checks */
     if (!c || c->isfullscreen) return;/* no support resizing fullscreen windows by mouse */
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -198,6 +204,8 @@ resizemouse(const Arg *arg)
     ocy = c->y;
     horizcorner = nx < c->w >> 1;
     vertcorner  = ny < c->h >> 1;
+    basew = MAX(c->basew, cfg.rszbasew);
+    baseh = MAX(c->baseh, cfg.rszbaseh);
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
@@ -206,12 +214,15 @@ resizemouse(const Arg *arg)
         case Expose:
         case MapRequest: handler[ev.type](&ev); break;
         case MotionNotify:
-            if ((ev.xmotion.time - lasttime) <= frametime)
-                continue;
-            lasttime = ev.xmotion.time;
+            if(cfg.windowrate != 0)
+            {
+                if ((ev.xmotion.time - lasttime) <= frametime)
+                    continue;
+                lasttime = ev.xmotion.time;
+            }
             /* leave as is cpu will always predict branch */
-            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), 1) : MAX(ocw + (ev.xmotion.x - rcurx), 1);
-            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), 1) : MAX(och + (ev.xmotion.y - rcury), 1);
+            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), basew) : MAX(ocw + (ev.xmotion.x - rcurx), basew);
+            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), baseh) : MAX(och + (ev.xmotion.y - rcury), baseh);
             nx = horizcorner ? ocx + ocw - nw: c->x;
             ny = vertcorner  ? ocy + och - nh: c->y;
             resize(c, nx, ny, nw, nh, 1);
@@ -225,10 +236,13 @@ resizemouse(const Arg *arg)
         toggleverticalmax(NULL);
     if(dockablewindow(c))
     {
+        /* workaround as setting c->isfloating c->ismax 0|1 doesnt work properly */
         maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
         c->oldx+=cfg.snap;
         c->oldy+=cfg.snap;
+        c->ismax = 1;
     }
+    else c->ismax = 0;
 
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
@@ -243,34 +257,16 @@ void
 setlayout(const Arg *arg)
 {
     Monitor *m;
-
     m = selmon;
 
     if(!m) return;
-
-    if ((!arg || !arg->v || arg->v != m->lt[selmon->sellt]))
-        m->sellt ^= 1;
-    if (arg && arg->v)
-    {
-        m->lt[selmon->sellt] = (Layout *)arg->v;
-        if(arg->v == &layouts[0])
-            m->layout = TILED;
-        else if(arg->v == &layouts[1])
-            m->layout = FLOATING;
-        else if(arg->v == &layouts[2])
-            m->layout = MONOCLE;
-        else if(arg->v == &layouts[3])
-            m->layout = GRID;
-    }
-    strncpy(m->ltsymbol, m->lt[selmon->sellt]->symbol, sizeof m->ltsymbol);
-    if (m->sel)
-        arrange(m);
-    else
-        drawbar(m);
+    setclientlayout(m, arg->i);
+    if (m->sel) arrange(m);
+    else drawbar(m);
 }
 
 /* arg > 1.0 will set mfact absolutely */
-void
+    void
 setmfact(const Arg *arg)
 {
     float f;

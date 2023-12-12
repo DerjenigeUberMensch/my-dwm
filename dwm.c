@@ -145,13 +145,22 @@ struct Client {
     int basew, baseh, incw, inch, maxw, maxh, minw, minh, hintsvalid;
     int bw, oldbw; /* border width */
     unsigned int tags;
-    int alwaysontop;
-    int ismax, wasfloating, isfixed, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
-    unsigned int icw, ich; Picture icon;
+    unsigned int alwaysontop     : 1;
+
+    unsigned int ismax           : 1;
+    unsigned int wasfloating     : 1;
+    unsigned int isfixed         : 1;
+    unsigned int isfloating      : 1;
+    unsigned int isurgent        : 1;
+    unsigned int neverfocus      : 1;
+    unsigned int oldstate        : 1;
+    unsigned int isfullscreen    : 1;
+    /* icon */
+    unsigned int icw, ich; Picture icon; /* ulong */
     Client *next;
     Client *snext;
     Monitor *mon;
-    Window win;
+    Window win; /* ulong */
 };
 
 
@@ -170,22 +179,25 @@ struct Monitor {
     int wx, wy, ww, wh;   /* window area  */
     int altTabN;		  /* move that many clients forward */
     int nTabs;			  /* number of active clients in tag */
-    int isAlt; 			  
-    int isfullscreen;     /* toggle fullscr vs reg fullscr */
+    unsigned int isAlt          : 1;
+    unsigned int isfullscreen   : 1;     /* toggle fullscr vs reg fullscr */
+    unsigned int showbar        : 1;
+    unsigned int topbar         : 1;
+
+
     unsigned short layout;
     unsigned int seltags;
     unsigned int sellt;
     unsigned int tagset[2];
-    int showbar;
-    int topbar;
     Client *clients;
     Client *sel;
     Client *stack;
     Client ** altsnext; /* array of all clients in the tag */
+    Monitor *prev;
     Monitor *next;
-    Window barwin;
-    Window tabwin;
-    Window promptwin;
+    Window barwin;      /* ulong */
+    Window tabwin;      /* ulong */
+    Window promptwin;   /* ulong */
     const Layout *lt[2];
 };
 
@@ -233,6 +245,7 @@ static void focus(Client *c);
 static void focusin(XEvent *e);
 static void focusstack(int SHIFT_TYPE);
 static Atom getatomprop(Client *c, Atom prop);
+static int  getwinpid(Window window);
 static uint32_t prealpha(uint32_t p);
 static Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
 static int  getrootptr(int *x, int *y);
@@ -270,9 +283,9 @@ static void setfullscreen(Client *c, int fullscreen);
 static void setup(void);
 static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
-static void sigchld(int unused);
-static void sighup(int unused);
-static void sigterm(int unused);
+static void sigchld();
+static void sighup();
+static void sigterm();
 static int  stackpos(int SHIFT_TYPE);
 static void maximize(int x, int y, int w, int h);
 static void tile(Monitor *m);
@@ -293,9 +306,9 @@ static void updateicon(Client *c);
 static void updatewindowtype(Client *c);
 static void updatewmhints(Client *c);
 
-static void winsetstate(Display *dpy, Window win, long state);
-static void winmap(Display *dpy, Client *c, int deiconify);
-static void winunmap(Display *dpy, Window win, Window root, int iconify);
+static void winsetstate(Window win, long state);
+static void winmap(Client *c, int deiconify);
+static void winunmap(Window win, Window root, int iconify);
 static Client  *wintoclient(Window w);
 static Monitor *wintomon(Window w);
 static int  xerror(Display *dpy, XErrorEvent *ee);
@@ -1181,6 +1194,25 @@ getatomprop(Client *c, Atom prop)
     }
     return atom;
 }
+int
+getwinpid(Window window) {
+    Atom actualType;
+    int format;
+    unsigned long nitems, bytesAfter;
+    unsigned char *propData = NULL;
+
+    Atom atom = XInternAtom(dpy, "_NET_WM_PID", False);
+    if (XGetWindowProperty(dpy, window, atom, 0, 1, False, XA_CARDINAL,
+                           &actualType, &format, &nitems, &bytesAfter, &propData) != Success) return -1;
+
+    if (propData != NULL) {
+        pid_t pid = *((pid_t*)propData);
+        XFree(propData);
+        return pid;
+    }
+
+    return -1;
+}
 
 uint32_t 
 prealpha(uint32_t p) {
@@ -1231,9 +1263,10 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
         ich = cfg.iconsz;
         icw = w * cfg.iconsz / h;
         if (icw == 0) icw = 1;
-	}
-	else {
-		icw = cfg.iconsz;
+    }
+    else 
+    {
+        icw = cfg.iconsz;
         ich = h * cfg.iconsz / w;
 		if (ich == 0) ich = 1;
 	}
@@ -1453,8 +1486,7 @@ manage(Window w, XWindowAttributes *wa)
         XRaiseWindow(dpy, c->win);
     }
 
-    if(!c->isfullscreen)
-        setfullscreen(c, selmon->isfullscreen);
+    setfullscreen(c, selmon->isfullscreen);
     attach(c);
     attachstack(c);
     XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1612,7 +1644,17 @@ savesession(void)
 {
 	FILE *fw = fopen(SESSION_FILE, "w");
 	for (Client *c = selmon->clients; c != NULL; c = c->next) { // get all the clients with their tags and write them to the file
-		fprintf(fw, "%lu %u %d %d\n", c->win, c->tags, c->mon->layout, (selmon->sel == c));
+		fprintf(fw, 
+               "%lu %u \
+                %d %d %d %d \
+                %d %d %d %d \
+                %u %d \
+                \n", 
+                c->win, c->tags,
+                c->oldx, c->oldy, c->x, c->y,
+                c->oldw, c->oldh, c->w, c->h,
+                c->mon->layout, !!(selmon->sel == c)
+                );
 	}
 	fclose(fw);
 }
@@ -1621,49 +1663,67 @@ void
 restoresession(void)
 {
     const int MAX_LENGTH = 1024;
-    const int CHECK_SUM = 4;
+    const int CHECK_SUM = 12; /* equal to number of sscanf elements so %d %d %d %d would be a checksum of 4 (type doesnt matter ) */ 
     long unsigned int winId;
-	unsigned int tagsForWin;
-    unsigned int winlayout;
+	unsigned int tagsForWin;/* client tags */
+    int oldx, oldy, cx, cy; /* client pos */
+    int oldw, oldh, cw, ch; /* client dimentions */
+    unsigned int winlayout, selcpos; /* layout type; c == selmon->sel */
     int check;
 	FILE *fr = fopen(SESSION_FILE, "r");
     Client *c;
     Client *selc; /* selected client */
-    int selcpos;
+    Client *clast;
 	if (!fr) return;
     /* malloc enough for input*/
 	char *str = malloc(MAX_LENGTH * sizeof(char));
-	while (fscanf(fr, "%[^\n] ", str) != EOF) { // read file till the end
-		check = sscanf(str, "%lu %u %u %d", &winId, &tagsForWin, &winlayout, &selcpos);
+	while (fscanf(fr, "%[^\n] ", str) != EOF) {
+		check = sscanf(str, 
+               "%lu %u \
+                %d %d %d %d \
+                %d %d %d %d \
+                %u %u", 
+                &winId, &tagsForWin,
+                &oldx, &oldy, &cx, &cy,
+                &oldw, &oldh, &cw, &ch,
+                &winlayout, &selcpos
+                );
 		if (check != CHECK_SUM) continue;
-		for (c = selmon->clients; c ; c = c->next) { // add tags to every window by winId
+		for (c = selmon->clients; c ; c = c->next) 
+        { 
 			if (c->win == winId) 
             {
+                /* assign as selmon->sel */
+                if(selcpos) selc = c;
+                /* assign tags */
 				c->tags = tagsForWin;
                 c->mon->layout = winlayout;
                 setclientlayout(c->mon, winlayout);
-                if(selcpos) selc = c;
 				break;
 			}
 		}
+        /* quit() handler 
+         * If no client found spawn it and set its properties
+         * TODO
+         */
+        if(c->win != winId && 0)  /* fix later */
+        {
+            c->oldx = oldx; c->x = cx; /* x */
+            c->oldy = oldy; c->y = cy; /* y */
+            c->oldw = oldw; c->w = cw; /* w */
+            c->oldh = oldh; c->h = ch; /* h */
+        }
+
     }
-    if(!selc) goto END;
-    for (Client *c = selmon->clients; c != NULL; c = c->next) 
-    { 
-        focus(c);
-        restack(c->mon);
-    }
-	for (Monitor *m = selmon; m; m = m->next)
-		arrange(m);
-    focus(selc);
-    restack(selc->mon);
-    goto END;
-END:
-	free(str);
-	fclose(fr);
-	// delete a file
+    if(selc)
+        focus(selc);
+    for (Monitor *m = selmon; m; m = m->next) arrange(m);
+    free(str);
+    fclose(fr);
+    // delete a file
 	remove(SESSION_FILE);
 }
+
 void 
 restart(void)
 {
@@ -1754,7 +1814,6 @@ resizeclient(Client *c, int x, int y, int w, int h)
     XSync(dpy, False);
 }
 
-
 void
 restack(Monitor *m)
 {
@@ -1763,23 +1822,24 @@ restack(Monitor *m)
     XEvent ev;
     XWindowChanges wc;
     drawbar(m);
-    if (!m->sel)
-        return;
-    if (m->sel->isfloating || !m->lt[m->sellt]->arrange)
-        XRaiseWindow(dpy, m->sel->win);
-    if (m->lt[m->sellt]->arrange) {
+    if (!m->sel) return;
+    if (m->lt[m->sellt]->arrange) 
+    {
         wc.stack_mode = Below;
         wc.sibling = m->barwin;
         for (c = m->stack; c; c = c->snext)
         {
             if(!ISVISIBLE(c)) continue;
-            if (!c->isfloating) 
+            if(c->isfloating) XRaiseWindow(dpy, c->win);
+            else
             {
                 XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
                 wc.sibling = c->win;
             }
+            if(c->alwaysontop) XRaiseWindow(dpy, c->win);
         }
     }
+    if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2028,16 +2088,16 @@ showhide(Client *c)
         return;
     if (ISVISIBLE(c)) {
         /* show clients top down */
-        winmap(dpy, c, 1);
+        winmap(c, 1);
     } else {
         /* hide clients bottom up */
         showhide(c->snext);
-        winunmap(dpy, c->win, root, 1);
+        winunmap(c->win, root, 1);
     }
 }
 
 void
-winsetstate(Display *dpy, Window win, long state)
+winsetstate(Window win, long state)
 {
 	long data[] = { state, None };
 
@@ -2046,12 +2106,12 @@ winsetstate(Display *dpy, Window win, long state)
 }
 
 void
-winmap(Display *dpy, Client *c, int deiconify)
+winmap(Client *c, int deiconify)
 {
 	Window win = c->win;
 
 	if (deiconify)
-		winsetstate(dpy, win, NormalState);
+		winsetstate(win, NormalState);
 
 	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
 	XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
@@ -2059,7 +2119,7 @@ winmap(Display *dpy, Client *c, int deiconify)
 }
 
 void
-winunmap(Display *dpy, Window win, Window root, int iconify)
+winunmap(Window win, Window root, int iconify)
 {
 	static XWindowAttributes ca, ra;
 
@@ -2074,7 +2134,7 @@ winunmap(Display *dpy, Window win, Window root, int iconify)
 	XUnmapWindow(dpy, win);
 
 	if (iconify)
-		winsetstate(dpy, win, IconicState);
+		winsetstate(win, IconicState);
 
 	XSelectInput(dpy, root, ra.your_event_mask);
 	XSelectInput(dpy, win, ca.your_event_mask);
@@ -2082,7 +2142,7 @@ winunmap(Display *dpy, Window win, Window root, int iconify)
 }
 
 void
-sigchld(int unused)
+sigchld()
 {
     if (signal(SIGCHLD, sigchld) == SIG_ERR)
         die("FATAL ERROR: CANNOT INSTALL SIGCHLD HANDLER:");
@@ -2091,13 +2151,13 @@ sigchld(int unused)
 }
 
 void
-sighup(int unused)
+sighup()
 {
     restart();
 }
 
 void
-sigterm(int unused)
+sigterm()
 {
     quit();
 }
@@ -2180,11 +2240,15 @@ alttab()
     /* move to next window */
     if (c && c->snext) {
         ++m->altTabN;
-        if (m->altTabN >= m->nTabs)
-            m->altTabN = 0; /* reset altTabN */
+        if (m->altTabN >= m->nTabs) m->altTabN = 0; /* reset altTabN */
+        if(cfg.alttabmaped)
+        {
+            winunmap(m->altsnext[m->altTabN]->win, root, 1);
+            /* prevents wierd artifacts from occuring because of unmaping */
+            winmap(m->altsnext[m->altTabN], 1);
+        }
         focus(m->altsnext[m->altTabN]);
-        if(cfg.tabshowpreview)
-            restack(m);
+        if(cfg.tabshowpreview) XRaiseWindow(dpy, m->altsnext[m->altTabN]->win);
     }
     /* redraw tab */
     drawtab(m->nTabs, 0, m);
@@ -2277,10 +2341,7 @@ drawtab(int nwins, int first, Monitor *m)
 void
 alttabend()
 {
-    static int invertshift = 0;
-    int movtype;
-    if (!selmon->isAlt)
-        return;
+    if (!selmon->isAlt) return;
     /*
      * move all clients between 1st and choosen position,
      * one down in stack and put choosen client to the first position
@@ -2304,19 +2365,14 @@ alttabend()
             restack(selmon);
         }
         */
-        movtype = !invertshift * NEXT + invertshift * BEFORE;
-        for (int i = selmon->nTabs - 1; i >= 0; i--)
-            movstack(selmon->altsnext[i], movtype);
-
-        focus(selmon->altsnext[0]);
-        arrange(selmon);
+        for (int i = selmon->nTabs - 1; i >= 0; i--) focus(selmon->altsnext[i]);
+        arrange(selmon); /* restack is called here */
         free(selmon->altsnext); /* free list of clients */
     }
 
     /* turn off/destroy the window */
     selmon->isAlt = 0;
     selmon->nTabs = 0;
-    invertshift = !invertshift;
     XUnmapWindow(dpy, selmon->tabwin);
     XDestroyWindow(dpy, selmon->tabwin);
 }

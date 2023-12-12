@@ -7,7 +7,6 @@
 **  (Fix) Alt-tab Add limit to stop undefined behaviour with too many windows
 **  (Feature) Have panic mode (incase of a freeze) that allows some functionality (enough to fix the problem)
 **  (Fix) scrot screenshotcmd
-**  Finish conf parser (debug build only)
 *   Rework Window functionality and how floating windows behave
 *   Create extra windows? to reduces space from alttab of windows without long names 
 *   Small Memory leak when compiled?, inconsistent. further investigation required
