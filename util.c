@@ -56,19 +56,13 @@ smprintf(char *fmt, ...)
     va_end(fmtargs);
     return ret;
 }
-void
-syslog(char *text)
-{
-    const char *filename = "dwm.log";
-    FILE *file = fopen(filename, "a");
-    if (!file)
-    {
-        fprintf(stderr, "Error: Unable to open file %s for appending creating file...\n", filename);
-        file = fopen(filename, "w");
-        fclose(file);
-        file = fopen(filename, "a");
-    }
-    fprintf(file, "%s\n", text);  // Append text with newline
-    fclose(file);
 
+void
+debuglog(const char *text)
+{
+    FILE *fp;
+    fp = fopen("/home/ram/Github/suckless/Sd-WM/err.log", "a");
+    if(!fp) return;
+    fprintf(fp, "%s\n", text);
+    fclose(fp);
 }

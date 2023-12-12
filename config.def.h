@@ -2,7 +2,7 @@
  * 4 Tab spaces; No tab characters use spaces for tabs
  * Basic overview of dwm => https://ratfactor.com/dwm
  */
-/* after many many hours this only saved .2MiB of ram, what a waste */
+/* See bottom for notes */
 struct Config
 {
     /* BIT SIZES
@@ -11,40 +11,43 @@ struct Config
      * tiny ints                2
      * small ints               5
      * medium ints             10
+     * big ints                14
      */
-    int tabmodkey :                 14;
-    int tabcyclekey :               14;
+    unsigned int tabmodkey          : 14;
+    unsigned int tabcyclekey        : 14;
 
-    unsigned int borderpx :         14;
-    unsigned int snap :             14;
-    unsigned int barpadding :       14;
-    unsigned int iconsz :           14;
-    unsigned int iconspace :        14;
-    unsigned int maxwtab:           14;
-    unsigned int maxhtab:           14;
-    unsigned int bttagpx :          14;
-    unsigned int minwdraw :         14;
+    unsigned int borderpx           : 14;
+    unsigned int snap               : 14;
+    unsigned int barpadding         : 14;
+    unsigned int iconsz             : 14;
+    unsigned int iconspace          : 14;
+    unsigned int maxwtab            : 14;
+    unsigned int maxhtab            : 14;
+    unsigned int bttagpx            : 14;
+    unsigned int minwdraw           : 14;
+    unsigned int rszbaseh           : 14;
+    unsigned int rszbasew           : 14;
 
-
-    unsigned int windowrate :       10;
-    unsigned int nmaster :          10;
-    unsigned int resizehints :      10;
-    unsigned int lockfullscreen :   10;
-
-
-    unsigned int bttagrow :          5;
-
-    unsigned int tabposx :           2;
-    unsigned int tabposy :           2;
-    unsigned int tabtextposx :       2;
+    unsigned int windowrate         : 10;
+    unsigned int nmaster            : 10;
+    unsigned int resizehints        : 10;
+    unsigned int lockfullscreen     : 10;
 
 
-    unsigned int hoverfocus :        1;
-    unsigned int showbar :           1;
-    unsigned int tabshowpreview :    1;
-    unsigned int tabtextposxf :      1;
-    unsigned int ignoredecorhints :  1;
+    unsigned int bttagrow           :  5;
 
+
+    unsigned int tabposx            :  2;
+    unsigned int tabposy            :  2;
+    unsigned int tabtextposx        :  2;
+
+
+    unsigned int hoverfocus         :  1;
+    unsigned int showbar            :  1;
+    unsigned int tabshowpreview     :  1;
+    unsigned int tabtextposxf       :  1;
+    unsigned int ignoredecorhints   :  1;
+    unsigned int alttabmaped        :  1;
     float mfact;
 };
 
@@ -61,6 +64,8 @@ void initcfg()
     cfg.showbar         = 1;    /* 1 to show bar; 0 to disable                                      */
     cfg.iconsz          = 16;   /* icon size                                                        */
     cfg.iconspace       = 2;    /* space between icon and title                                     */
+    cfg.rszbaseh        = 50;   /* smallest possible width  re-size size when resizing (if possible)*/
+    cfg.rszbasew        = 50;   /* smallest possible height re-size size when resizing (if possible)*/
 
     /* alt-tab configuration */
     cfg.tabmodkey       = 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `                                          */
@@ -72,6 +77,7 @@ void initcfg()
     cfg.maxwtab         = 600;	/* MAX tab menu width                                               */
     cfg.maxhtab         = 200;	/* MAX tab menu height                                              */
     cfg.minwdraw        = 0;    /* Add padding if text length is shorter; 0 to disable              */
+    cfg.alttabmaped     = 1;    /* 1 compositor fadding when switching tabs; 0 to disable           */
     cfg.tabshowpreview  = 1;    /* shows window preview when alt tabbing                            */
 
     cfg.mfact           = 0.55; /* factor of master area size [0.05..0.95]                          */
@@ -82,8 +88,10 @@ void initcfg()
     cfg.ignoredecorhints= 0;    /* 1 ignore hints made by windows for window decorations; 0 to disable */
 
 }
-static const short topbar       = 0; /* 0 for bottom bar                                            */
-static const short fastinputbar = 0; /* prioritizes input over bar render; 0 to disable             */
+
+
+static const int topbar      = 0; /* 0 for bottom bar                                            */
+static const int fastinputbar= 0; /* prioritizes input over bar render; 0 to disable             */
 
 static char WM_NAME[]           = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
 
@@ -158,3 +166,8 @@ static const Layout layouts[] =
     { "[G]",      grid },
 
 };
+
+/* NOTES:
+ * For uncapped resizing of windows (NOT ADVICED) you can go to toggle.c -> resizemouse() and simply set basew and baseh to 0 
+ *
+ */

@@ -48,11 +48,11 @@ static const Key keys[] = {
     { KeyPress,                     CTRL|ALT,       XK_q,	    forcekillclient,{0} },
     { KeyPress,                     SUPER,          XK_w,       togglemaximize, {0} },
     { KeyRelease,                   SUPER|SHIFT,    XK_p,       quitdwm,        {0} },
-    { KeyPress,                     SUPER|CTRL,     XK_p,       restartdwm,     {1} }, 
-    { KeyPress,                     SUPER,          XK_z,       setlayout,      {.v = &layouts[0]} },/* TILED    */
-    { KeyPress,                     SUPER,          XK_x,       setlayout,      {.v = &layouts[1]} },/* FLOATING */
-    { KeyPress,                     SUPER,          XK_c,       setlayout,      {.v = &layouts[2]} },/* MONOCLE  */
-    { KeyPress,                     SUPER,          XK_g,       setlayout,      {.v = &layouts[3]} },/* GRID     */
+    { KeyPress,                     SUPER|CTRL,     XK_p,       restartdwm,     {0} }, 
+    { KeyPress,                     SUPER,          XK_z,       setlayout,      {TILED} },
+    { KeyPress,                     SUPER,          XK_x,       setlayout,      {FLOATING} },
+    { KeyPress,                     SUPER,          XK_c,       setlayout,      {MONOCLE} },
+    { KeyPress,                     SUPER,          XK_g,       setlayout,      {GRID} },
     { KeyPress,                     0,              XK_F11,     togglefullscr,  {0} },
 
     { KeyPress,                     ALT,            TAB,        alttabstart,	{0} },
