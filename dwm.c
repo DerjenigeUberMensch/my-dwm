@@ -156,7 +156,9 @@ struct Client {
     unsigned int oldstate        : 1;
     unsigned int isfullscreen    : 1;
     /* icon */
-    unsigned int icw, ich; Picture icon; /* ulong */
+    unsigned int icw;
+    unsigned int ich;
+    Picture icon; /* ulong */
     Client *next;
     Client *snext;
     Monitor *mon;
@@ -236,7 +238,7 @@ static Monitor *dirtomon(int dir);
 static int  dockablewindow(Client *c);
 static void drawbar(Monitor *m);
 static void drawbars(void);
-static int  drawstatusbar(Monitor *m);
+static void drawbartabs(Monitor *m, int x, int y, int maxw, int height, int filled, int invert);
 static void drawprompt(int wx, int wy, int ww, int wh, const char *title, const char *message);
 static void enternotify(XEvent *e);
 static void prompt(const char *title, const char *message, int wx, int wy, int ww, int wh);
@@ -322,7 +324,7 @@ static void alttabend();
 /* variables */
 static Client *lastfocused = NULL;
 static const char broken[] = "broken";
-static char stext[1024];
+static char stext[256];
 static int screen;
 static int sw, sh;           /* X display screen geometry width, height */
 static int bh;               /* bar height */
@@ -580,7 +582,7 @@ cleanup(void)
         cleanupmon(mons);
     for (i = 0; i < CurLast; i++)
         drw_cur_free(drw, cursor[i]);
-    for (i = 0; i < LENGTH(colors) + 1; i++)
+    for (i = 0; i < LENGTH(colors); i++)
         free(scheme[i]);
     free(scheme);
     XDestroyWindow(dpy, wmcheckwin);
@@ -833,114 +835,6 @@ dirtomon(int dir)
         for (m = mons; m->next != selmon; m = m->next);
     return m;
 }
-int
-drawstatusbar(Monitor *m) {
-    int ret, i, w, x, len;
-    short isCode = 0;
-    char *text;
-    char *p;
-
-    len = strlen(stext) + 1 ;
-    if (!(text = (char*) malloc(sizeof(char)*len)))
-        die("WARN: failed to malloc when drawing status bar");
-    p = text;
-    memcpy(text, stext, len);
-
-    /* compute width of the status text */
-    w = 0;
-    i = -1;
-    while (text[++i]) {
-        if (text[i] == '^') {
-            if (!isCode) {
-                isCode = 1;
-                text[i] = '\0';
-                w += TEXTW(text) - lrpad;
-                text[i] = '^';
-                if (text[++i] == 'f')
-                    w += atoi(text + ++i);
-            } else {
-                isCode = 0;
-                text = text + i + 1;
-                i = -1;
-            }
-        }
-    }
-    if (!isCode)
-        w += TEXTW(text) - lrpad;
-    else
-        isCode = 0;
-    text = p;
-
-    w += cfg.barpadding; /* 1px padding on both sides */
-    ret = x = m->ww - w;
-
-    drw_setscheme(drw, scheme[LENGTH(colors)]);
-    drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
-    drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
-    drw_rect(drw, x, 0, w, bh, 1, 1);
-    x++;
-
-    /* process status text */
-    i = -1;
-    while (text[++i]) {
-        if (text[i] == '^' && !isCode) {
-            isCode = 1;
-
-            text[i] = '\0';
-            w = TEXTW(text) - lrpad;
-            drw_text(drw, x, 0, w, bh, 0, text, 0);
-
-            x += w;
-
-            /* process code */
-            while (text[++i] != '^') {
-                if (text[i] == 'c') {
-                    char buf[8];
-                    memcpy(buf, (char*)text+i+1, 7);
-                    buf[7] = '\0';
-                    drw_clr_create(drw, &drw->scheme[ColFg], buf);
-                    i += 7;
-                } else if (text[i] == 'b') {
-                    char buf[8];
-                    memcpy(buf, (char*)text+i+1, 7);
-                    buf[7] = '\0';
-                    drw_clr_create(drw, &drw->scheme[ColBg], buf);
-                    i += 7;
-                } else if (text[i] == 'd') {
-                    drw->scheme[ColFg] = scheme[SchemeNorm][ColFg];
-                    drw->scheme[ColBg] = scheme[SchemeNorm][ColBg];
-                } else if (text[i] == 'r') {
-                    int rx = atoi(text + ++i);
-                    while (text[++i] != ',');
-                    int ry = atoi(text + ++i);
-                    while (text[++i] != ',');
-                    int rw = atoi(text + ++i);
-                    while (text[++i] != ',');
-                    int rh = atoi(text + ++i);
-
-                    drw_rect(drw, rx + x, ry, rw, rh, 1, 0);
-                } else if (text[i] == 'f') {
-                    x += atoi(text + ++i);
-                }
-            }
-
-            text = text + i + 1;
-            i=-1;
-            isCode = 0;
-        }
-    }
-
-    if (!isCode) {
-        w = TEXTW(text) - lrpad;
-        drw_text(drw, x, 0, w, bh, 0, text, 0);
-    }
-
-    drw_setscheme(drw, scheme[SchemeNorm]);
-
-    free(p);
-
-    return ret;
-}
 
 void
 drawbar(Monitor *m)
@@ -957,7 +851,9 @@ drawbar(Monitor *m)
     if (!m->showbar) return;
     /* draw status first so it can be overdrawn by tags later */
     if (m == selmon) { /* status is only drawn on selected monitor */
-        tw = m->ww - drawstatusbar(m);
+        drw_setscheme(drw, scheme[SchemeNorm]);
+		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
+		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
     }
 
     for (c = m->clients; c; c = c->next) {
@@ -987,28 +883,62 @@ drawbar(Monitor *m)
     drw_rect(drw, x, 0, m->ww - tw - x, bh, 1, 1);
     if ((w = m->ww - tw - x) > bh)
     {
-        /* If not enough space to draw all tabs only draw selmon->sel tab*/
-        if (m->sel)
-        {
-            /* drw_setscheme(drw, scheme[m == selmon ? SchemeSel : SchemeNorm]); */
-            iconspace = m->sel->icon ? m->sel->icw + cfg.iconspace : lrpad;
-            drw_setscheme(drw, scheme[SchemeBarTabActive]);
-            drw_text(drw, x, 0, w, bh, iconspace, m->sel->name, 0);
-            if (m->sel->icon) 
-                drw_pic(drw, x + iconspace - lrpad, 
-                (bh - m->sel->ich) >> 1, m->sel->icw, m->sel->ich, m->sel->icon);
-            if (m->sel->isfloating)
-                drw_rect(drw, x + boxs, boxs, boxw, boxw, m->sel->isfixed, 0);
-        }
-        else /* else if none selected draw empty bar*/
-        {
-            drw_setscheme(drw, scheme[SchemeNorm]);
-            drw_rect(drw, x, 0, w, bh, 1, 1);
-        }
+        drawbartabs(m, x, 0, w, bh, 1, 0);
     }
     drw_map(drw, m->barwin, 0, 0, m->ww, bh);
 }
 
+void
+drawbartabs(Monitor *m, int x, int y, int maxw, int height, int filled, int invert)
+{
+    Client *c;
+    unsigned int tabcnt;    /* tab count */
+    unsigned int tabsz;     /* tab size */
+    unsigned int iconspace;
+    unsigned int boxh; /* tiny floating box indicator h */
+    unsigned int boxw; /* tiny floating box indicator w */
+    int curscheme; /* current scheme */
+    int cc; /* client counter */
+    int btpos;  /* current bartab positon x */
+
+    btpos = 0;
+    cc = 0;
+    tabcnt = 0;
+    boxh = 5;
+    boxw = 5;
+    /* get count */
+    for (c = m->clients; c; c = c->next) tabcnt += !!ISVISIBLE(c);
+
+    /* draw empty if none selected */
+    if(!tabcnt)
+    {
+        drw_setscheme(drw, scheme[SchemeNorm]);
+        drw_rect(drw, x, 0, maxw, bh, 1, 1);
+        return;
+    }
+
+    tabsz = maxw / tabcnt;
+    for(c = m->clients; c; c = c->next)
+    {
+        if(!ISVISIBLE(c)) continue;
+        btpos = cc * tabsz;
+        curscheme = c == m->sel ? SchemeBarTabActive : SchemeBarTabInactive;
+
+        if(c->icon) iconspace = c->icw + cfg.iconspace; 
+        else iconspace = lrpad >> 1;
+        drw_setscheme(drw, scheme[curscheme]);
+        drw_text(drw, x + btpos, 0, tabsz, bh, iconspace, c->name, 0);
+        if(c->icon)
+        {
+            drw_pic(drw, x + btpos + iconspace - lrpad, 
+                    (bh - c->ich) >> 1, c->icw, c->ich, c->icon);
+        }
+        if (c->isfloating)
+            drw_rect(drw, x + btpos + boxw, boxh, boxw, boxw, c->isfixed, 0);
+        ++cc;
+    }
+
+}
 void
 drawbars(void)
 {
@@ -1823,6 +1753,7 @@ restack(Monitor *m)
     XWindowChanges wc;
     drawbar(m);
     if (!m->sel) return;
+    if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
     if (m->lt[m->sellt]->arrange) 
     {
         wc.stack_mode = Below;
@@ -1839,7 +1770,6 @@ restack(Monitor *m)
             if(c->alwaysontop) XRaiseWindow(dpy, c->win);
         }
     }
-    if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -1850,6 +1780,11 @@ run(void)
     XEvent ev;
     /* main event loop */
     XSync(dpy, False);
+    /* fix later
+     * Implement a seperate thread here that takes similiar args but only gets the call handler for 
+     * 'Emergency protocols' used for fixing/rebooting frozens systems 
+     * aside from just doing ctrl+alt+f1 cause that isnt very user friendly and also kinda slow
+     */
     while (running && !XNextEvent(dpy, &ev))
     {
         if (handler[ev.type])
@@ -2036,8 +1971,7 @@ setup(void)
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
     /* init appearance */
     if (LENGTH(tags) > LENGTH(tagsel)) die("too few color schemes for the tags");
-    scheme = ecalloc(LENGTH(colors) + 1, sizeof(Clr *));
-    scheme[LENGTH(colors)] = drw_scm_create(drw, colors[0], 3);
+    scheme = ecalloc(LENGTH(colors), sizeof(Clr *));
     for (i = 0; i < LENGTH(colors); i++)
         scheme[i] = drw_scm_create(drw, colors[i], 3);
     tagscheme = ecalloc(LENGTH(tagsel), sizeof(Clr *));
@@ -2225,7 +2159,7 @@ maximize(int x, int y, int w, int h) {
             togglefloating(NULL);
         c->ismax = 0;
     }
-    drawbar(selmon);
+    restack(selmon);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
@@ -2248,7 +2182,7 @@ alttab()
             winmap(m->altsnext[m->altTabN], 1);
         }
         focus(m->altsnext[m->altTabN]);
-        if(cfg.tabshowpreview) XRaiseWindow(dpy, m->altsnext[m->altTabN]->win);
+        if(cfg.tabshowpreview) restack(m);
     }
     /* redraw tab */
     drawtab(m->nTabs, 0, m);
