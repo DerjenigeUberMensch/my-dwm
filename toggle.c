@@ -140,6 +140,7 @@ movemouse(const Arg *arg)
         selmon = m;
         focus(NULL);
     }
+    restack(selmon);
 }
 
 
@@ -251,6 +252,7 @@ resizemouse(const Arg *arg)
         selmon = m;
         focus(NULL);
     }
+    restack(selmon);
 }
 
 void
