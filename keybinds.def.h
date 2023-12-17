@@ -12,9 +12,9 @@
 
 /* TAGGING IS NOT IMPLEMENT IN THIS BUILD OF DWM and is left for user discretion */
 #define TAGKEYS(KEY,TAG) \
-{ KeyPress,                     SUPER,                       KEY,      view,           {.ui = 1 << TAG} }, \
-{ KeyPress,                     SUPER|CTRL,                  KEY,      toggleview,     {.ui = 1 << TAG} }, \
-{ KeyPress,                     SUPER|SHIFT,                 KEY,      tag,            {.ui = 1 << TAG} }, \
+{ KeyPress,                     SUPER,                       KEY,      View,            {.ui = 1 << TAG} }, \
+{ KeyPress,                     SUPER|CTRL,                  KEY,      ToggleView,      {.ui = 1 << TAG} }, \
+{ KeyPress,                     SUPER|SHIFT,                 KEY,      TagWindow,       {.ui = 1 << TAG} }, \
 
 
 /* helper for spawning shell commands in the pre dwm-5.0 fashion */
@@ -37,34 +37,34 @@ static const char *termcmd[]        = { "st", NULL };
 static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.png", NULL}; /*doesnt work*/
 
 static const Key keys[] = {
-    /*Action                        modifier                     key        function        argument */
-    { KeyPress,                     SUPER,          XK_n,       tester,         {0} },
-    { KeyPress,                     SUPER,          XK_d,       spawn,          {.v = dmenucmd } },
-    { KeyPress,                     SUPER,          XK_Return,  spawn,          {.v = termcmd } },
-    { KeyRelease,                   SUPER,          XK_Print,   spawn,          {.v = screenshotcmd } },
-    { KeyPress,                     SUPER,          XK_b,       togglebar,      {0} },
-    { KeyPress,                     SUPER,          XK_q,	    view,           {0} },
-    { KeyPress,                     SUPER|SHIFT,    XK_q,       killclient,     {0} },
-    { KeyPress,                     CTRL|ALT,       XK_q,	    forcekillclient,{0} },
-    { KeyPress,                     SUPER,          XK_w,       togglemaximize, {0} },
-    { KeyRelease,                   SUPER|SHIFT,    XK_p,       quitdwm,        {0} },
-    { KeyPress,                     SUPER|CTRL,     XK_p,       restartdwm,     {0} }, 
-    { KeyPress,                     SUPER,          XK_z,       setlayout,      {TILED} },
-    { KeyPress,                     SUPER,          XK_x,       setlayout,      {FLOATING} },
-    { KeyPress,                     SUPER,          XK_c,       setlayout,      {MONOCLE} },
-    { KeyPress,                     SUPER,          XK_g,       setlayout,      {GRID} },
-    { KeyPress,                     0,              XK_F11,     togglefullscr,  {0} },
+    /*Action            modifier                    key         function            argument */
+    { KeyPress,         SUPER,                      XK_n,       tester,             {0} },
+    { KeyPress,         SUPER,                      XK_d,       SpawnWindow,        {.v = dmenucmd } },
+    { KeyPress,         SUPER,                      XK_Return,  SpawnWindow,        {.v = termcmd } },
+    { KeyRelease,       SUPER,                      XK_Print,   SpawnWindow,        {.v = screenshotcmd } },
+    { KeyPress,         SUPER,                      XK_b,       ToggleStatusBar,    {0} },
+    { KeyPress,         SUPER,                      XK_q,	    View,               {0} },
+    { KeyPress,         SUPER|SHIFT,                XK_q,       KillWindow,         {0} },
+    { KeyPress,         CTRL|ALT,                   XK_q,	    TerminateWindow,    {0} },
+    { KeyPress,         SUPER,                      XK_w,       MaximizeWindow,     {0} },
+    { KeyRelease,       SUPER|SHIFT,                XK_p,       Quit,               {0} },
+    { KeyPress,         SUPER|CTRL,                 XK_p,       Restart,            {0} }, 
+    { KeyPress,         SUPER,                      XK_z,       SetWindowLayout,    {TILED} },
+    { KeyPress,         SUPER,                      XK_x,       SetWindowLayout,    {FLOATING} },
+    { KeyPress,         SUPER,                      XK_c,       SetWindowLayout,    {MONOCLE} },
+    { KeyPress,         SUPER,                      XK_g,       SetWindowLayout,    {GRID} },
+    { KeyPress,         0,                          XK_F11,     ToggleFullscreen,   {0} },
 
-    { KeyPress,                     ALT,            TAB,        alttabstart,	{0} },
-    { KeyPress,                     0, XF86XK_AudioMute,                        spawn, {.v = mute_vol } },
-    { KeyPress,                     0, XF86XK_AudioLowerVolume,                 spawn, {.v = down_vol } },
-    { KeyPress,                     0, XF86XK_AudioRaiseVolume,                 spawn, {.v = up_vol } },
-    { KeyPress,                     0, XF86XK_MonBrightnessDown,                spawn, {.v = dimmer } },
-    { KeyPress,                     0, XF86XK_MonBrightnessUp,                  spawn, {.v = brighter } },
-    { KeyPress,                     0, XF86XK_AudioPlay,                        spawn, {.v = pause_vol } },
-    { KeyPress,                     0, XF86XK_AudioPause,                       spawn, {.v = pause_vol } },
-    { KeyPress,                     0, XF86XK_AudioNext,                        spawn, {.v = next_vol } },
-    { KeyPress,                     0, XF86XK_AudioPrev,                        spawn, {.v = prev_vol } },
+    { KeyPress,         ALT,                        TAB,        AltTab,	            {0} },
+    { KeyPress,         0, XF86XK_AudioMute,                    SpawnWindow,        {.v = mute_vol } },
+    { KeyPress,         0, XF86XK_AudioLowerVolume,             SpawnWindow,        {.v = down_vol } },
+    { KeyPress,         0, XF86XK_AudioRaiseVolume,             SpawnWindow,        {.v = up_vol } },
+    { KeyPress,         0, XF86XK_MonBrightnessDown,            SpawnWindow,        {.v = dimmer } },
+    { KeyPress,         0, XF86XK_MonBrightnessUp,              SpawnWindow,        {.v = brighter } },
+    { KeyPress,         0, XF86XK_AudioPlay,                    SpawnWindow,        {.v = pause_vol } },
+    { KeyPress,         0, XF86XK_AudioPause,                   SpawnWindow,        {.v = pause_vol } },
+    { KeyPress,         0, XF86XK_AudioNext,                    SpawnWindow,        {.v = next_vol } },
+    { KeyPress,         0, XF86XK_AudioPrev,                    SpawnWindow,        {.v = prev_vol } },
 
     TAGKEYS(                        XK_1,                      0)
     TAGKEYS(                        XK_2,                      1)
@@ -80,17 +80,17 @@ static const Key keys[] = {
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static const Button buttons[] = {
-    /* click                event mask      button          function        argument */
-    { ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
-    { ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
-    { ClkWinTitle,          0,              Button2,        zoom,           {0} },
-    { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
-    { ClkClientWin,         SUPER,          Button1,        movemouse,      {0} },
-    { ClkClientWin,         SUPER,          Button2,        togglefloating, {0} },
-    { ClkClientWin,         SUPER,          Button3,        resizemouse,    {0} },
-    { ClkTagBar,            0,              Button1,        view,           {0} },
-    { ClkTagBar,            0,              Button3,        toggleview,     {0} },
-    { ClkTagBar,            SUPER,          Button1,        tag,            {0} },
-    { ClkTagBar,            SUPER,          Button3,        toggletag,      {0} },
+    /* click                event mask      button          function            argument */
+    { ClkLtSymbol,          0,              Button1,        SetWindowLayout,    {0} },
+    { ClkLtSymbol,          0,              Button3,        SetWindowLayout,    {.v = &layouts[2]} },
+    { ClkWinTitle,          0,              Button2,        Zoom,               {0} },
+    { ClkStatusText,        0,              Button2,        SpawnWindow,        {.v = termcmd } },
+    { ClkClientWin,         SUPER,          Button1,        DragWindow,         {0} },
+    { ClkClientWin,         SUPER,          Button2,        ToggleFloating,     {0} },
+    { ClkClientWin,         SUPER,          Button3,        ResizeWindow,       {0} },
+    { ClkTagBar,            0,              Button1,        View,               {0} },
+    { ClkTagBar,            0,              Button3,        ToggleView,         {0} },
+    { ClkTagBar,            SUPER,          Button1,        TagWindow,          {0} },
+    { ClkTagBar,            SUPER,          Button3,        ToggleTag,          {0} },
 };
 

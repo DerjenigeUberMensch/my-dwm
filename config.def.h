@@ -1,6 +1,11 @@
 /* See LICENSE file for copyright and license details.
  * 4 Tab spaces; No tab characters use spaces for tabs
  * Basic overview of dwm => https://ratfactor.com/dwm
+ * For more information about xlib (X11)       visit https://x.org/releases/current/doc/libX11/libX11/libX11.html
+ * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/ 
+ * For broad information about xlib (X11) visit {
+ * List of utils: https://www.freedesktop.org/wiki/Specifications/
+ * }
  */
 /* See bottom for notes */
 struct Config
@@ -32,7 +37,7 @@ struct Config
     unsigned int nmaster            : 10;
     unsigned int resizehints        : 10;
     unsigned int lockfullscreen     : 10;
-
+    unsigned int maxcnum            : 10;
 
     unsigned int bttagrow           :  5;
 
@@ -48,6 +53,7 @@ struct Config
     unsigned int tabtextposxf       :  1;
     unsigned int ignoredecorhints   :  1;
     unsigned int alttabmaped        :  1;
+    unsigned int tabfixedtile       :  1;
     float mfact;
 };
 
@@ -79,9 +85,10 @@ void initcfg()
     cfg.minwdraw        = 0;    /* Add padding if text length is shorter; 0 to disable              */
     cfg.alttabmaped     = 1;    /* 1 compositor fadding when switching tabs; 0 to disable           */
     cfg.tabshowpreview  = 1;    /* shows window preview when alt tabbing                            */
+    cfg.tabfixedtile    = 1;    /* 1 alttab only changes focused window; 0 to disable               */
 
     cfg.mfact           = 0.55; /* factor of master area size [0.05..0.95]                          */
-
+    cfg.maxcnum         = 256;    /* max number of clients assuming you dont run out of memory          */
     cfg.nmaster         = 1;    /* number of clients in master area                                 */
     cfg.resizehints     = 1;    /* 1 means respect size hints in tiled resizals                     */
     cfg.lockfullscreen  = 1;    /* 1 will force focus on the fullscreen window                      */
