@@ -255,7 +255,6 @@ static Atom getatomprop(Client *c, Atom prop);
 static int  getwinpid(Window window);
 static uint32_t prealpha(uint32_t p);
 static Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
-static void geticon(Client *c);
 static int  getrootptr(int *x, int *y);
 static long getstate(Window w);
 static int  gettextprop(Window w, Atom atom, char *text, unsigned int size);
