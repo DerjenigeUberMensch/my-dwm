@@ -247,14 +247,16 @@ drw_setscheme(Drw *drw, Clr *scm)
     if (drw)
         drw->scheme = scm;
 }
+
 Picture
 drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
 	Pixmap pm;
 	Picture pic;
 	GC gc;
-
+    
 	if (srcw <= (dstw << 1u) && srch <= (dsth << 1u)) {
-		XImage img = {
+		XImage img = 
+        {
 			srcw, srch, 0, ZPixmap, src,
 			ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
 			32, 0, 32,
@@ -308,7 +310,6 @@ drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int 
 		pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
 		XFreePixmap(drw->dpy, pm);
 	}
-
 	return pic;
 }
 

@@ -33,19 +33,10 @@ LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER
 # WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
 # -g -> debug
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -ggdb -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS} -Wextra -Wshadow
-# compile for Size
-# DEBUG
-# CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
-# SZ
-#CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
-
-
-
-
+CFLAGS   = -ggdb -g -std=c99 -pedantic -Wall -Wextra -Wshadow ${INCS} ${LIBS} ${CPPFLAGS} -O0
 
 # Release
-#CFLAGS= -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -O2 ${INCS} ${CPPFLAGS} -ftree-vectorize
+CFLAGS= -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -ftree-vectorize ${INCS} ${LIBS} ${CPPFLAGS} -O2
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"

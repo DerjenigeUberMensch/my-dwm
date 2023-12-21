@@ -27,8 +27,9 @@ int main(void) {
     XSelectInput(d, f, ExposureMask);
     while (1) {
         XNextEvent(d, &e);
-
-        if (t == None) {
+        continue;
+        if (t == None) 
+        {
             sleep(5);
             t = XCreateSimpleWindow(d, r, 50, 50, 100, 100, 0, 0, 0);
             XSetTransientForHint(d, t, f);

@@ -7,130 +7,69 @@
  * List of utils: https://www.freedesktop.org/wiki/Specifications/
  * }
  */
-/* See bottom for notes */
-struct Config
-{
-    /* BIT SIZES
-     * max screen size         14
-     * bool                     1 
-     * tiny ints                2
-     * small ints               5
-     * medium ints             10
-     * big ints                14
-     */
-    unsigned int tabmodkey          : 14;
-    unsigned int tabcyclekey        : 14;
+#define CFG_BORDER_PX       0       /* border pixel of windows                                          */
+#define CFG_SNAP            15      /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
+#define CFG_WIN_RATE        120     /* max refresh rate when resizing, moving windows;  0 to disable    */
+#define CFG_SHOW_WM_NAME    0       /* 1 Show window manager name at end of status bar; 0 to disable    */
+#define CFG_HOVER_FOCUS     0       /* 1 on mouse hover focus that window; 0 to disable                 */
+#define CFG_BAR_PADDING     0       /* padding in pixels (both sides)                                   */
+#define CFG_SHOW_BAR        1       /* 1 to show bar; 0 to disable                                      */
+#define CFG_ICON_SIZE       16      /* icon size                                                        */
+#define CFG_ICON_SPACE      2       /* space between icon and title                                     */
 
-    unsigned int borderpx           : 14;
-    unsigned int snap               : 14;
-    unsigned int barpadding         : 14;
-    unsigned int iconsz             : 14;
-    unsigned int iconspace          : 14;
-    unsigned int maxwtab            : 14;
-    unsigned int maxhtab            : 14;
-    unsigned int bttagpx            : 14;
-    unsigned int minwdraw           : 14;
-    unsigned int rszbaseh           : 14;
-    unsigned int rszbasew           : 14;
+/* alt-tab configuration */
+#define CFG_ALT_TAB_SWITCH_KEY  0x40    /* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `                                          */
+#define CFG_ALT_TAB_CYCLE_KEY   0x17    /* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart                    */
+#define CFG_ALT_TAB_POS_X           1       /* tab position on X axis, 0 = left, 1 = center, 2 = right          */
+#define CFG_ALT_TAB_POS_Y           1       /* tab position on Y axis, 0 = bottom, 1 = center, 2 = top          */
+#define CFG_ALT_TAB_TEXT_POS_X      1       /* tab position on x axis, 0 = left , 1 = center, 2 = right         */
+#define CFG_ALT_TAB_MAX_WIDTH       600     /* MAX tab menu width                                               */
+#define CFG_ALT_TAB_MAX_HEIGHT      200     /* MAX tab menu height                                              */
+#define CFG_ALT_TAB_MIN_WIDTH       0       /* Add padding if text length is shorter; 0 to disable              */
+#define CFG_ALT_TAB_MAP_WINDOWS     1       /* 1 compositor fadding when switching tabs; 0 to disable           */
+#define CFG_ALT_TAB_SHOW_PREVIEW    1       /* shows window preview when alt tabbing                            */
+#define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab only changes focused window; 0 to disable               */
+/* Misc */
+#define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
+#define CFG_MAX_CLIENT_COUNT        256     /* max number of clients assuming you can handle this many          */
+#define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
+#define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
+#define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
+#define CFG_DECOR_HINTS             1       /* 1 ignore hints made by windows for window decorations; 0 to disable */
+/* dmenu */
+#define CFG_TOP_BAR                 0 /* 0 for bottom bar                                            */
+#define CFG_FAST_INPUT_DMENU        0 /* prioritizes input over bar render; 0 to disable             */
 
-    unsigned int windowrate         : 10;
-    unsigned int nmaster            : 10;
-    unsigned int resizehints        : 10;
-    unsigned int lockfullscreen     : 10;
-    unsigned int maxcnum            : 10;
+#define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this) */
 
-    unsigned int bttagrow           :  5;
-
-
-    unsigned int tabposx            :  2;
-    unsigned int tabposy            :  2;
-    unsigned int tabtextposx        :  2;
-
-
-    unsigned int hoverfocus         :  1;
-    unsigned int showbar            :  1;
-    unsigned int tabshowpreview     :  1;
-    unsigned int tabtextposxf       :  1;
-    unsigned int ignoredecorhints   :  1;
-    unsigned int alttabmaped        :  1;
-    unsigned int tabfixedtile       :  1;
-    float mfact;
-};
-
-static struct Config cfg;
-
-void initcfg()
-{
-    cfg.borderpx        = 0;    /* border pixel of windows                                          */
-    cfg.snap            = 15;   /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
-    cfg.windowrate      = 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
-    cfg.hoverfocus      = 0;    /* 1 on mouse hover focus that window; 0 to disable                 */
-
-    cfg.barpadding      = 0;    /* padding in pixels (both sides)                                   */
-    cfg.showbar         = 1;    /* 1 to show bar; 0 to disable                                      */
-    cfg.iconsz          = 16;   /* icon size                                                        */
-    cfg.iconspace       = 2;    /* space between icon and title                                     */
-    cfg.rszbaseh        = 50;   /* smallest possible width  re-size size when resizing (if possible)*/
-    cfg.rszbasew        = 50;   /* smallest possible height re-size size when resizing (if possible)*/
-
-    /* alt-tab configuration */
-    cfg.tabmodkey       = 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `                                          */
-    cfg.tabcyclekey     = 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart                    */
-    cfg.tabposx         = 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right          */
-    cfg.tabposy 		= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top          */
-    cfg.tabtextposx     = 1;    /* tab position on x axis, 0 = left , 1 = center, 2 = right         */
-    cfg.tabtextposxf    = 0;    /* 0 Left, 1 Right; set tabtextposx = -1 to enable;                 */
-    cfg.maxwtab         = 600;	/* MAX tab menu width                                               */
-    cfg.maxhtab         = 200;	/* MAX tab menu height                                              */
-    cfg.minwdraw        = 0;    /* Add padding if text length is shorter; 0 to disable              */
-    cfg.alttabmaped     = 1;    /* 1 compositor fadding when switching tabs; 0 to disable           */
-    cfg.tabshowpreview  = 1;    /* shows window preview when alt tabbing                            */
-    cfg.tabfixedtile    = 1;    /* 1 alttab only changes focused window; 0 to disable               */
-
-    cfg.mfact           = 0.55; /* factor of master area size [0.05..0.95]                          */
-    cfg.maxcnum         = 256;    /* max number of clients assuming you dont run out of memory          */
-    cfg.nmaster         = 1;    /* number of clients in master area                                 */
-    cfg.resizehints     = 1;    /* 1 means respect size hints in tiled resizals                     */
-    cfg.lockfullscreen  = 1;    /* 1 will force focus on the fullscreen window                      */
-    cfg.ignoredecorhints= 0;    /* 1 ignore hints made by windows for window decorations; 0 to disable */
-
-}
-
-
-static const int topbar      = 0; /* 0 for bottom bar                                            */
-static const int fastinputbar= 0; /* prioritizes input over bar render; 0 to disable             */
-
-static char WM_NAME[]           = "dwm.exe"; /* wm name displayed when using X (type neofetch to see this) */
-
-static const char *fonts[]      =     {"monospace:size=12" };
-static const char dmenufont[]   =    {"monospace:size=12"};
+static const char *fonts[]      =   {"monospace:size=12" };
+static const char dmenufont[]   =   {"monospace:size=12"};
 
 
 /* COLOURS */
-static char col_black[]     = "#000000";
-static char col_white[]     = "#ffffff";
+#define COL_BLACK       "#000000"
+#define COL_WHITE       "#ffffff"
+#define COL_GREY        "#C0C0C0"
+#define COL_RED         "#ff0000"
+#define COL_PINK        "#FF00FF"
+#define COL_BLUE        "#0000FF"
+#define COL_YELLOW      "#FFFF00"
 
-static char col_grey[]      = "#C0C0C0";
-static char col_red[]       = "#ff0000";
-static char col_pink[]      = "#FF00FF";
-static char col_blue[]      = "#0000FF";
-static char col_yellow[]    = "#FFFF00";
 /* static char col_term_blue[]   = "#ecffff"; */
 static char *colors[][3] = 
 {
-    /*					fg         bg          border   */
-    /*                  fg=textColour                   */
-    [SchemeNorm]            = { col_white, col_black, col_white },
-    [SchemeSel]             = { col_white, col_black, col_white },
-    [SchemeUrgent]          = { col_blue,  col_red,   col_blue },
-    [SchemeWarn]            = { col_white, col_yellow, col_white},
+    /*					        fg         bg          border   */
+    [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE},
+    [SchemeSel]             = { COL_WHITE, COL_BLACK, COL_WHITE},
+    [SchemeUrgent]          = { COL_BLUE,  COL_RED,   COL_BLUE},
+    [SchemeWarn]            = { COL_WHITE, COL_YELLOW, COL_WHITE},
 
-    [SchemeAltTab]          = { col_white, col_black, col_black },
-    [SchemeAltTabSelect]    = { col_black, col_white, col_white},
+    [SchemeAltTab]          = { COL_WHITE, COL_BLACK, COL_BLACK},
+    [SchemeAltTabSelect]    = { COL_BLACK, COL_WHITE, COL_WHITE},
 
-    [SchemeBarTabActive]    = { col_black, col_white, col_white},
-    [SchemeBarTabInactive]  = { col_white, col_black, col_black },
-    [SchemeTagActive]       = { col_black, col_white, col_white},
+    [SchemeBarTabActive]    = { COL_BLACK, COL_WHITE, COL_WHITE},
+    [SchemeBarTabInactive]  = { COL_WHITE, COL_BLACK, COL_BLACK},
+    [SchemeTagActive]       = { COL_BLACK, COL_WHITE, COL_WHITE},
 
 };
 /* appearance */
@@ -138,15 +77,15 @@ static char *colors[][3] =
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 static const char *tagsel[][2] = {
     /* fg       bg */
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
-    {col_white, col_black},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
 };
 static const Rule rules[] = 
 {
@@ -157,10 +96,6 @@ static const Rule rules[] =
     /* class      instance    title       tags mask     isfloating   monitor */
     { "Gimp",     NULL,       NULL,       0,            1,           -1 },
 };
-
-/* Bartab */
-static void (*bartabmonfns[])(Monitor *) = { monocle /* , customlayoutfn */ };
-static void (*bartabfloatfns[])(Monitor *) = { NULL /* , customlayoutfn */ };
 
 /* layout(s) */
 

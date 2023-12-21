@@ -65,7 +65,7 @@ DragWindow(const Arg *arg) /* move mouse */
     XEvent ev;
     Time lasttime;
 
-    float frametime;
+    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE);
 
     c = selmon->sel;
     if (!c) return;
@@ -75,11 +75,11 @@ DragWindow(const Arg *arg) /* move mouse */
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cursor[CurMove]->cursor, CurrentTime) != GrabSuccess) return;
     if (!getrootptr(&x, &y)) return;
-    frametime = 1000 / (cfg.windowrate + !cfg.windowrate); /* prevent 0 division errors */
     lasttime = 0;
     ocx = c->x;
     ocy = c->y;
-    do {
+    do 
+    {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type) {
         case ConfigureRequest:
@@ -88,18 +88,18 @@ DragWindow(const Arg *arg) /* move mouse */
             handler[ev.type](&ev);
             break;
         case MotionNotify:
-            if(cfg.windowrate != 0)
+            if(CFG_WIN_RATE != 0)
             {
                 if ((ev.xmotion.time - lasttime) <= frametime) continue;
                 lasttime = ev.xmotion.time;
             }
             nx = ocx + (ev.xmotion.x - x);
             ny = ocy + (ev.xmotion.y - y);
-            if (abs(selmon->wx - nx) < cfg.snap)
+            if (abs(selmon->wx - nx) < CFG_SNAP)
                 nx = selmon->wx;
-            else if (abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < cfg.snap)
+            else if (abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < CFG_SNAP)
                 nx = selmon->wx + selmon->ww - WIDTH(c);
-            if (abs(selmon->wy - ny) < cfg.snap)
+            if (abs(selmon->wy - ny) < CFG_SNAP)
                 ny = selmon->wy;
             resize(c, nx, ny, c->w, c->h, 1);
             break;
@@ -109,10 +109,10 @@ DragWindow(const Arg *arg) /* move mouse */
     {
         /* workaround as setting c->isfloating c->ismax 0|1 doesnt work properly */
         c->ismax = 0;
-        maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
+        maximize(selmon->wx, selmon->wy, selmon->ww - 2 * CFG_BORDER_PX, selmon->wh - 2 * CFG_BORDER_PX);
         c->isfloating = 0;
-        c->oldx+=cfg.snap;
-        c->oldy+=cfg.snap;
+        c->oldx+=CFG_SNAP;
+        c->oldy+=CFG_SNAP;
     }
     else c->ismax = 0;
     XUngrabPointer(dpy, CurrentTime);
@@ -148,22 +148,17 @@ ResizeWindow(const Arg *arg) /* resizemouse */
      * ocx/ocy          old client posX/posY
      * nx/ny            new posX/posY
      * horiz/vert       check if top left/bottom left of screen
-     * di,dui,dummy     holder vars to pass check (useless aside from check)
-     * basew            Minimum client request size (wont go smaller)
-     * baseh            See above
+     * dui,dummy     holder vars to pass check (useless aside from check)
      * rszbase(w/h)     base window (w/h) when resizing assuming resize hints wasnt set / too small
      */
     int rcurx, rcury;
     int ocw, och;
-    int prevw, prevh;
     int nw, nh;
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
-    int basew, baseh;
-    float frametime;
+    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE);
 
-    int di;
     unsigned int dui;
     Window dummy;
 
@@ -177,12 +172,10 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     if (!c || c->isfullscreen) return;/* no support resizing fullscreen windows by mouse */
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess) return;
-    if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &di, &di, &nx, &ny, &dui)) return;
-    if(!getrootptr(&rcurx, &rcury)) return;
+    if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     if (!c->isfloating || selmon->lt[selmon->sellt]->arrange) ToggleFloating(NULL);
     restack(selmon);
 
-    frametime = 1000 / (cfg.windowrate + !cfg.windowrate); /*prevent 0 division errors */
     ocw = c->w;
     och = c->h;
     ocx = c->x;
@@ -191,9 +184,8 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     horizcorner = nx < c->w >> 1;
     vertcorner  = ny < c->h >> 1;
 
-    basew = MAX(c->basew, cfg.rszbasew);
-    baseh = MAX(c->baseh, cfg.rszbaseh);
-    do {
+    do 
+    {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
         {
@@ -201,32 +193,29 @@ ResizeWindow(const Arg *arg) /* resizemouse */
         case Expose:
         case MapRequest: handler[ev.type](&ev); break;
         case MotionNotify:
-            if(cfg.windowrate != 0)
+            if(CFG_WIN_RATE != 0)
             {
-                if ((ev.xmotion.time - lasttime) <= frametime)
-                    continue;
+                if ((ev.xmotion.time - lasttime) <= frametime) continue;
                 lasttime = ev.xmotion.time;
             }
-            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), basew) : MAX(ocw + (ev.xmotion.x - rcurx), basew);
-            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), baseh) : MAX(och + (ev.xmotion.y - rcury), baseh);
+            
+            nw = horizcorner ? ocw - (ev.xmotion.x - rcurx) : ocw + (ev.xmotion.x - rcurx);
+            nh = vertcorner  ? och - (ev.xmotion.y - rcury) : och + (ev.xmotion.y - rcury);
             nx = horizcorner ? ocx + ocw - nw : c->x;
             ny = vertcorner  ? ocy + och - nh : c->y;
-
             resize(c, nx, ny, nw, nh, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     /* add if w + x > monx || w + x < 0 resize */
-    if(c->w > c->mon->ww)
-        MaximizeWindowHorizontal(NULL);
-    if(c->h > c->mon->wh)
-        MaximizeWindowVertical(NULL);
+    if(c->w > c->mon->ww) MaximizeWindowHorizontal(NULL);
+    if(c->h > c->mon->wh) MaximizeWindowVertical(NULL);
     if(dockablewindow(c))
     {
         c->isfloating = 0;
         c->ismax = 1;
-        c->oldx+=cfg.snap;
-        c->oldy+=cfg.snap;
+        c->oldx+=CFG_SNAP;
+        c->oldy+=CFG_SNAP;
     }
     else c->ismax = 0;
 
@@ -279,20 +268,20 @@ SpawnWindow(const Arg *arg)
 void
 MaximizeWindow(const Arg *arg) 
 {
-    maximize(selmon->wx, selmon->wy, selmon->ww - 2 * cfg.borderpx, selmon->wh - 2 * cfg.borderpx);
+    maximize(selmon->wx, selmon->wy, selmon->ww - 2 * CFG_BORDER_PX, selmon->wh - 2 * CFG_BORDER_PX);
     selmon->sel->isfloating = 0;
 }
 
 
 void
 MaximizeWindowVertical(const Arg *arg) {
-    maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * cfg.borderpx);
+    maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * CFG_BORDER_PX);
     selmon->sel->ismax = 0; /* no such thing as vertmax being fully maxed */
 }
 
 void
 MaximizeWindowHorizontal(const Arg *arg) {
-    maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * cfg.borderpx, selmon->sel->h);
+    maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * CFG_BORDER_PX, selmon->sel->h);
     selmon->sel->ismax = 0; /* no such thing as horzmax being fully maxed */
 }
 void
@@ -335,8 +324,8 @@ AltTab(const Arg *arg)
     {
         XNextEvent(dpy, &event);
         switch(event.type)
-        {case KeyPress:   if(event.xkey.keycode == cfg.tabcyclekey) alttab();    break;
-         case KeyRelease: if(event.xkey.keycode == cfg.tabmodkey)   grabbed = 0; break;
+        {case KeyPress:   if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) alttab();    break;
+         case KeyRelease: if(event.xkey.keycode == CFG_ALT_TAB_SWITCH_KEY)grabbed = 0; break;
         }
     }
 
