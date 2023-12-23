@@ -7,15 +7,19 @@
  * List of utils: https://www.freedesktop.org/wiki/Specifications/
  * }
  */
-#define CFG_BORDER_PX       0       /* border pixel of windows                                          */
-#define CFG_SNAP            15      /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
-#define CFG_WIN_RATE        120     /* max refresh rate when resizing, moving windows;  0 to disable    */
-#define CFG_SHOW_WM_NAME    0       /* 1 Show window manager name at end of status bar; 0 to disable    */
-#define CFG_HOVER_FOCUS     0       /* 1 on mouse hover focus that window; 0 to disable                 */
-#define CFG_BAR_PADDING     0       /* padding in pixels (both sides)                                   */
-#define CFG_SHOW_BAR        1       /* 1 to show bar; 0 to disable                                      */
-#define CFG_ICON_SIZE       16      /* icon size                                                        */
-#define CFG_ICON_SPACE      2       /* space between icon and title                                     */
+/* window */
+#define CFG_BORDER_PX           0       /* border pixel of windows                                          */
+#define CFG_TOP_BAR             0       /* 1 show bar on top; 0 for bottom bar                              */
+#define CFG_SNAP                15      /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
+#define CFG_WIN_RATE            120     /* max refresh rate when resizing, moving windows;  0 to disable    */
+#define CFG_SHOW_WM_NAME        0       /* 1 Show window manager name at end of status bar; 0 to disable    */
+#define CFG_HOVER_FOCUS         0       /* 1 on mouse hover focus that window; 0 to disable                 */
+#define CFG_BAR_PADDING         0       /* padding in pixels (both sides)                                   */
+#define CFG_SHOW_BAR            1       /* 1 to show bar; 0 to disable                                      */
+#define CFG_ICON_SIZE           16      /* icon size                                                        */
+#define CFG_ICON_SPACE          2       /* space between icon and title                                     */
+#define CFG_RESIZE_BASE_WIDTH   150     /* Minimum size for resizing windows, recommend size 50-150         */
+#define CFG_RESIZE_BASE_HEIGHT  150     /* Minimum size for resizing windows, recommend size 50-150         */
 
 /* alt-tab configuration */
 #define CFG_ALT_TAB_SWITCH_KEY  0x40    /* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `                                          */
@@ -35,12 +39,17 @@
 #define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
-#define CFG_DECOR_HINTS             1       /* 1 ignore hints made by windows for window decorations; 0 to disable */
-/* dmenu */
-#define CFG_TOP_BAR                 0 /* 0 for bottom bar                                            */
-#define CFG_FAST_INPUT_DMENU        0 /* prioritizes input over bar render; 0 to disable             */
-
+#define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
 #define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this) */
+/* dmenu */
+#define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
+#define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
+#define CFG_DMENU_CASE_SENSITIVE    1       /* 1 dmenu searches case senstivly; 0 to disable                    */
+/* dmenu colours */
+#define CFG_DMENU_COL_NORM_BACKGROUND       "#000000" /* dmenu background colour for NON selected items */
+#define CFG_DMENU_COL_NORM_FOREGROUND       "#ffffff" /* dmenu text colour for NON selected items       */
+#define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */
+#define CFG_DMENU_COL_SEL_FOREGROUND        "#ffffff" /* dmenu text colour for SELECTED items           */
 
 static const char *fonts[]      =   {"monospace:size=12" };
 static const char dmenufont[]   =   {"monospace:size=12"};
@@ -113,3 +122,4 @@ static const Layout layouts[] =
  * For uncapped resizing of windows (NOT ADVICED) you can go to toggle.c -> resizemouse() and simply set basew and baseh to 0 
  *
  */
+

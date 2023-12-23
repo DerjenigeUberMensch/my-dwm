@@ -65,7 +65,7 @@ DragWindow(const Arg *arg) /* move mouse */
     XEvent ev;
     Time lasttime;
 
-    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE);
+    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /* prevent 0 division errors */
 
     c = selmon->sel;
     if (!c) return;
@@ -78,8 +78,7 @@ DragWindow(const Arg *arg) /* move mouse */
     lasttime = 0;
     ocx = c->x;
     ocy = c->y;
-    do 
-    {
+    do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type) {
         case ConfigureRequest:
@@ -143,12 +142,13 @@ ResizeWindow(const Arg *arg) /* resizemouse */
 {
     /* rcurx, rcury     old x/y Pos for root cursor
      * ocw/och          old client width/height
-     * prev (w/h)       Previous iteration width/height
      * nw/nh            new width/height
      * ocx/ocy          old client posX/posY
      * nx/ny            new posX/posY
      * horiz/vert       check if top left/bottom left of screen
-     * dui,dummy     holder vars to pass check (useless aside from check)
+     * di,dui,dummy     holder vars to pass check (useless aside from check)
+     * basew            Minimum client request size (wont go smaller)
+     * baseh            See above
      * rszbase(w/h)     base window (w/h) when resizing assuming resize hints wasnt set / too small
      */
     int rcurx, rcury;
@@ -157,7 +157,8 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     int ocx, ocy;
     int nx, ny;
     int horizcorner, vertcorner;
-    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE);
+    int basew, baseh;
+    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /*prevent 0 division errors */
 
     unsigned int dui;
     Window dummy;
@@ -175,7 +176,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     if (!c->isfloating || selmon->lt[selmon->sellt]->arrange) ToggleFloating(NULL);
     restack(selmon);
-
     ocw = c->w;
     och = c->h;
     ocx = c->x;
@@ -184,8 +184,9 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     horizcorner = nx < c->w >> 1;
     vertcorner  = ny < c->h >> 1;
 
-    do 
-    {
+    basew = MAX(c->basew, CFG_RESIZE_BASE_WIDTH);
+    baseh = MAX(c->baseh, CFG_RESIZE_BASE_HEIGHT);
+    do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
         {
@@ -195,21 +196,24 @@ ResizeWindow(const Arg *arg) /* resizemouse */
         case MotionNotify:
             if(CFG_WIN_RATE != 0)
             {
-                if ((ev.xmotion.time - lasttime) <= frametime) continue;
+                if ((ev.xmotion.time - lasttime) <= frametime)
+                    continue;
                 lasttime = ev.xmotion.time;
             }
-            
-            nw = horizcorner ? ocw - (ev.xmotion.x - rcurx) : ocw + (ev.xmotion.x - rcurx);
-            nh = vertcorner  ? och - (ev.xmotion.y - rcury) : och + (ev.xmotion.y - rcury);
+            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), basew) : MAX(ocw + (ev.xmotion.x - rcurx), basew);
+            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), baseh) : MAX(och + (ev.xmotion.y - rcury), baseh);
             nx = horizcorner ? ocx + ocw - nw : c->x;
             ny = vertcorner  ? ocy + och - nh : c->y;
+
             resize(c, nx, ny, nw, nh, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     /* add if w + x > monx || w + x < 0 resize */
-    if(c->w > c->mon->ww) MaximizeWindowHorizontal(NULL);
-    if(c->h > c->mon->wh) MaximizeWindowVertical(NULL);
+    if(c->w > c->mon->ww)
+        MaximizeWindowHorizontal(NULL);
+    if(c->h > c->mon->wh)
+        MaximizeWindowVertical(NULL);
     if(dockablewindow(c))
     {
         c->isfloating = 0;
