@@ -32,7 +32,13 @@ static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
 
 /* commands */
 static char dmenumon[2] = "0"; 
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", COL_BLACK, "-nf", COL_WHITE, "-sb", COL_BLACK, "-sf", COL_WHITE, CFG_TOP_BAR ? NULL : "-b" , CFG_FAST_INPUT_DMENU ? "-f" : NULL , NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
+static const char *dmenucmd[] = 
+{ 
+    "dmenu_run", "-m", dmenumon, "-fn", dmenufont, 
+    "-nb", CFG_DMENU_COL_NORM_BACKGROUND, "-nf", CFG_DMENU_COL_NORM_FOREGROUND, 
+    "-sb", CFG_DMENU_COL_SEL_BACKGROUND, "-sf", CFG_DMENU_COL_SEL_FOREGROUND, 
+    CFG_DMENU_TOP_BAR ? NULL : "-b", CFG_DMENU_FAST_INPUT ? "-f" : NULL ,CFG_DMENU_CASE_SENSITIVE ? "-i" : NULL, NULL
+}; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
 static const char *termcmd[]        = { "st", NULL };
 static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.png", NULL}; /*doesnt work*/
 

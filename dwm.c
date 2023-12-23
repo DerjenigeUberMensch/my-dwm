@@ -19,7 +19,6 @@
  * Keys and tagging rules are organized as arrays and defined in config.h.
  *
  * To understand everything else, start reading main().
- *
  */
 #include <errno.h>
 #include <locale.h>
@@ -156,8 +155,8 @@ struct Client {
     unsigned int isfloating      : 1;
     unsigned int isurgent        : 1;
     unsigned int neverfocus      : 1;
+    unsigned int oldstate        : 1;
     unsigned int isfullscreen    : 1;
-    unsigned int oldstate;
     /* icon */
     unsigned int icw;
     unsigned int ich;
@@ -311,9 +310,9 @@ static void winmap(Client *c, int deiconify);
 static void winunmap(Window win, Window winroot, int iconify);
 static Client  *wintoclient(Window w);
 static Monitor *wintomon(Window w);
-static int  xerror(Display *display, XErrorEvent *ee);
-static int  xerrordummy(Display *display, XErrorEvent *ee);
-static int  xerrorstart(Display *display, XErrorEvent *ee);
+static int  xerror(Display *dpy, XErrorEvent *ee);
+static int  xerrordummy(Display *dpy, XErrorEvent *ee);
+static int  xerrorstart(Display *dpy, XErrorEvent *ee);
 
 
 static void alttab();
@@ -322,11 +321,11 @@ static void alttabend();
 /* variables */
 static Client *lastfocused = NULL;
 static const char broken[] = "broken";
-static char stext[256];      /* status WM_NAME text */
+static char stext[256];     /* status WM_NAME text */
 static int screen;
-static int sw, sh;           /* X display screen geometry width, height */
-static int bh;               /* bar height */
-static int lrpad;            /* sum of left and right padding for text */
+static int sw, sh;          /* X display screen geometry width, height */
+static int bh;              /* bar height */
+static int lrpad;           /* sum of left and right padding for text */
 static int (*xerrorxlib)(Display *, XErrorEvent *);
 static unsigned int numlockmask = 0;
 static void (*handler[LASTEvent]) (XEvent *) = {
@@ -335,7 +334,7 @@ static void (*handler[LASTEvent]) (XEvent *) = {
     [ConfigureRequest] = configurerequest,
     [ConfigureNotify] = configurenotify,
     [DestroyNotify] = destroynotify,
-    [EnterNotify] = enternotify, //Comment to disable focuschangeOnMouseMove Mouse focus
+    [EnterNotify] = enternotify,
     [Expose] = expose,
     [FocusIn] = focusin,
     [KeyPress] = keyhandler,
@@ -625,7 +624,6 @@ clientmessage(XEvent *e)
 {
     XClientMessageEvent *cme = &e->xclient;
     Client *c = wintoclient(cme->window);
-
     if (!c)
         return;
     if (cme->message_type == netatom[NetWMState]) {
@@ -771,13 +769,13 @@ createmon(void)
 
     m = ecalloc(1, sizeof(Monitor));
     m->tagset[0] = m->tagset[1] = 1;
-    m->mfact = CFG_MONITOR_FACT;
+    m->mfact   = CFG_MONITOR_FACT;
     m->nmaster = CFG_MASTER_COUNT;
     m->showbar = CFG_SHOW_BAR;
-    m->topbar = CFG_TOP_BAR;
-    m->lt[0] = &layouts[0];
-    m->lt[1] = &layouts[1 % LENGTH(layouts)];
-    m->nTabs = 0;
+    m->topbar  = CFG_TOP_BAR;
+    m->lt[0]   = &layouts[0];
+    m->lt[1]   = &layouts[1 % LENGTH(layouts)];
+    m->nTabs   = 0;
     m->isfullscreen = 0;
     strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
     return m;
@@ -844,7 +842,7 @@ drawbar(Monitor *m)
 
     if (!m->showbar) return;
     /* draw status first so it can be overdrawn by tags later */
-    if (m == selmon) /* status is only drawn on selected monitor */
+    if (m == selmon)  /* only draw on selmon */
     { 
         drw_setscheme(drw, scheme[SchemeNorm]);
         if(CFG_SHOW_WM_NAME)
@@ -925,15 +923,14 @@ drawbartabs(Monitor *m, int x, int y, int maxw, int height)
         if(m->sel->icon)
             drw_pic(drw, x, y + ((height - m->sel->ich ) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
         if(m->sel->isfloating)
-            drw_rect(drw, x, y + boxh, boxw, boxw, m->sel->isfixed, 0);
+            drw_rect(drw, x, y+ boxh, boxw, boxw, m->sel->isfixed, 0);
         return;
     }
-
     for(c = m->clients; c; c = c->next)
     {
         if(!ISVISIBLE(c)) continue;
         btpos = cc * tabsz;
-        curscheme = c == m->sel ? SchemeBarTabActive : SchemeBarTabInactive;
+        curscheme = c == m->sel ? SchemeBarTabActive  : SchemeBarTabInactive;
         iconspace = c->icon ? c->icw + CFG_ICON_SPACE : lrpad >> 1;
         drw_setscheme(drw, scheme[curscheme]);
         drw_text(drw, x + btpos, y, tabsz, height, iconspace, c->name, 0);
@@ -959,13 +956,12 @@ drawbars(void)
 void
 enternotify(XEvent *e)
 {
+    if(!CFG_HOVER_FOCUS) return;
     Client *c;
     Monitor *m;
     XCrossingEvent *ev = &e->xcrossing;
 
     if ((ev->mode != NotifyNormal || ev->detail == NotifyInferior) && ev->window != root)
-        return;
-    if(!CFG_HOVER_FOCUS)
         return;
     c = wintoclient(ev->window);
     m = c ? c->mon : wintomon(ev->window);
@@ -973,9 +969,8 @@ enternotify(XEvent *e)
     {
         unfocus(selmon->sel, 1);
         selmon = m;
-    }
-    else if (!c || c == selmon->sel)
-        return;
+    } 
+    else if (!c || c == selmon->sel) return;
     focus(c);
 }
 
@@ -1093,12 +1088,13 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     int format;
     unsigned int bitformat = 32; 
     unsigned int unitbytecount = 16384; 
-	Picture ret;
+
 	unsigned long n, extra, *p = NULL;
 	Atom real;
 	if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType, 
 						   &real, &format, &n, &extra, (unsigned char **)&p) != Success) { XFree(p); return None;}
-	if (n == 0 || format != bitformat) { XFree(p); return None;}
+	if (n == 0 || format != bitformat) { XFree(p); return None; }
+
 	unsigned long *bstp = NULL;
 	uint32_t w, h, sz;
 	{
@@ -1119,12 +1115,12 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 				if ((d = CFG_ICON_SIZE - (w > h ? w : h)) < bstd) { bstd = d; bstp = i; }
 			}
 		}
-		if (!bstp) { XFree(p); return None;}
+		if (!bstp) { XFree(p); return None; }
 	}
 
-	if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) { XFree(p); return None;}
+	if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) { XFree(p); return None; }
 
-    uint32_t icw, ich;
+    uint32_t icw = 0, ich = 0;
     if (w <= h) {
         ich = CFG_ICON_SIZE;
         icw = w * CFG_ICON_SIZE / h;
@@ -1141,9 +1137,9 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 	uint32_t i, *bstp32 = (uint32_t *)bstp;
 	for (sz = w * h, i = 0; i < sz; ++i) bstp32[i] = prealpha(bstp[i]);
 
-	ret = drw_picture_create_resized(drw, (char *)bstp, w, h, icw, ich);
-    XFree(p);
-    return ret;
+	Picture ret = drw_picture_create_resized(drw, (char *)bstp, w, h, icw, ich);
+	XFree(p);
+	return ret;
 }
 
 int
@@ -1519,19 +1515,9 @@ savesession(void)
 	for (Client *c = selmon->clients; c != NULL; c = c->next) { // get all the clients with their tags and write them to the file
 		fprintf(fw, 
                "%lu %u \
-                %d %d %d %d \
-                %d %d %d %d \
-                %d %d %d %d \
-                %d %d %d %d \
-                %d %d \
                 %u %d \
                 \n", 
                 c->win, c->tags,
-                c->oldx, c->oldy, c->x, c->y,
-                c->oldw, c->oldh, c->w, c->h,
-                c->alwaysontop, c->hintsvalid, c->ismax, c->wasfloating,
-                c->isfixed, c->isfloating, c->isurgent, c->neverfocus,
-                c->isfullscreen, c->oldstate,
                 c->mon->layout, !!(selmon->sel == c)
                 );
 	}
@@ -1542,53 +1528,22 @@ void
 restoresession(void)
 {
     const int MAX_LENGTH = 1024;
-    const int CHECK_SUM =  22; /* equal to number of sscanf elements so %d %d %d %d would be a checksum of 4 (type doesnt matter ) */ 
+    const int CHECK_SUM = 12; /* equal to number of sscanf elements so %d %d %d %d would be a checksum of 4 (type doesnt matter ) */ 
+    long unsigned int winId;
+	unsigned int tagsForWin;/* client tags */
+    unsigned int winlayout, selcpos; /* layout type; c == selmon->sel */
     int check;
 	FILE *fr = fopen(SESSION_FILE, "r");
     Client *c;
     Client *selc = NULL; /* selected client */
 	if (!fr) return;
-
-    long unsigned int winId;
-	unsigned int tagsForWin;/* client tags */
-    /* do note some of these are REDUDANT but its mostly to the window manager "remembered" no so much so open windows forget */
-    int oldx, oldy, cx, cy; /* client pos */
-    int x, y;
-    int w, h;
-    int oldw, oldh;
-    int alwaysontop;
-    int hintsvalid;
-    int ismax;
-    int wasfloating;
-    int isfixed;
-    int isfloating;
-    int isurgent;
-    int neverfocus;
-    int isfullscreen;
-    int oldstate;
-    int selcpos; /* layout type; c == selmon->sel */
-    unsigned int winlayout;
-
     /* malloc enough for input*/
 	char *str = malloc(MAX_LENGTH * sizeof(char));
-    /* malloc for floating window clients to set floating later.. */
-	while (fscanf(fr, "%[^\n] ", str) != EOF) 
-    {
-        check = sscanf(str, 
+	while (fscanf(fr, "%[^\n] ", str) != EOF) {
+		check = sscanf(str, 
                "%lu %u \
-                %d %d %d %d \
-                %d %d %d %d \
-                %d %d %d %d \
-                %d %d %d %d \
-                %d %d \
-                %u %d \
-                \n", 
+                %u %u", 
                 &winId, &tagsForWin,
-                &oldx, &oldy, &x, &y,
-                &oldw, &oldh, &w, &h,
-                &alwaysontop, &hintsvalid, &ismax, &wasfloating,
-                &isfixed, &isfloating, &isurgent, &neverfocus,
-                &isfullscreen, &oldstate,
                 &winlayout, &selcpos
                 );
 		if (check != CHECK_SUM) continue;
@@ -1599,34 +1554,19 @@ restoresession(void)
                 /* assign as selmon->sel */
                 if(selcpos) selc = c;
                 /* assign tags */
-				c->tags         = tagsForWin;
-                c->x            = x; c->y = y;
-                c->w            = w; c->h = h;
-                c->oldx         = oldx; c->oldy = oldy;
-                c->oldw         = oldw; c->oldh = oldh;
-                c->alwaysontop  = alwaysontop;
-                c->hintsvalid   = hintsvalid;
-                c->ismax        = ismax;
-                c->wasfloating  = wasfloating;
-                c->isfixed      = isfixed;
-                c->isfloating   = isfloating;
-                c->isurgent     = isurgent;
-                c->neverfocus   = neverfocus;
-                c->isfullscreen = isfullscreen;
-                c->oldstate     = oldstate;
-                if(c->isfloating) resize(c, c->x, c->y, c->w, c->h, 0);
-                else setclientlayout(c->mon, winlayout);
-                break;
-            }
-        }
+				c->tags = tagsForWin;
+                c->mon->layout = winlayout;
+                setclientlayout(c->mon, winlayout);
+				break;
+			}
+		}
 
     }
-    focus(selc); /* focus NULL if no client was selected, ie dont focus any clients */
+    focus(selc);
     for (Monitor *m = selmon; m; m = m->next) arrange(m);
     free(str);
     fclose(fr);
-    // delete a file
-    remove(SESSION_FILE);
+	remove(SESSION_FILE);
 }
 
 void 
@@ -1744,7 +1684,6 @@ restack(Monitor *m)
                 wc.sibling = c->win;
             }
         }
-        /* quick patch for alwaysontop windows fix later */
         for(c = m->stack; c; c = c->snext) if(ISVISIBLE(c) && c->alwaysontop) XRaiseWindow(dpy, c->win);
     }
     XSync(dpy, False);
@@ -1757,11 +1696,8 @@ run(void)
     XEvent ev;
     /* main event loop */
     XSync(dpy, False);
-
     while (running && !XNextEvent(dpy, &ev))
-    {
-        if (handler[ev.type]) handler[ev.type](&ev); /* call handler */
-    }
+    { if (handler[ev.type]) handler[ev.type](&ev); /* call handler */ }
 }
 /* scan for new clients */
 void
@@ -2214,18 +2150,13 @@ alttab()
         ++m->altTabN;
         if (m->altTabN >= m->nTabs) m->altTabN = 0; /* reset altTabN */
         altsnext = m->altsnext[m->altTabN];
-        if(m->layout == MONOCLE)
+        if(CFG_ALT_TAB_MAP_WINDOWS && m->layout == MONOCLE)
         {
-            if(CFG_ALT_TAB_MAP_WINDOWS)
-            {
-                winunmap(altsnext->win, root, 1);
-                /* prevents wierd artifacts from occuring because of unmaping */
-                winmap(altsnext, 1);
-            }
-            detach(altsnext);
-            attach(altsnext);
-        } /* we have to attach/detach when MONOCLE else we can get undefined behaviour */
-        else if(!CFG_ALT_TAB_FIXED_TILE)
+            winunmap(altsnext->win, root, 1);
+            /* prevents wierd artifacts from occuring because of unmaping */
+            winmap(altsnext, 1);
+        }
+        if(!CFG_ALT_TAB_FIXED_TILE) 
         {
             detach(altsnext);
             attach(altsnext);
@@ -2245,16 +2176,18 @@ drawtab(int nwins, int first, Monitor *m)
     Client *c;
     int maxhNeeded; /*max height needed to draw alt-tab*/
     int maxwNeeded; /*see above (width)*/
+    int winopen;    /* windows opened */
     int txtpad;     /*text padding */
 
+    winopen = nwins;
     maxwNeeded = 0;
-    maxhNeeded = MIN(lrpad * nwins, CFG_ALT_TAB_MAX_HEIGHT); /* breaks with too many clients MAX is not recommended */
+    maxhNeeded = MIN(lrpad * winopen, CFG_ALT_TAB_MAX_HEIGHT); /* breaks with too many clients MAX is not recommended */
     txtpad = 0;
 
-    int namewpxl[nwins]; /* array of each px width for every tab name*/
-    char *cnames[nwins]; /* client names */
+    int namewpxl[winopen]; /* array of each px width for every tab name*/
+    char *cnames[winopen]; /* client names */
 
-    for(int i = 0; i < nwins; ++i)
+    for(int i = 0; i < winopen; ++i)
     {
         cnames[i]   = m->altsnext[i]->name; 
         namewpxl[i] = TEXTW(cnames[i]) - lrpad;
@@ -2283,10 +2216,10 @@ drawtab(int nwins, int first, Monitor *m)
          default:posx += 0;                                     break;
         }
         switch(CFG_ALT_TAB_POS_Y)
-        {case 0: posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;              break;
+        {case 0: posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;   break;
          case 1: posy += (selmon->mh >> 1) - (CFG_ALT_TAB_MAX_HEIGHT >> 1);break;
-         case 2: posy += 0;                                                break;
-         default:posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;              break;
+         case 2: posy += 0;                                     break;
+         default:posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;   break;
         }
         if (m->showbar)
             posy+=bh;
@@ -2300,10 +2233,10 @@ drawtab(int nwins, int first, Monitor *m)
     }
     int y = 0;
     int schemecol;
-    maxhNeeded/=nwins; /* trunc if not enough*/
+    maxhNeeded/=winopen; /* trunc if not enough*/
     if(maxhNeeded == 0) return; /* too small to render */
     
-    for (int i = 0; i < nwins; i++) { /* draw all clients into tabwin */
+    for (int i = 0; i < winopen; i++) { /* draw all clients into tabwin */
         c = m->altsnext[i];
         if(!ISVISIBLE(c)) continue;
         schemecol = !(c == selmon->sel) ? SchemeAltTab : SchemeAltTabSelect;
@@ -2359,12 +2292,14 @@ tile(Monitor *m)
     Client *c;
 
     for (n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), n++);
-    if(!n) return;
+    /* dont set !n, can cause issues */
+    if (n == 0) return;
+
     if (n > m->nmaster)
         mw = m->nmaster ? m->ww * m->mfact : 0;
     else
         mw = m->ww;
-    for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->snext), i++)
+    for (i = my = ty = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next), ++i)
         if (i < m->nmaster) 
         {
             h = (m->wh - my) / (MIN(n, m->nmaster) - i);
@@ -2380,6 +2315,7 @@ tile(Monitor *m)
                 ty += HEIGHT(c);
         }
 }
+
 
 void
 freeicon(Client *c)
@@ -2574,14 +2510,13 @@ updategeom(void)
 void
 updatemotifhints(Client *c)
 {
+	if (!CFG_DECOR_HINTS) return;
 	Atom real;
 	int format;
 	unsigned char *p = NULL;
 	unsigned long n, extra;
 	unsigned long *motif;
 	int width, height;
-
-	if (!CFG_DECOR_HINTS) return;
 
 	if (XGetWindowProperty(dpy, c->win, motifatom, 0L, 5L, False, motifatom,
 	                       &real, &format, &n, &extra, &p) == Success && p != NULL) {
@@ -2761,7 +2696,7 @@ wintomon(Window w)
  * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
  * default error handler, which may call exit. */
 int
-xerror(Display *display, XErrorEvent *ee)
+xerror(Display *dpy, XErrorEvent *ee)
 {
     if (ee->error_code == BadWindow
             || (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
@@ -2775,11 +2710,11 @@ xerror(Display *display, XErrorEvent *ee)
         return 0;
     fprintf(stderr, "fatal error: request code=%d, error code=%d\n",
             ee->request_code, ee->error_code);
-    return xerrorxlib(display, ee); /* may call exit */
+    return xerrorxlib(dpy, ee); /* may call exit */
 }
 
 int
-xerrordummy(Display *display, XErrorEvent *ee)
+xerrordummy(Display *dpy, XErrorEvent *ee)
 {
     return 0;
 }
@@ -2787,7 +2722,7 @@ xerrordummy(Display *display, XErrorEvent *ee)
 /* Startup Error handler to check if another window manager
  * is already running. */
 int
-xerrorstart(Display *display, XErrorEvent *ee)
+xerrorstart(Display *dpy, XErrorEvent *ee)
 {
     die("WARN: another window manager is already running");
     return -1;
