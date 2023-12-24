@@ -8,22 +8,25 @@
  * }
  */
 /* window */
-#define CFG_BORDER_PX           0       /* border pixel of windows                                          */
-#define CFG_TOP_BAR             0       /* 1 show bar on top; 0 for bottom bar                              */
-#define CFG_SNAP                15      /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED)  */
-#define CFG_WIN_RATE            120     /* max refresh rate when resizing, moving windows;  0 to disable    */
-#define CFG_SHOW_WM_NAME        0       /* 1 Show window manager name at end of status bar; 0 to disable    */
-#define CFG_HOVER_FOCUS         0       /* 1 on mouse hover focus that window; 0 to disable                 */
-#define CFG_BAR_PADDING         0       /* padding in pixels (both sides)                                   */
-#define CFG_SHOW_BAR            1       /* 1 to show bar; 0 to disable                                      */
-#define CFG_ICON_SIZE           16      /* icon size                                                        */
-#define CFG_ICON_SPACE          2       /* space between icon and title                                     */
-#define CFG_RESIZE_BASE_WIDTH   150     /* Minimum size for resizing windows, recommend size 50-150         */
-#define CFG_RESIZE_BASE_HEIGHT  150     /* Minimum size for resizing windows, recommend size 50-150         */
+#define CFG_BORDER_PX           0           /* border pixel of windows                                          */
+#define CFG_SNAP                15          /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
+#define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
+#define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
+#define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
+#define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
+#define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+/* status bar */
+#define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
+#define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
+#define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
+#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per icon); 0 to disable      */
+#define CFG_ICON_SIZE           16          /* icon size                                                        */
+#define CFG_ICON_SPACE          2           /* space between icon and title                                     */
 
 /* alt-tab configuration */
-#define CFG_ALT_TAB_SWITCH_KEY  0x40    /* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `                                          */
-#define CFG_ALT_TAB_CYCLE_KEY   0x17    /* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart                    */
+/* to get keycode you can do xev and press a type */
+#define CFG_ALT_TAB_SWITCH_KEY      64      /* Hold this key to keep alt-tab active                             */
+#define CFG_ALT_TAB_CYCLE_KEY       23      /* Tap this key to focus next client                                */
 #define CFG_ALT_TAB_POS_X           1       /* tab position on X axis, 0 = left, 1 = center, 2 = right          */
 #define CFG_ALT_TAB_POS_Y           1       /* tab position on Y axis, 0 = bottom, 1 = center, 2 = top          */
 #define CFG_ALT_TAB_TEXT_POS_X      1       /* tab position on x axis, 0 = left , 1 = center, 2 = right         */
@@ -34,13 +37,16 @@
 #define CFG_ALT_TAB_SHOW_PREVIEW    1       /* shows window preview when alt tabbing                            */
 #define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab only changes focused window; 0 to disable               */
 /* Misc */
+#define CFG_SHOW_WM_NAME            0       /* 1 Show window manager name at end of status bar; 0 to disable    */
 #define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
 #define CFG_MAX_CLIENT_COUNT        256     /* max number of clients assuming you can handle this many          */
 #define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
 #define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
-#define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this) */
+#define CFG_DEFAULT_LAYOUT          MONOCLE /* Default window layout GRID,TILED,MONOCLE,FLOATING;               */
+#define CFG_DEFAULT_PREV_LAYOUT     TILED   /* See above; Sets previous layout when starting dwm                */
+#define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this)     */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
 #define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
@@ -111,15 +117,9 @@ static const Rule rules[] =
 static const Layout layouts[] = 
 {
     /* symbol     arrange function */
-    { "[T]",      tile },    /* first entry is default */
-    { "[F]",      NULL },    /* no layout function means floating behavior */
-    { "[M]",      monocle },
-    { "[G]",      grid },
+    [TILED]     = { "[T]",      tile },    
+    [FLOATING]  = { "[F]",      NULL },    
+    [MONOCLE]   = { "[M]",      monocle },
+    [GRID]      = { "[G]",      grid },
 
 };
-
-/* NOTES:
- * For uncapped resizing of windows (NOT ADVICED) you can go to toggle.c -> resizemouse() and simply set basew and baseh to 0 
- *
- */
-

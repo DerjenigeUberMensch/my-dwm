@@ -42,7 +42,8 @@ static const char *dmenucmd[] =
 static const char *termcmd[]        = { "st", NULL };
 static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.png", NULL}; /*doesnt work*/
 
-static const Key keys[] = {
+static const Key keys[] = 
+{
     /*Action            modifier                    key         function            argument */
     { KeyPress,         SUPER,                      XK_n,       tester,             {0} },
     { KeyPress,         SUPER,                      XK_d,       SpawnWindow,        {.v = dmenucmd } },

@@ -40,7 +40,7 @@ CFLAGS   = -ggdb -g -std=c99 -pedantic -Wall -Wextra -Wshadow ${INCS} ${CPPFLAGS
 #CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow ${INCS} ${CPPFLAGS} -Os
 
 # Release
-#CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -ftree-vectorize ${INCS} ${CPPFLAGS} -O2
+CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -ftree-vectorize ${INCS} ${CPPFLAGS} -O2
 
 # Solaris
 #CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"
