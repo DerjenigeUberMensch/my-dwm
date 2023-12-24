@@ -75,7 +75,8 @@
 enum { CurNormal, CurResize, CurMove, CurLast };
 
 /* color schemes */
-enum {
+enum 
+{
     SchemeNorm, SchemeSel,                      /* default */
     SchemeUrgent, SchemeWarn,                   /* signals */
     SchemeAltTab, SchemeAltTabSelect,           /* alt tab */
@@ -85,28 +86,34 @@ enum {
 
 /* EWMH atoms */
 /* when adding new properties make sure NetLast is indeed last to allocate enough memory to store all Nets in an array */
-enum { NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
-       NetWMFullscreen, NetWMAlwaysOnTop,NetActiveWindow, 
-       NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
-       NetWMWindowsOpacity,
-       NetLast, 
-     };
+enum 
+{
+    NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
+    NetWMFullscreen, NetWMAlwaysOnTop,NetActiveWindow, 
+    NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
+    NetWMWindowsOpacity, /* unset */
+    NetLast, 
+};
 
 /* default atoms */
 enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast };
 
 /* clicks */
-enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
-       ClkClientWin, ClkRootWin, ClkLast
-     };
+enum
+{   
+    ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
+    ClkClientWin, ClkRootWin, ClkLast
+};
 /* stack shifting */
-enum {  BEFORE, PREVSEL, NEXT,
-        FIRST, SECOND, THIRD, LAST
+enum
+{  
+    BEFORE, PREVSEL, NEXT,
+    FIRST, SECOND, THIRD, LAST
 };
 /* layouts */
 enum 
 {
-    TILED ,FLOATING, MONOCLE, GRID
+    TILED ,FLOATING, MONOCLE, GRID,
 };
 
 /* kill client */
@@ -186,7 +193,6 @@ struct Monitor {
     unsigned int showbar        : 1;
     unsigned int topbar         : 1;
 
-
     unsigned short layout;
     unsigned int seltags;
     unsigned int sellt;
@@ -223,6 +229,7 @@ static void checkotherwm(void);
 static void cleanup(void);
 static void cleanupmon(Monitor *mon);
 static void cleanupsbar(Monitor *m);
+static int  clientdocked(Client *c);
 static void clientmessage(XEvent *e);
 static void crashhandler();
 static void configure(Client *c);
@@ -233,7 +240,6 @@ static void destroynotify(XEvent *e);
 static void detach(Client *c);
 static void detachstack(Client *c);
 static Monitor *dirtomon(int dir);
-static int  dockablewindow(Client *c);
 static void drawbar(Monitor *m);
 static void drawbars(void);
 static void drawbartabs(Monitor *m, int x, int y, int maxw, int height);
@@ -619,6 +625,34 @@ cleanupsbar(Monitor *m) /* status bar */
     XDestroyWindow(dpy, m->barwin);
 }
 
+int
+clientdocked(Client *c)
+{
+    int wx; /* Window  X */
+    int wy; /* Window  Y */
+    int mx; /* Monitor X */
+    int my; /* Monitor Y */
+
+    int ww; /* Window Width   */
+    int wh; /* Window Height  */
+    int mw; /* Monitor Width  */
+    int mh; /* Monitor Height */
+
+    wx = c->x;
+    wy = c->y;
+    mx = c->mon->wx;
+    my = c->mon->wy;
+
+    ww = c->w + c->bw;
+    wh = c->h + c->bw + c->mon->showbar * bh;
+    wh = c->h;
+    mw = c->mon->ww;
+    mh = c->mon->wh;
+
+    /* Check if dockable -> same height width, location, as monitor */
+    return !((mx != wx) + (my != wy) + (mw != ww) + (mh != wh));
+}
+
 void
 clientmessage(XEvent *e)
 {
@@ -773,10 +807,11 @@ createmon(void)
     m->nmaster = CFG_MASTER_COUNT;
     m->showbar = CFG_SHOW_BAR;
     m->topbar  = CFG_TOP_BAR;
-    m->lt[0]   = &layouts[0];
-    m->lt[1]   = &layouts[1 % LENGTH(layouts)];
+    m->lt[0]   = &layouts[CFG_DEFAULT_LAYOUT];
+    m->lt[1]   = &layouts[CFG_DEFAULT_PREV_LAYOUT];
     m->nTabs   = 0;
     m->isfullscreen = 0;
+    m->layout  = CFG_DEFAULT_LAYOUT;
     strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
     return m;
 }
@@ -887,22 +922,21 @@ drawbar(Monitor *m)
 void
 drawbartabs(Monitor *m, int x, int y, int maxw, int height)
 {
-    /* y isnt implemented yet */
     Client *c;
     unsigned int tabcnt;    /* tab count */
     unsigned int tabsz;     /* tab size */
     unsigned int iconspace;
-    unsigned int boxh; /* tiny floating box indicator h */
-    unsigned int boxw; /* tiny floating box indicator w */
-    int curscheme; /* current scheme */
-    int cc; /* client counter */
-    int btpos;  /* current bartab positon x */
+    unsigned int boxh;      /* tiny floating box indicator h */
+    unsigned int boxw;      /* tiny floating box indicator w */
+    int curscheme;          /* current scheme */
+    int cc;                 /* client counter */
+    int btpos;              /* current bartab positon x */
 
     btpos = 0;
     cc = 0;
     tabcnt = 0;
-    boxh = 5;
-    boxw = 5;
+    boxh = bh << 1;
+    boxw = bh >> 1;
     /* get count */
     for (c = m->clients; c; c = c->next) tabcnt += !!ISVISIBLE(c);
 
@@ -915,6 +949,7 @@ drawbartabs(Monitor *m, int x, int y, int maxw, int height)
     }
 
     tabsz = maxw / tabcnt;
+    /* draw only selmon->sel if tabs to small */
     if(tabsz < TEXTW("..."))
     {
         iconspace = m->sel->icon ? m->sel->icw + CFG_ICON_SPACE : lrpad >> 1;
@@ -1089,12 +1124,15 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     unsigned int bitformat = 32; 
     unsigned int unitbytecount = 16384; 
 
-	unsigned long n, extra, *p = NULL;
+	unsigned long n, extra;
+    unsigned long *p= NULL;
+    unsigned char *np = NULL;
 	Atom real;
 	if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType, 
-						   &real, &format, &n, &extra, (unsigned char **)&p) != Success) { XFree(p); return None;}
-	if (n == 0 || format != bitformat) { XFree(p); return None; }
+						   &real, &format, &n, &extra, &np) != Success) { XFree(np); return None;}
 
+	if (n == 0 || format != bitformat) { XFree(np); return None; }
+    p = (unsigned long *)np;
 	unsigned long *bstp = NULL;
 	uint32_t w, h, sz;
 	{
@@ -1103,22 +1141,22 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 		uint32_t bstd = UINT32_MAX, d, m;
         for (i = p; i < end - 1; i += sz) 
         {
-		    if ((w = *i++) >= unitbytecount  || (h = *i++) >= unitbytecount) { XFree(p); return None; }
+		    if ((w = *i++) >= unitbytecount  || (h = *i++) >= unitbytecount) { XFree(np); p = NULL; return None; }
 		    if ((sz = w * h) > end - i) break;
 		    if ((m = w > h ? w : h) >= CFG_ICON_SIZE && (d = m - CFG_ICON_SIZE) < bstd) { bstd = d; bstp = i; }
 	    }
 		if (!bstp) {
 			for (i = p; i < end - 1; i += sz) 
             {
-				if ((w = *i++) >= unitbytecount || (h = *i++) >= unitbytecount ) { XFree(p); return None; }
+				if ((w = *i++) >= unitbytecount || (h = *i++) >= unitbytecount ) { XFree(np); p = NULL; return None; }
 				if ((sz = w * h) > end - i) break;
 				if ((d = CFG_ICON_SIZE - (w > h ? w : h)) < bstd) { bstd = d; bstp = i; }
 			}
 		}
-		if (!bstp) { XFree(p); return None; }
+		if (!bstp) { XFree(np); return None; }
 	}
 
-	if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) { XFree(p); return None; }
+	if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) { XFree(np); p = NULL; return None; }
 
     uint32_t icw = 0, ich = 0;
     if (w <= h) {
@@ -1138,7 +1176,8 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 	for (sz = w * h, i = 0; i < sz; ++i) bstp32[i] = prealpha(bstp[i]);
 
 	Picture ret = drw_picture_create_resized(drw, (char *)bstp, w, h, icw, ich);
-	XFree(p);
+	XFree(np);
+    p = NULL;
 	return ret;
 }
 
@@ -2053,84 +2092,46 @@ sigterm()
     quit();
 }
 
-int
-dockablewindow(Client *c) /* selmon->sel selmon=monitor;sel=currentwindowselected; */
-{
-    int wx; /* Window  X */
-    int wy; /* Window  Y */
-    int mx; /* Monitor X */
-    int my; /* Monitor Y */
-
-    int ww; /* Window Width   */
-    int wh; /* Window Height  */
-    int mw; /* Monitor Width  */
-    int mh; /* Monitor Height */
-
-    int isfloating;
-
-    wx = c->x;
-    wy = c->y;
-    mx = c->mon->wx;
-    my = c->mon->wy;
-
-    ww = WIDTH(c);
-    wh = HEIGHT(c);
-    mw = c->mon->ww;
-    mh = c->mon->wh;
-
-    isfloating = c->isfloating;
-
-    /* Check if dockable -> same height width, location, as monitor */
-    return !((mx != wx) + (my != wy) + (mw != ww) + (mh != wh)) * isfloating;
-}
-
 void
-maximize(int x, int y, int w, int h) {
+maximize(int x, int y, int w, int h) 
+{
     XEvent ev;
     Client *c;
     c = selmon->sel;
 
-    if(!c || c->isfixed || c->isfullscreen)
-        return;
+    if(!c || c->isfixed || c->isfullscreen) return;
 
     XRaiseWindow(dpy, c->win);
     if(!c->ismax) 
     {
-        if(!selmon->lt[selmon->sellt]->arrange || c->isfloating)
-            c->wasfloating = 1;
-        else 
-        {
-            if(!c->isfloating)
-            {
-                c->isfloating = !c->isfloating;
-                resize(c, c->x, c->y, c->w, c->h, 0);
-            }
-            arrange(c->mon);
-            c->wasfloating = 0;
-        }
-
+        c->wasfloating = c->isfloating || !selmon->lt[selmon->sellt]->arrange;
+        c->isfloating = 0;
         c->oldx = c->x;
         c->oldy = c->y;
         c->oldw = c->w;
         c->oldh = c->h;
-
-        resize(c, x, y, w, h, 1);
-        c->ismax = 1;
+        if(clientdocked(c))
+        {
+            c->ismax = 1;
+            c->oldx += CFG_SNAP;
+            c->oldy += CFG_SNAP;
+        }
+        else resize(c, x, y, w, h, 1);
     }
-    else 
+    if(c->ismax)
     {
         resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
         if(!c->wasfloating)
         {
             if(!c->isfloating)
             {
-                c->isfloating = !c->isfloating;
+                c->isfloating = 1;
                 resize(c, c->x, c->y, c->w, c->h, 0);
             }
             arrange(c->mon);
         }
-        c->ismax = 0;
     }
+    c->ismax = !c->ismax;
     restack(selmon);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2566,34 +2567,42 @@ updatesizehints(Client *c)
     if (size.flags & PBaseSize) {
         c->basew = size.base_width;
         c->baseh = size.base_height;
-    } else if (size.flags & PMinSize) {
+    } 
+    else if (size.flags & PMinSize) 
+    {
         c->basew = size.min_width;
         c->baseh = size.min_height;
-    } else
-        c->basew = c->baseh = 0;
-    if (size.flags & PResizeInc) {
+    } 
+    else c->basew = c->baseh = 0;
+    if (size.flags & PResizeInc) 
+    {
         c->incw = size.width_inc;
         c->inch = size.height_inc;
-    } else
-        c->incw = c->inch = 0;
-    if (size.flags & PMaxSize) {
+    } 
+    else c->incw = c->inch = 0;
+    if (size.flags & PMaxSize) 
+    {
         c->maxw = size.max_width;
         c->maxh = size.max_height;
-    } else
-        c->maxw = c->maxh = 0;
-    if (size.flags & PMinSize) {
+    } 
+    else c->maxw = c->maxh = 0;
+    if (size.flags & PMinSize) 
+    {
         c->minw = size.min_width;
         c->minh = size.min_height;
-    } else if (size.flags & PBaseSize) {
+    } 
+    else if (size.flags & PBaseSize) 
+    {
         c->minw = size.base_width;
         c->minh = size.base_height;
-    } else
-        c->minw = c->minh = 0;
-    if (size.flags & PAspect) {
+    } 
+    else c->minw = c->minh = 0;
+    if (size.flags & PAspect) 
+    {
         c->mina = (float)size.min_aspect.y / size.min_aspect.x;
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
-    } else
-        c->maxa = c->mina = 0.0;
+    }
+    else c->maxa = c->mina = 0.0;
     c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
     c->hintsvalid = 1;
 }
@@ -2620,6 +2629,11 @@ updatetitle(Client *c)
 void
 updateicon(Client *c)
 {
+    if(!CFG_ICON_SHOW)
+    {
+        c->icon = None;
+        return;
+    }
 	freeicon(c);
 	c->icon = geticonprop(c->win, &c->icw, &c->ich);
 }

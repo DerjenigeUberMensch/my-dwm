@@ -349,6 +349,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
     FcPattern *match;
     XftResult result;
     int charexists = 0, overflow = 0;
+
     /* keep track of a couple codepoints for which we have no match. */
     enum { nomatches_len = 64 };
     static struct {
@@ -357,12 +358,10 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
     } nomatches;
     static unsigned int ellipsis_width = 0;
 
-    if (!drw || (render && (!drw->scheme || !w)) || !text || !drw->fonts)
-        return 0;
-
-    if (!render) {
-        w = invert ? invert : ~invert;
-    } else {
+    if (!drw || (render && (!drw->scheme || !w)) || !text || !drw->fonts) return 0;
+    if (!render)  w = invert ? invert : ~invert;
+    else 
+    {
         XSetForeground(drw->dpy, drw->gc, drw->scheme[invert ? ColFg : ColBg].pixel);
         XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
         d = XftDrawCreate(drw->dpy, drw->drawable,
@@ -378,24 +377,29 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
     usedfont = drw->fonts;
     if (!ellipsis_width && render)
         drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
-    while (1) {
+    while (1) 
+    {
         ew = ellipsis_len = utf8strlen = 0;
         utf8str = text;
         nextfont = NULL;
-        while (*text) {
+        while (*text) 
+        {
             utf8charlen = utf8decode(text, &utf8codepoint, UTF_SIZ);
             for (curfont = drw->fonts; curfont; curfont = curfont->next) {
                 charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
-                if (charexists) {
+                if (charexists) 
+                {
                     drw_font_getexts(curfont, text, utf8charlen, &tmpw, NULL);
-                    if (ew + ellipsis_width <= w) {
+                    if (ew + ellipsis_width <= w) 
+                    {
                         /* keep track where the ellipsis still fits */
                         ellipsis_x = x + ew;
                         ellipsis_w = w - ew;
                         ellipsis_len = utf8strlen;
                     }
 
-                    if (ew + tmpw > w) {
+                    if (ew + tmpw > w) 
+                    {
                         overflow = 1;
                         /* called from drw_fontset_getwidth_clamp():
                          * it wants the width AFTER the overflow
@@ -404,25 +408,25 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
                             x += tmpw;
                         else
                             utf8strlen = ellipsis_len;
-                    } else if (curfont == usedfont) {
+                    } 
+                    else if (curfont == usedfont) 
+                    {
                         utf8strlen += utf8charlen;
                         text += utf8charlen;
                         ew += tmpw;
-                    } else {
-                        nextfont = curfont;
-                    }
+                    } 
+                    else nextfont = curfont;
                     break;
                 }
             }
-
-            if (overflow || !charexists || nextfont)
-                break;
-            else
-                charexists = 0;
+            if (overflow || !charexists || nextfont) break;
+            else charexists = 0;
         }
 
-        if (utf8strlen) {
-            if (render) {
+        if (utf8strlen) 
+        {
+            if (render) 
+            {
                 ty = y + (h - usedfont->h) / 2 + usedfont->xfont->ascent;
                 XftDrawStringUtf8(d, &drw->scheme[invert ? ColBg : ColFg],
                                   usedfont->xfont, x, ty, (XftChar8 *)utf8str, utf8strlen);
@@ -433,17 +437,20 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
         if (render && overflow)
             ellipsis_width = drw_fontset_getwidth(drw, "...");
 
-        if (!*text || overflow) {
-            break;
-        } else if (nextfont) {
+        if (!*text || overflow) break;
+        else if (nextfont) 
+        {
             charexists = 0;
             usedfont = nextfont;
-        } else {
+        } 
+        else
+        {
             /* Regardless of whether or not a fallback font is found, the
              * character must be drawn. */
             charexists = 1;
 
-            for (i = 0; i < nomatches_len; ++i) {
+            for (i = 0; i < nomatches_len; ++i)
+            {
                 /* avoid calling XftFontMatch if we know we won't find a match */
                 if (utf8codepoint == nomatches.codepoint[i])
                     goto no_match;
@@ -452,7 +459,8 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
             fccharset = FcCharSetCreate();
             FcCharSetAddChar(fccharset, utf8codepoint);
 
-            if (!drw->fonts->pattern) {
+            if (!drw->fonts->pattern) 
+            {
                 /* Refer to the comment in xfont_create for more information. */
                 die("the first font in the cache must be loaded from a font string.");
             }
@@ -468,13 +476,17 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
             FcCharSetDestroy(fccharset);
             FcPatternDestroy(fcpattern);
 
-            if (match) {
+            if (match) 
+            {
                 usedfont = xfont_create(drw, NULL, match);
-                if (usedfont && XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint)) {
+                if (usedfont && XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint)) 
+                {
                     for (curfont = drw->fonts; curfont->next; curfont = curfont->next)
                         ; /* NOP */
                     curfont->next = usedfont;
-                } else {
+                } 
+                else 
+                {
                     xfont_free(usedfont);
                     nomatches.codepoint[++nomatches.idx % nomatches_len] = utf8codepoint;
 no_match:

@@ -57,7 +57,7 @@ TerminateWindow(const Arg *arg)
     killclient(selmon->sel, SAFEDESTROY);
 }
 void
-DragWindow(const Arg *arg) /* move mouse */
+DragWindow(const Arg *arg) /* movemouse */
 {
     int x, y, ocx, ocy, nx, ny;
     Client *c;
@@ -104,14 +104,12 @@ DragWindow(const Arg *arg) /* move mouse */
             break;
         }
     } while (ev.type != ButtonRelease);
-    if(dockablewindow(c))
+    if(clientdocked(c))
     {
-        /* workaround as setting c->isfloating c->ismax 0|1 doesnt work properly */
-        c->ismax = 0;
-        maximize(selmon->wx, selmon->wy, selmon->ww - 2 * CFG_BORDER_PX, selmon->wh - 2 * CFG_BORDER_PX);
-        c->isfloating = 0;
-        c->oldx+=CFG_SNAP;
-        c->oldy+=CFG_SNAP;
+        /* maxmize stuff */
+        c->ismax = 1;
+        c->oldx += CFG_SNAP;
+        c->oldy += CFG_SNAP;
     }
     else c->ismax = 0;
     XUngrabPointer(dpy, CurrentTime);
@@ -149,14 +147,13 @@ ResizeWindow(const Arg *arg) /* resizemouse */
      * di,dui,dummy     holder vars to pass check (useless aside from check)
      * basew            Minimum client request size (wont go smaller)
      * baseh            See above
-     * rszbase(w/h)     base window (w/h) when resizing assuming resize hints wasnt set / too small
      */
     int rcurx, rcury;
     int ocw, och;
     int nw, nh;
     int ocx, ocy;
     int nx, ny;
-    int horizcorner, vertcorner;
+    int horiz, vert;
     int basew, baseh;
     const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /*prevent 0 division errors */
 
@@ -181,11 +178,10 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     ocx = c->x;
     ocy = c->y;
 
-    horizcorner = nx < c->w >> 1;
-    vertcorner  = ny < c->h >> 1;
-
-    basew = MAX(c->basew, CFG_RESIZE_BASE_WIDTH);
-    baseh = MAX(c->baseh, CFG_RESIZE_BASE_HEIGHT);
+    horiz = nx < c->w >> 1 ? -1 : 1;
+    vert  = ny < c->h >> 1 ? -1 : 1;
+    basew = MAX(c->minw, CFG_RESIZE_BASE_WIDTH);
+    baseh = MAX(c->minh, CFG_RESIZE_BASE_HEIGHT);
     do {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
@@ -200,26 +196,31 @@ ResizeWindow(const Arg *arg) /* resizemouse */
                     continue;
                 lasttime = ev.xmotion.time;
             }
-            nw = horizcorner ? MAX(ocw - (ev.xmotion.x - rcurx), basew) : MAX(ocw + (ev.xmotion.x - rcurx), basew);
-            nh = vertcorner  ? MAX(och - (ev.xmotion.y - rcury), baseh) : MAX(och + (ev.xmotion.y - rcury), baseh);
-            nx = horizcorner ? ocx + ocw - nw : c->x;
-            ny = vertcorner  ? ocy + och - nh : c->y;
+            /* calculate */
+            nw = ocw + horiz * (ev.xmotion.x - rcurx); 
+            nh = och + vert * (ev.xmotion.y - rcury);
+            /* clamp */
+            nw = MAX(nw, basew); nh = MAX(nh, baseh);
+            /* calculate */
+            /* flip sign if -1 else default to 0 */
+            nx = ocx + !~horiz * (ocw - nw);
+            ny = ocy + !~vert  * (och - nh);
 
             resize(c, nx, ny, nw, nh, 1);
             break;
         }
     } while (ev.type != ButtonRelease);
     /* add if w + x > monx || w + x < 0 resize */
-    if(c->w > c->mon->ww)
+    if(c->w + c->bw > c->mon->ww)
         MaximizeWindowHorizontal(NULL);
-    if(c->h > c->mon->wh)
+    if(c->h + c->bw + bh * c->mon->showbar > c->mon->wh)
         MaximizeWindowVertical(NULL);
-    if(dockablewindow(c))
+    if(clientdocked(c))
     {
-        c->isfloating = 0;
+        /* maxmize stuff */
         c->ismax = 1;
-        c->oldx+=CFG_SNAP;
-        c->oldy+=CFG_SNAP;
+        c->oldx += CFG_SNAP;
+        c->oldy += CFG_SNAP;
     }
     else c->ismax = 0;
 
@@ -273,7 +274,6 @@ void
 MaximizeWindow(const Arg *arg) 
 {
     maximize(selmon->wx, selmon->wy, selmon->ww - 2 * CFG_BORDER_PX, selmon->wh - 2 * CFG_BORDER_PX);
-    selmon->sel->isfloating = 0;
 }
 
 
@@ -295,15 +295,18 @@ AltTab(const Arg *arg)
     Client *c;
     int grabbed;
     int listindex;
+    int kcodecycle;
+    int kcodeswitch;
     struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
 
     m = selmon;
     m->altsnext = NULL;
-    m->altTabN = 0;
-    m->nTabs = 0;
-    grabbed = 0;
-    listindex = 0;
-
+    m->altTabN  = 0;
+    m->nTabs    = 0;
+    grabbed     = 0;
+    listindex   = 0;
+    kcodecycle  = CFG_ALT_TAB_CYCLE_KEY;
+    kcodeswitch = CFG_ALT_TAB_SWITCH_KEY;
     for(c = m->clients; c; c = c->next) m->nTabs += !!ISVISIBLE(c);
     if(!(m->nTabs > 0)) return;
 
@@ -312,6 +315,7 @@ AltTab(const Arg *arg)
     for(c = m->stack; c; c = c->snext) !!ISVISIBLE(c) ? m->altsnext[listindex++] = c : NULL;
 
     drawtab(m->nTabs, 1, m);
+
     for (int i = 0; i < 1000; i++) 
     {
         if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
@@ -328,8 +332,8 @@ AltTab(const Arg *arg)
     {
         XNextEvent(dpy, &event);
         switch(event.type)
-        {case KeyPress:   if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) alttab();    break;
-         case KeyRelease: if(event.xkey.keycode == CFG_ALT_TAB_SWITCH_KEY)grabbed = 0; break;
+        {case KeyPress:   if(event.xkey.keycode == kcodecycle) alttab();    break;
+         case KeyRelease: if(event.xkey.keycode == kcodeswitch)grabbed = 0; break;
         }
     }
 
