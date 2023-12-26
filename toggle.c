@@ -6,7 +6,6 @@ tester(const Arg *arg)
 {
 }
 
-
 void
 FocusMonitor(const Arg *arg)
 {
@@ -18,25 +17,33 @@ FocusMonitor(const Arg *arg)
     selmon = m;
     focus(NULL);
 }
-void
-FocusNextWindow(const Arg *arg) {
-	Monitor *m;
-	Client *c;
-	m = selmon;
-	c = m->sel;
 
-	if (arg->i) {
-		if (c->next)
-			c = c->next;
-		else
-			c = m->clients;
-	} else {
-		Client *last = c;
-		if (last == m->clients)
-			last = NULL;
-		for (c = m->clients; c->next != last; c = c->next);
-	}; /* prevent 0 division errors */
-	focus(c);
+void
+FocusNextWindow(const Arg *arg) /* Non functional focusstack */
+{
+	Monitor *m;
+	Client *c = NULL;
+    Client *i = NULL;
+	m = selmon;
+
+	if (!m->sel || (CFG_LOCK_FULLSCREEN && m->sel->isfullscreen)) return;
+
+	if (arg->i > 0) 
+    {
+        for (c = m->sel->next; c && !ISVISIBLE(c); c = c->next);
+        if(!c) for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
+
+    }
+    else 
+    {
+		for (i = m->clients; i != m->sel; i = i->next) if(ISVISIBLE(i)) c = i;
+        if(!c) for(; i; i = i->next) if(ISVISIBLE(i)) c = i;
+	}
+    if(c)
+    {
+	    focus(c);
+        restack(m);
+    }
 }
 
 void
@@ -78,7 +85,9 @@ DragWindow(const Arg *arg) /* movemouse */
     lasttime = 0;
     ocx = c->x;
     ocy = c->y;
-    do {
+    XRaiseWindow(dpy, c->win);
+    do 
+    {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type) {
         case ConfigureRequest:
@@ -182,7 +191,9 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     vert  = ny < c->h >> 1 ? -1 : 1;
     basew = MAX(c->minw, CFG_RESIZE_BASE_WIDTH);
     baseh = MAX(c->minh, CFG_RESIZE_BASE_HEIGHT);
-    do {
+    XRaiseWindow(dpy, c->win);
+    do 
+    {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
         switch(ev.type)
         {
@@ -242,7 +253,7 @@ SetWindowLayout(const Arg *arg)
 
     if(!m) return;
     setclientlayout(m, arg->i);
-    if (m->sel) arrange(m);
+    if(m->sel) arrange(m);
     else drawbar(m);
 }
 
@@ -295,8 +306,8 @@ AltTab(const Arg *arg)
     Client *c;
     int grabbed;
     int listindex;
-    int kcodecycle;
-    int kcodeswitch;
+    unsigned int kcodecycle;
+    unsigned int kcodeswitch;
     struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
 
     m = selmon;
@@ -314,7 +325,7 @@ AltTab(const Arg *arg)
     /* add clients to list */
     for(c = m->stack; c; c = c->snext) !!ISVISIBLE(c) ? m->altsnext[listindex++] = c : NULL;
 
-    drawtab(m->nTabs, 1, m);
+    drawalttab(m->nTabs, 1, m);
 
     for (int i = 0; i < 1000; i++) 
     {

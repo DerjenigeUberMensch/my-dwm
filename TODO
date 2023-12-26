@@ -2,7 +2,6 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-**  (Fix) ResizeWindow not working properly for windows that dont set sizehints and have a size limit; ex: thunar
 **  (Fix) bartabs not having "..." if text to long (unknown)
 **  (Fix) Fix maximize issues when moving windows (movemouse)
 **  (Fix) Alt-tab screen artifacts (fullscreen)

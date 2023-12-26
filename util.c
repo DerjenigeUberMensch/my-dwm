@@ -56,13 +56,3 @@ smprintf(char *fmt, ...)
     va_end(fmtargs);
     return ret;
 }
-
-void
-debuglog(const char *text)
-{
-    FILE *fp;
-    fp = fopen("/home/ram/Github/suckless/Sd-WM/err.log", "a");
-    if(!fp) return;
-    fprintf(fp, "%s\n", text);
-    fclose(fp);
-}
