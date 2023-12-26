@@ -7,6 +7,8 @@
  * List of utils: https://www.freedesktop.org/wiki/Specifications/
  * }
  */
+
+
 /* window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
 #define CFG_SNAP                15          /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */

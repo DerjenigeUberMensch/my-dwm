@@ -32,15 +32,22 @@ LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER
 # flags
 # WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
 # -g -> debug
+STRIPFLAGS = -fdata-sections -ffunction-sections -Wl,--strip-all,--gc-sections -s 
+WARNINGFLAGS = -pedantic -Wall -Wextra -Wno-deprecated-declarations -Wshadow
+#Do note that compiling this way leads to MASSIVE binaries size, hence "debug"
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -ggdb -g -std=c99 -pedantic -Wall -Wextra -Wshadow ${INCS} ${CPPFLAGS} -O0
+CFLAGS   = -ggdb -g -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} -O0
 
-
-# SZ
-#CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow ${INCS} ${CPPFLAGS} -Os
+# SZ (NOT RECOMMENDED, compile for speed instead; see Release)
+#CFLAGS  = -std=c99 ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -Os
+# SZ only (NOT RECOMMENDED, compiled only for size vs size+speed)
+#CFLAGS  = -std=c99 ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -Oz
 
 # Release
-CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -ftree-vectorize ${INCS} ${CPPFLAGS} -O2
+CFLAGS  = -std=c99 -ftree-vectorize ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -O2
+
+#Release Speed (Untested and unsupported, prefer speed over stability and size)
+#CFLAGS  = -std=c99 ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -O3
 
 # Solaris
 #CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"
