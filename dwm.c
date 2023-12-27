@@ -8,7 +8,7 @@
  *
  * The event handlers of dwm are organized in an array which is accessed
  * whenever a new event has been fetched. This allows event dispatching
- * in O(1) time.
+ * in O(1) time. 
  *
  * Each child of the root window is called a client, except windows which have
  * set the override_redirect flag. Clients are organized in a linked client
@@ -96,39 +96,41 @@ enum
 };
 
 /* default atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast };
+enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
 
 /* clicks */
 enum
 {   
     ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
-    ClkClientWin, ClkRootWin, ClkLast
+    ClkClientWin, ClkRootWin, ClkLast,
 };
 /* stack shifting */
 enum
 {  
     BEFORE, PREVSEL, NEXT,
-    FIRST, SECOND, THIRD, LAST
+    FIRST, SECOND, THIRD, LAST,
 };
 /* layouts */
 enum 
 {
-    TILED ,FLOATING, MONOCLE, GRID,
+    TILED, FLOATING, MONOCLE, GRID,
 };
 
 /* kill client */
 enum
 {
-    GRACEFUL, SAFEDESTROY, DESTROY
+    GRACEFUL, SAFEDESTROY, DESTROY,
 };
-typedef union {
+typedef union 
+{
     int i;
     unsigned int ui;
     float f;
     const void *v;
 } Arg;
 
-typedef struct {
+typedef struct 
+{
     int type;
     unsigned int mod;
     KeySym keysym;
@@ -136,7 +138,8 @@ typedef struct {
     const Arg arg;
 } Key;
 
-typedef struct {
+typedef struct 
+{
     unsigned int click;
     unsigned int mask;
     unsigned int button;
@@ -145,7 +148,8 @@ typedef struct {
 } Button;
 typedef struct Monitor Monitor;
 typedef struct Client Client;
-struct Client {
+struct Client 
+{
     char name[256];
     float mina, maxa;
     int x, y, w, h;
@@ -162,14 +166,13 @@ struct Client {
     unsigned int isfloating      : 1;
     unsigned int isurgent        : 1;
     unsigned int neverfocus      : 1;
-    unsigned int oldstate        : 1;
     unsigned int isfullscreen    : 1;
     /* icon */
     unsigned int icw;
     unsigned int ich;
     Picture icon;   /* ulong */
     Client *next;   /* next client in linked list disregarding monitor stack */
-    Client *snext;  /* stack next (stack is basically current monitor stack) */
+    Client *snext;  /* current monitor stack */
     Monitor *mon;
     Window win; /* ulong */
 };
@@ -185,7 +188,7 @@ struct Monitor {
     int nmaster;
     int num;
     int by;               /* bar geometry */
-    int mx, my, mw, mh;   /* screen size */
+    int mx, my, mw, mh;   /* screen size  */
     int wx, wy, ww, wh;   /* window area  */
     int altTabN;		  /* move that many clients forward */
     int nTabs;			  /* number of active clients in tag */
@@ -193,14 +196,15 @@ struct Monitor {
     unsigned int showbar        : 1;
     unsigned int topbar         : 1;
 
-    unsigned short layout;
+    unsigned int lyt;   /*    layout    */
+    unsigned int olyt;  /*  old layout  */
     unsigned int seltags;
     unsigned int sellt;
     unsigned int tagset[2];
     Client *clients;
     Client *sel;
     Client *stack;
-    Client ** altsnext; /* array of all clients in the tag */
+    Client **altsnext; /* array of all clients in the tag */
     Monitor *prev;
     Monitor *next;
     Window barwin;      /* ulong */
@@ -388,10 +392,9 @@ alttab()
         ++m->altTabN;
         if (m->altTabN >= m->nTabs) m->altTabN = 0; /* reset altTabN */
         altsnext = m->altsnext[m->altTabN];
-        if(CFG_ALT_TAB_MAP_WINDOWS && m->layout == MONOCLE)
+        if(CFG_ALT_TAB_MAP_WINDOWS && m->lyt == MONOCLE)
         {
             winunmap(altsnext->win, root, 1);
-            /* prevents wierd artifacts from occuring because of unmaping */
             winmap(altsnext, 1);
         }
         if(!CFG_ALT_TAB_FIXED_TILE) 
@@ -401,7 +404,6 @@ alttab()
         }
         focus(altsnext);
         if(CFG_ALT_TAB_SHOW_PREVIEW) arrange(m);
-
     }
     /* redraw tab */
     drawalttab(m->nTabs, 0, m);
@@ -860,16 +862,17 @@ createmon(void)
     Monitor *m;
 
     m = ecalloc(1, sizeof(Monitor));
-    m->tagset[0] = m->tagset[1] = 1;
-    m->mfact   = CFG_MONITOR_FACT;
-    m->nmaster = CFG_MASTER_COUNT;
-    m->showbar = CFG_SHOW_BAR;
-    m->topbar  = CFG_TOP_BAR;
-    m->lt[0]   = &layouts[CFG_DEFAULT_LAYOUT];
-    m->lt[1]   = &layouts[CFG_DEFAULT_PREV_LAYOUT];
-    m->nTabs   = 0;
+    m->tagset[0]= m->tagset[1] = 1;
+    m->mfact    = CFG_MONITOR_FACT;
+    m->nmaster  = CFG_MASTER_COUNT;
+    m->showbar  = CFG_SHOW_BAR;
+    m->topbar   = CFG_TOP_BAR;
+    m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
+    m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
+    m->nTabs    = 0;
     m->isfullscreen = 0;
-    m->layout  = CFG_DEFAULT_LAYOUT;
+    m->lyt      = CFG_DEFAULT_LAYOUT;
+    m->olyt     = CFG_DEFAULT_PREV_LAYOUT;
     strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
     return m;
 }
@@ -879,7 +882,6 @@ destroynotify(XEvent *e)
 {
     Client *c;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
-
     if ((c = wintoclient(ev->window)))
         unmanage(c, 1);
 }
@@ -1158,7 +1160,8 @@ focus(Client *c)
         for (c = selmon->stack; c && !ISVISIBLE(c); c = c->snext);
     if (selmon->sel && selmon->sel != c)
         unfocus(selmon->sel, 0);
-    if (c) {
+    if (c) 
+    {
         if (c->mon != selmon)
             selmon = c->mon;
         if (c->isurgent)
@@ -1510,14 +1513,13 @@ manage(Window w, XWindowAttributes *wa)
     c->wasfloating = 0;
     c->ismax = 0;
     if (!c->isfloating)
-        c->isfloating = c->oldstate = trans != None || c->isfixed;
+        c->isfloating = c->wasfloating = trans != None || c->isfixed;
     /* set floating if always on top */
     c->isfloating = c->isfloating || c->alwaysontop;
     if (c->isfloating)
         XRaiseWindow(dpy, c->win);
 
     /* check if selmon->fullscreen */
-    setfullscreen(c, selmon->isfullscreen);
     attach(c);
     attachstack(c);
     XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1536,6 +1538,7 @@ manage(Window w, XWindowAttributes *wa)
         return;
     }
     arrange(c->mon);
+    setfullscreen(c, selmon->isfullscreen);
     XMapWindow(dpy, c->win);
     focus(NULL);
 }
@@ -1688,7 +1691,7 @@ savesession(void)
                 %u %d \
                 \n", 
                 c->win, c->tags,
-                c->mon->layout, !!(selmon->sel == c)
+                c->mon->lyt, selmon->sel == c
                 );
 	}
 	fclose(fw);
@@ -1698,7 +1701,7 @@ void
 restoresession(void)
 {
     const int MAX_LENGTH = 1024;
-    const int CHECK_SUM = 12; /* equal to number of sscanf elements so %d %d %d %d would be a checksum of 4 (type doesnt matter ) */ 
+    const int CHECK_SUM = 4; /* equal to number of sscanf elements so %d %d %d %d would be a checksum of 4 (type doesnt matter ) */ 
     long unsigned int winId;
 	unsigned int tagsForWin;/* client tags */
     unsigned int winlayout, selcpos; /* layout type; c == selmon->sel */
@@ -1726,8 +1729,8 @@ restoresession(void)
                 if(selcpos) selc = c;
                 /* assign tags */
 				c->tags = tagsForWin;
-                c->mon->layout = winlayout;
                 setclientlayout(c->mon, winlayout);
+                arrangemon(c->mon);
 				break;
 			}
 		}
@@ -1837,26 +1840,27 @@ restack(Monitor *m)
     Client *c;
     XEvent ev;
     XWindowChanges wc;
-
+    int ccontop; /* client counter on top */
+    /* one extra as new client deleted in manage (if accnum > max) COULD be alwaysontop though unlikely */
+    Client *alwaysontop[CFG_MAX_CLIENT_COUNT + 1];
     drawbar(m);
     if (!m->sel) return;
-    if(m->sel->isfloating || m->sel->alwaysontop) XRaiseWindow(dpy, m->sel->win);
-    if (m->lt[m->sellt]->arrange) 
+    if (m->lt[m->sellt]->arrange && !m->isfullscreen) 
     {
         wc.stack_mode = Below;
         wc.sibling = m->barwin;
+        ccontop = 0;
         for (c = m->stack; c; c = c->snext)
         {
             if(!ISVISIBLE(c)) continue;
-            if(c->isfloating)  XRaiseWindow(dpy, c->win);
-            else
-            {
-                XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
-                wc.sibling = c->win;
-            }
+            alwaysontop[ccontop] = c;
+            ccontop += c->isfloating;
+            if(!c->isfloating) { XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc); wc.sibling = c->win;}
+            else XRaiseWindow(dpy, c->win);
         }
-        for(c = m->stack; c; c = c->snext) if(c->alwaysontop) XRaiseWindow(dpy, c->win);
+        for(int i = 0; i < ccontop; ++i) { XRaiseWindow(dpy, alwaysontop[i]->win); }
     }
+    if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -1951,8 +1955,8 @@ void
 setclientlayout(Monitor *m, int layout)
 {
     m->lt[selmon->sellt] = (Layout *)&layouts[layout];
-    m->layout = layout;
-    arrangemon(m);
+    m->olyt= m->lyt;
+    m->lyt = layout;
 }
 void
 setfocus(Client *c)
@@ -1970,21 +1974,22 @@ setfocus(Client *c)
 void
 setfullscreen(Client *c, int fullscreen)
 {
-    if (fullscreen && !c->isfullscreen) {
+    int temp;
+    if (fullscreen && !c->isfullscreen) 
+    {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
         c->isfullscreen = 1;
-        c->oldstate = c->isfloating;
         c->oldbw = c->bw;
         c->bw = 0;
-        c->isfloating = 1;
         resizeclient(c, c->mon->mx, c->mon->my, c->mon->mw, c->mon->mh);
         XRaiseWindow(dpy, c->win);
-    } else if (!fullscreen && c->isfullscreen) {
+    } 
+    else if (!fullscreen && c->isfullscreen) 
+    {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
                         PropModeReplace, (unsigned char*)0, 0);
         c->isfullscreen = 0;
-        c->isfloating = c->oldstate;
         c->bw = c->oldbw;
         c->x = c->oldx;
         c->y = c->oldy;
@@ -2331,11 +2336,13 @@ updatebarpos(Monitor *m)
 {
     m->wy = m->my;
     m->wh = m->mh;
-    if (m->showbar) {
+    if (m->showbar) 
+    {
         m->wh -= bh;
         m->by = m->topbar ? m->wy : m->wy + m->wh;
         m->wy = m->topbar ? m->wy + bh : m->wy;
-    } else m->by = -bh;
+    } 
+    else m->by = -bh;
 }
 
 void

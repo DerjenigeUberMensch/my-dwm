@@ -56,3 +56,9 @@ smprintf(char *fmt, ...)
     va_end(fmtargs);
     return ret;
 }
+
+void 
+debug(const char *restrict txt)
+{
+    fprintf(stdout, "%s", txt);
+}

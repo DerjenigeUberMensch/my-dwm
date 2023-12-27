@@ -119,9 +119,8 @@ static const Rule rules[] =
 static const Layout layouts[] = 
 {
     /* symbol     arrange function */
-    [TILED]     = { "[T]",      tile },    
-    [FLOATING]  = { "[F]",      NULL },    
-    [MONOCLE]   = { "[M]",      monocle },
-    [GRID]      = { "[G]",      grid },
-
+    [TILED]     = { "[T]",      tile            },    
+    [FLOATING]  = { "[F]",      NULL            },    
+    [MONOCLE]   = { "[M]",      monocle         },
+    [GRID]      = { "[G]",      grid            },
 };
