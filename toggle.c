@@ -251,8 +251,9 @@ SetWindowLayout(const Arg *arg)
     Monitor *m;
     m = selmon;
 
-    if(!m) return;
+    if(!m || m->isfullscreen) return;
     setclientlayout(m, arg->i);
+    arrangemon(m);
     if(m->sel) arrange(m);
     else drawbar(m);
 }
@@ -403,19 +404,21 @@ ToggleFullscreen(const Arg *arg)
 {
     Client *c;
     Monitor *m;
-    int winmode; /* if fullscreen or not */
-
+    int layout;
     m = selmon;
-    if(!m->sel) return; /* no client focused */
     m->isfullscreen = !m->isfullscreen;
-    winmode = m->isfullscreen;
-    for (c = m->clients; c; c = c->next)
-    {
-        if(!ISVISIBLE(c)) continue;
-        setfullscreen(c, winmode);
+    for (c = m->clients; c; c = c->snext) { if(!ISVISIBLE(c)) continue; setfullscreen(c, m->isfullscreen); }
+    if(m->isfullscreen) 
+    {   
+        if(m->showbar) ToggleStatusBar(NULL); 
+        setclientlayout(m, MONOCLE);
     }
-    focus(m->sel);
-    restack(m);
+    else 
+    { 
+        if(!m->showbar) { if(CFG_SHOW_BAR) ToggleStatusBar(NULL); } 
+        setclientlayout(m, m->olyt);
+    }
+    arrange(m);
 }
 
 void

@@ -36,17 +36,19 @@ STRIPFLAGS = -fdata-sections -ffunction-sections -Wl,--strip-all,--gc-sections -
 WARNINGFLAGS = -pedantic -Wall -Wextra -Wno-deprecated-declarations -Wshadow
 #Do note that compiling this way leads to MASSIVE binaries size, hence "debug"
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -ggdb -g -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} -O0
+#CFLAGS   = -ggdb -g -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} -O2
 
-# SZ (NOT RECOMMENDED, compile for speed instead; see Release)
+
+
+# SZ 
 #CFLAGS  = -std=c99 ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -Os
-# SZ only (NOT RECOMMENDED, compiled only for size vs size+speed)
+# SZ only 
 #CFLAGS  = -std=c99 ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -Oz
+
 
 # Release
 CFLAGS  = -std=c99 -ftree-vectorize ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -O2
-
-#Release Speed (Untested and unsupported, prefer speed over stability and size)
+# Release Speed 
 #CFLAGS  = -std=c99 ${WARNINGFLAGS} ${STRIPFLAGS} ${INCS} ${CPPFLAGS} -O3
 
 # Solaris
