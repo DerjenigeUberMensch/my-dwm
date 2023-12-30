@@ -29,30 +29,33 @@ FREETYPEINC = /usr/include/freetype2
 INCS = -I${X11INC} -I${FREETYPEINC}
 LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER}
 
-# flags
-# WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
-# -g -> debug
-
-#TODO FIX x86 SUPPORT
-X86SUPPORT = -std=c99
-STRIPFLAGS = -Wl,--strip-all,-s 
+#X86 isnt explicitly supported and some code might need to be tweaked
+X86SUPPORT = -m32
+X64SUPPORT = -march=x86-64 -mtune=generic
+SELFFLAGS  = -march=native -mtune=native
+STRIPFLAGS = -Wl,--strip-all -s
 DEBUGFLAGS = -ggdb -g -pg 
 WARNINGFLAGS = -pedantic -Wall -Wextra -Wno-deprecated-declarations -Wshadow -Wmaybe-uninitialized 
-SIZEFLAGS  = -ffunction-sections -fdata-sections
-#Do note that compiling this way leads to MASSIVE binaries size, hence "debug"
+SIZEFLAGS  = -ffunction-sections -fdata-sections -finline-functions
+
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X86SUPPORT}
-RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS} -ftree-vectorize
+cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X64SUPPORT}
+#-flto saves a couple instructions in certain functions; 
+RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS} -flto
 
 DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O0
 SIZE  	= ${RELEASEFLAGS} -Os
 SIZEONLY= ${RELEASEFLAGS} ${SIZEFLAGS} -Oz
+
 #Release Stable (-O2)
-RELEASE = ${RELEASEFLAGS} -O2
+RELEASE = ${RELEASEFLAGS} -ftree-vectorize -O2
 #Release Speed (-O3)
 RELEASES= ${RELEASEFLAGS} -O3
 
-#Set your options or presets
+#Build using cpu specific instruction set for more performance (Optional)
+BUILDSELF = ${RELEASEFLAGS} ${SELFFLAGS} -O3
+
+#Set your options or presets (see above) ex: ${PRESETNAME}
 CFLAGS = ${RELEASES}
 
 # Solaris
