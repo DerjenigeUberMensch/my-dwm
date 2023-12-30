@@ -3,9 +3,8 @@
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
 *** (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
-**  (Fix) bartabs not having "..." if text to long (unknown)
+**  (Fix) Fix monitor switching not having persistant window mapping
 **  (Fix) Alt-tab screen artifacts (fullscreen)
-**  (Fix) Alt-tab Add limit to stop undefined behaviour with too many windows
 **  (Fix) scrot screenshotcmd
 *   (Fix) Weird memory bug with geticonprop(); mallocing memory that is never freed but never reallocated?
 *   Small Memory leak when compiled?, inconsistent. further investigation required

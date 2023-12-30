@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <time.h>
+
 #include "util.h"
 
 void
@@ -61,4 +63,14 @@ void
 debug(const char *restrict txt)
 {
     fprintf(stdout, "%s", txt);
+}
+
+double functime(void (*_timefunction)())
+{
+    clock_t start, end;
+    start = clock();
+    _timefunction();
+    end = clock();
+
+    return ((double)(end - start)) / CLOCKS_PER_SEC;
 }

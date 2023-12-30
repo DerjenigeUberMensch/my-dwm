@@ -376,7 +376,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
 
     usedfont = drw->fonts;
     if (!ellipsis_width && render)
-        drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
+        ellipsis_width = drw_fontset_getwidth(drw, "...");
     while (1) 
     {
         ew = ellipsis_len = utf8strlen = 0;
@@ -385,7 +385,8 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
         while (*text) 
         {
             utf8charlen = utf8decode(text, &utf8codepoint, UTF_SIZ);
-            for (curfont = drw->fonts; curfont; curfont = curfont->next) {
+            for (curfont = drw->fonts; curfont; curfont = curfont->next) 
+            {
                 charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
                 if (charexists) 
                 {
@@ -427,7 +428,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
         {
             if (render) 
             {
-                ty = y + (h - usedfont->h) / 2 + usedfont->xfont->ascent;
+                ty = y + ((h - usedfont->h) >> 1) + usedfont->xfont->ascent;
                 XftDrawStringUtf8(d, &drw->scheme[invert ? ColBg : ColFg],
                                   usedfont->xfont, x, ty, (XftChar8 *)utf8str, utf8strlen);
             }
@@ -435,7 +436,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
             w -= ew;
         }
         if (render && overflow)
-            ellipsis_width = drw_fontset_getwidth(drw, "...");
+            drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
 
         if (!*text || overflow) break;
         else if (nextfont) 

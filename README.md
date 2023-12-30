@@ -22,6 +22,7 @@
 - **windowmap**
 - **rainbowtags**
 - **updatemotifhints**
+- **ewmhtags**
 - resize anywhere
 - Alt-Tab minimal
 
