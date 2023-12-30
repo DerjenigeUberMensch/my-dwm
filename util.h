@@ -10,3 +10,5 @@ void die(const char *fmt, ...);
 void *ecalloc(size_t nmemb, size_t size);
 char *smprintf(char *fmt, ...);
 void debug(const char *restrict txt);
+double functime(void (*_timefunction)());
+

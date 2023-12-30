@@ -1,8 +1,7 @@
 /* user functions */
 
 #include "toggle.h"
-void
-tester(const Arg *arg)
+void tester(const Arg *arg)
 {
 }
 
@@ -61,7 +60,7 @@ KillWindow(const Arg *arg)
 void
 TerminateWindow(const Arg *arg)
 {
-    killclient(selmon->sel, SAFEDESTROY);
+    killclient(selmon->sel, DESTROY);
 }
 void
 DragWindow(const Arg *arg) /* movemouse */
@@ -109,6 +108,9 @@ DragWindow(const Arg *arg) /* movemouse */
                 nx = selmon->wx + selmon->ww - WIDTH(c);
             if (abs(selmon->wy - ny) < CFG_SNAP)
                 ny = selmon->wy;
+            else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < CFG_SNAP)
+				ny = selmon->wy + selmon->wh - HEIGHT(c);
+
             resize(c, nx, ny, c->w, c->h, 1);
             break;
         }
@@ -191,7 +193,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     vert  = ny < c->h >> 1 ? -1 : 1;
     basew = MAX(c->minw, CFG_RESIZE_BASE_WIDTH);
     baseh = MAX(c->minh, CFG_RESIZE_BASE_HEIGHT);
-    XRaiseWindow(dpy, c->win);
+    XRaiseWindow(dpy, c->win); /* redundant but just in case */
     do 
     {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
@@ -212,7 +214,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
             nh = och + vert * (ev.xmotion.y - rcury);
             /* clamp */
             nw = MAX(nw, basew); nh = MAX(nh, baseh);
-            /* calculate */
             /* flip sign if -1 else default to 0 */
             nx = ocx + !~horiz * (ocw - nw);
             ny = ocy + !~vert  * (och - nh);
@@ -234,7 +235,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
         c->oldy += CFG_SNAP;
     }
     else c->ismax = 0;
-
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -374,7 +374,7 @@ TagMonitor(const Arg *arg)
 void
 ToggleStatusBar(const Arg *arg)
 {
-    selmon->showbar = !selmon->showbar;
+    setshowbar(selmon, !selmon->showbar);
     updatebarpos(selmon);
     XMoveResizeWindow(dpy, selmon->barwin, selmon->wx, selmon->by, selmon->ww, bh);
     arrange(selmon);
@@ -409,13 +409,13 @@ ToggleFullscreen(const Arg *arg)
     m->isfullscreen = !m->isfullscreen;
     for (c = m->clients; c; c = c->snext) { if(!ISVISIBLE(c)) continue; setfullscreen(c, m->isfullscreen); }
     if(m->isfullscreen) 
-    {   
-        if(m->showbar) ToggleStatusBar(NULL); 
+    {
+        setshowbar(m, 0);
         setclientlayout(m, MONOCLE);
     }
     else 
-    { 
-        if(!m->showbar) { if(CFG_SHOW_BAR) ToggleStatusBar(NULL); } 
+    {
+        setshowbar(m, m->oshowbar);
         setclientlayout(m, m->olyt);
     }
     arrange(m);
@@ -428,11 +428,13 @@ ToggleTag(const Arg *arg)
 
     if (!selmon->sel) return;
     newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
-    if (newtags) {
+    if (newtags) 
+    {
         selmon->sel->tags = newtags;
         focus(NULL);
         arrange(selmon);
     }
+    updatedesktop();
 }
 
 void
@@ -456,6 +458,7 @@ View(const Arg *arg)
         selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
     focus(NULL);
     arrange(selmon);
+    updatedesktop();
 }
 
 void

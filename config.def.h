@@ -3,11 +3,8 @@
  * Basic overview of dwm => https://ratfactor.com/dwm
  * For more information about xlib (X11)       visit https://x.org/releases/current/doc/libX11/libX11/libX11.html
  * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/ 
- * For broad information about xlib (X11) visit {
- * List of utils: https://www.freedesktop.org/wiki/Specifications/
- * }
+ *
  */
-
 
 /* window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
@@ -24,9 +21,8 @@
 #define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per icon); 0 to disable      */
 #define CFG_ICON_SIZE           16          /* icon size                                                        */
 #define CFG_ICON_SPACE          2           /* space between icon and title                                     */
-
 /* alt-tab configuration */
-/* to get keycode you can do xev and press a type */
+/* to get keycode you can do xev and press a key */
 #define CFG_ALT_TAB_SWITCH_KEY      64      /* Hold this key to keep alt-tab active                             */
 #define CFG_ALT_TAB_CYCLE_KEY       23      /* Tap this key to focus next client                                */
 #define CFG_ALT_TAB_POS_X           1       /* tab position on X axis, 0 = left, 1 = center, 2 = right          */
@@ -41,7 +37,7 @@
 /* Misc */
 #define CFG_SHOW_WM_NAME            0       /* 1 Show window manager name at end of status bar; 0 to disable    */
 #define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
-#define CFG_MAX_CLIENT_COUNT        256     /* max number of clients assuming you can handle this many          */
+#define CFG_MAX_CLIENT_COUNT        50      /* max number of clients assuming you can handle this many          */
 #define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
@@ -76,17 +72,17 @@ static const char dmenufont[]   =   {"monospace:size=12"};
 static char *colors[][3] = 
 {
     /*					        fg         bg          border   */
-    [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE},
-    [SchemeSel]             = { COL_WHITE, COL_BLACK, COL_WHITE},
-    [SchemeUrgent]          = { COL_BLUE,  COL_RED,   COL_BLUE},
-    [SchemeWarn]            = { COL_WHITE, COL_YELLOW, COL_WHITE},
+    [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme normal */
+    [SchemeSel]             = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme Selected*/
+    [SchemeUrgent]          = { COL_BLUE,  COL_RED,   COL_BLUE }, /* NOT USED */
+    [SchemeWarn]            = { COL_WHITE, COL_YELLOW,COL_WHITE}, /* NOT USED */
 
     [SchemeAltTab]          = { COL_WHITE, COL_BLACK, COL_BLACK},
     [SchemeAltTabSelect]    = { COL_BLACK, COL_WHITE, COL_WHITE},
 
-    [SchemeBarTabActive]    = { COL_BLACK, COL_WHITE, COL_WHITE},
-    [SchemeBarTabInactive]  = { COL_WHITE, COL_BLACK, COL_BLACK},
-    [SchemeTagActive]       = { COL_BLACK, COL_WHITE, COL_WHITE},
+    [SchemeBarTabActive]    = { COL_BLACK, COL_WHITE, COL_WHITE}, /* Scheme Normal   */
+    [SchemeBarTabInactive]  = { COL_WHITE, COL_BLACK, COL_BLACK}, /* Scheme Selected */
+    [SchemeTagActive]       = { COL_BLACK, COL_WHITE, COL_WHITE}, /* Scheme Selected */
 
 };
 /* appearance */
