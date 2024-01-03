@@ -55,7 +55,7 @@ RELEASES= ${RELEASEFLAGS} -O3
 BUILDSELF = ${RELEASEFLAGS} ${SELFFLAGS} -O3
 
 #Set your options or presets (see above) ex: ${PRESETNAME}
-CFLAGS = ${RELEASE}
+CFLAGS = ${RELEASES}
 
 # Solaris
 #CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"

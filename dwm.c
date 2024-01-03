@@ -1523,6 +1523,8 @@ manage(Window w, XWindowAttributes *wa)
     c->w = c->oldw = wa->width;
     c->h = c->oldh = wa->height;
     c->oldbw = wa->border_width;
+    c->next = NULL; c->snext = NULL;
+    c->prev = NULL; c->sprev = NULL;
     updateicon(c);
     updatetitle(c);
     if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) 
@@ -1563,7 +1565,6 @@ manage(Window w, XWindowAttributes *wa)
     if (c->isfloating)
         XRaiseWindow(dpy, c->win);
 
-    /* check if selmon->fullscreen */
     attach(c);
     attachstack(c);
     XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1583,6 +1584,7 @@ manage(Window w, XWindowAttributes *wa)
         return;
     }
     arrange(c->mon);
+    /* check if selmon->fullscreen */
     setfullscreen(c, selmon->isfullscreen);
     XMapWindow(dpy, c->win);
     focus(NULL);
@@ -1697,7 +1699,7 @@ propertynotify(XEvent *e)
         nfytype = ev->atom == netatom[NetWMWindowType];
         nfymotif= ev->atom == motifatom;
 
-        nfybar = nfyname + nfyicon + nfytype + nfymotif;
+        nfybar = nfyname || nfyicon || nfytype || nfymotif;
         if (nfyname)  updatetitle(c);
         if (nfyicon)  updateicon(c);
         if (nfytype)  updatewindowtype(c);
@@ -1740,7 +1742,7 @@ savesession(void)
     Client *c;
 	FILE *fw = fopen(SESSION_FILE, "w");
     if(!fw) return;
-	for (Client *c = selmon->clients; c; c = c->next) 
+	for (c = selmon->clients; c; c = c->next) 
     { 
 		fprintf(fw, 
                "%lu %u \

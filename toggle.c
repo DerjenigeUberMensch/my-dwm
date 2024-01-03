@@ -404,7 +404,6 @@ ToggleFullscreen(const Arg *arg)
 {
     Client *c;
     Monitor *m;
-    int layout;
     m = selmon;
     m->isfullscreen = !m->isfullscreen;
     for (c = m->clients; c; c = c->snext) { if(!ISVISIBLE(c)) continue; setfullscreen(c, m->isfullscreen); }
