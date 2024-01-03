@@ -2,7 +2,8 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-*** (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
+*** (Fix) m->num always being 0 for some reason?
+**  (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
 **  (Fix) Fix monitor switching not having persistant window mapping
 **  (Fix) Alt-tab screen artifacts (fullscreen)
 **  (Fix) scrot screenshotcmd

@@ -13,18 +13,15 @@
 - **noborderflicker**
 - **activetagindicatorbar**
 - **activemonitor**
-- **bartabgroups**
 - **stacker**
 - **grid**
 - **winicon**
-- **restartrig**
+- **restartsig**
 - **restoreafterrestart**
 - **windowmap**
 - **rainbowtags**
 - **updatemotifhints**
 - **ewmhtags**
-- resize anywhere
-- Alt-Tab minimal
 
 ## Preview:
 
