@@ -178,8 +178,8 @@ struct Client
     unsigned int icw;
     unsigned int ich;
     Picture icon;   /* ulong */
-    Client *next;   /* next client in linked list disregarding monitor stack */
-    Client *snext;  /* current monitor stack */
+    Client *prev, *next;
+    Client *sprev, *snext;
     Monitor *mon;
     Window win; /* ulong */
 };
@@ -212,9 +212,9 @@ struct Monitor
     unsigned int sellt;
     unsigned int tagset[2];
     unsigned int cc; /* client counter */
-    Client *clients;
+    Client *clients, *clast;
+    Client *stack, *slast;
     Client *sel;
-    Client *stack;
     Client **altsnext; /* array of all clients in the tag */
     Monitor *next;
     Window barwin;      /* ulong */
@@ -387,8 +387,8 @@ static Window root, wmcheckwin;
 static unsigned int accnum; /* Active client counter Number */
 /* configuration, allows nested code to access above variables */
 #include "toggle.h"
-#include "config.h"
-#include "keybinds.h"
+#include "config.def.h"
+#include "keybinds.def.h"
 #include "toggle.c"
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags 
@@ -479,7 +479,8 @@ applyrules(Client *c)
         {
             c->isfloating = r->isfloating;
             c->tags |= r->tags;
-            for (m = mons; m && m->num != r->monitor; m = m->next);
+            for (m = mons; m && m->num != r->monitor; m = m->next)
+             ;
             if (m)
                 c->mon = m;
         }
@@ -506,9 +507,9 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
             *x = sw - WIDTH(c);
         if (*y > sh)
             *y = sh - HEIGHT(c);
-        if (*x + *w + 2 * c->bw < 0)
+        if (*x + *w + (c->bw << 1) < 0)
             *x = 0;
-        if (*y + *h + 2 * c->bw < 0)
+        if (*y + *h + (c->bw << 1) < 0)
             *y = 0;
     } 
     else 
@@ -517,9 +518,9 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
             *x = m->wx + m->ww - WIDTH(c);
         if (*y >= m->wy + m->wh)
             *y = m->wy + m->wh - HEIGHT(c);
-        if (*x + *w + 2 * c->bw <= m->wx)
+        if (*x + *w + (c->bw << 1) <= m->wx)
             *x = m->wx;
-        if (*y + *h + 2 * c->bw <= m->wy)
+        if (*y + *h + (c->bw << 1) <= m->wy)
             *y = m->wy;
     }
     if (*h < bh)
@@ -531,7 +532,9 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
             updatesizehints(c);
         /* see last two sentences in ICCCM 4.1.2.3 */
         baseismin = c->basew == c->minw && c->baseh == c->minh;
-        if (!baseismin) { /* temporarily remove base dimensions */
+        /* temporarily remove base dimensions */
+        if (!baseismin) 
+        { 
             *w -= c->basew;
             *h -= c->baseh;
         }
@@ -542,7 +545,9 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
             else if (c->mina < (float)*h / *w)
                 *h = *w * c->mina + 0.5;
         }
-        if (baseismin) { /* increment calculation requires this */
+        /* increment calculation requires this */
+        if (baseismin)
+        { 
             *w -= c->basew;
             *h -= c->baseh;
         }
@@ -579,8 +584,8 @@ arrangeall()
     {
         showhide(m->stack);
         arrangemon(m);
+        restack(m);
     }
-    restack(m);
 }
 
 void
@@ -594,15 +599,25 @@ arrangemon(Monitor *m)
 void
 attach(Client *c)
 {
-    c->next = c->mon->clients;
-    c->mon->clients = c;
+    Monitor *restrict m = c->mon;
+    c->next = m->clients;
+    m->clients = c;
+    if(c->next) c->next->prev = c;
+    else m->clast = c;
+    /* prevent circular linked list */
+    c->prev = NULL;
 }
 
 void
 attachstack(Client *c)
 {
+    Monitor *restrict m = c->mon;
     c->snext = c->mon->stack;
     c->mon->stack = c;
+    if(c->snext) c->snext->sprev = c;
+    else m->slast = c;
+    /* prevent circular linked list */
+    c->sprev = NULL;
 }
 
 void
@@ -641,7 +656,9 @@ buttonpress(XEvent *e)
     } 
     else if ((c = wintoclient(ev->window)))
     {
-        pop(c);
+        detach(c);
+        attach(c);
+        focus(c);
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
         click = ClkClientWin;
     }
@@ -890,6 +907,13 @@ createmon(void)
     m->isfullscreen = 0;
     m->lyt      = CFG_DEFAULT_LAYOUT;
     m->olyt     = CFG_DEFAULT_PREV_LAYOUT;
+    /* prevent garbage values (undefined behaviour) */
+    m->clients  = NULL;
+    m->stack    = NULL;
+    m->next     = NULL; 
+    m->clast    = NULL;
+    m->slast    = NULL;
+    m->sel      = NULL;
     strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
     return m;
 }
@@ -906,23 +930,31 @@ destroynotify(XEvent *e)
 void
 detach(Client *c)
 {
+    Monitor *m = c->mon;
     Client **tc;
-
-    for (tc = &c->mon->clients; *tc && *tc != c; tc = &(*tc)->next);
-    *tc = c->next;
+    for (tc = &m->clients; *tc && *tc != c; tc = &(*tc)->next);
+    *tc = c->next; 
+    if(!(*tc)) { m->clast = c->prev; return; }
+    else if(c->next) c->next->prev = c->prev;
+    else if(c->prev) { m->clast = c->prev; c->prev->next = NULL; }
 }
 
 void
 detachstack(Client *c)
 {
+    Monitor *m = c->mon;
     Client **tc, *t;
 
-    for (tc = &c->mon->stack; *tc && *tc != c; tc = &(*tc)->snext);
+    for (tc = &m->stack; *tc && *tc != c; tc = &(*tc)->snext);
     *tc = c->snext;
+    if(!(*tc)) m->slast = c->sprev;
+    else if(c->snext) c->snext->sprev = c->sprev;
+    else if(c->sprev) { m->slast = c->sprev; c->sprev->snext = NULL; }
 
-    if (c == c->mon->sel) {
+    if (c == m->sel) 
+    {
         for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
-        c->mon->sel = t;
+        m->sel = t;
     }
 }
 
@@ -1541,6 +1573,7 @@ manage(Window w, XWindowAttributes *wa)
     if (c->mon == selmon)
         unfocus(selmon->sel, 0);
     c->mon->sel = c;
+    ++c->mon->cc;
     /* destroy any new clients if we past our client limit */
     if(accnum > CFG_MAX_CLIENT_COUNT ) 
     {
@@ -1584,20 +1617,18 @@ monocle(Monitor *m)
     int nx, ny;
     int nw, nh;
     int cbw; /* client border width */
-    int cc;
     Client *c;
     nx = m->wx;
     ny = m->wy;
-    cc = 0;
+    snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", m->num);
+    if(m->cc) snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", m->cc);
     for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
     {
         cbw = c->bw << 1;
         nw = m->ww - cbw;
         nh = m->wh - cbw;
         resize(c, nx, ny, nw, nh, 0);
-        ++cc;
     }
-    if(cc) snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", cc);
 }
 
 void
@@ -2351,6 +2382,7 @@ unmanage(Client *c, int destroyed)
     Monitor *m = c->mon;
     XWindowChanges wc;
     --accnum;
+    --m->cc;
     detach(c);
     detachstack(c);
     freeicon(c);
@@ -2459,7 +2491,8 @@ updategeom(void)
 {
     int dirty = 0;
 #ifdef XINERAMA
-    if (XineramaIsActive(dpy)) {
+    if (XineramaIsActive(dpy)) 
+    {
         int i, j, n, nn;
         Client *c;
         Monitor *m;
@@ -2484,9 +2517,10 @@ updategeom(void)
                 mons = createmon();
         }
         for (i = 0, m = mons; i < nn && m; m = m->next, i++)
-            if (i >= n
-                    || unique[i].x_org != m->mx || unique[i].y_org != m->my
-                    || unique[i].width != m->mw || unique[i].height != m->mh)
+            if 
+            (i >= n
+            || unique[i].x_org != m->mx || unique[i].y_org != m->my
+            || unique[i].width != m->mw || unique[i].height != m->mh)
             {
                 dirty = 1;
                 m->num = i;
@@ -2517,7 +2551,8 @@ updategeom(void)
     } 
     else
 #endif /* XINERAMA */
-    {   /* default monitor setup */
+    {   
+        /* default monitor setup */
         if (!mons)
             mons = createmon();
         if (mons->mw != sw || mons->mh != sh) 

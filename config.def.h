@@ -37,7 +37,7 @@
 /* Misc */
 #define CFG_SHOW_WM_NAME            0       /* 1 Show window manager name at end of status bar; 0 to disable    */
 #define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
-#define CFG_MAX_CLIENT_COUNT        50      /* max number of clients assuming you can handle this many          */
+#define CFG_MAX_CLIENT_COUNT        250     /* max number of clients assuming you can handle this many          */
 #define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
