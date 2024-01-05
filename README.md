@@ -37,11 +37,12 @@
 7. x11 (xlib)
 8. xorg
 9. xorg-xinit
-10. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
+10. libxcursor
+11. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
 
 **Pacman && yay**
 ```
-sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit imlib2 && yay -S st
+sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit imlib2 libxcursor && yay -S st
 ```
 
 ## Usage 
@@ -55,7 +56,7 @@ https://github.com/DerjenigeUberMensch/Sd-WM.git
 2. ```cd Sd-WM``` into the repository
 3. ```git checkout origin/Experimental```
 3. Configure it See **Configuration** (Optional)
-4. `sudo make clean install` to compiled
+4. `sudo make install` to compile or 'make' to compile but not install on system
 5. Done.
 
 ## Configuration

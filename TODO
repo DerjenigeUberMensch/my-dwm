@@ -3,6 +3,8 @@
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
 *** (Fix) m->num always being 0 for some reason?
+*** (Fix) Alt tab breaking linked list? or attach/detach
+**  (Fix) ResizeWindow() not working within dimentions
 **  (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
 **  (Fix) Fix monitor switching not having persistant window mapping
 **  (Fix) Alt-tab screen artifacts (fullscreen)

@@ -16,7 +16,8 @@ XINERAMAFLAGS = -DXINERAMA
 # lXrender (window icons)
 XRENDER = -lXrender
 IMLIB2LIBS = -lImlib2
-
+# Cursor fonts
+XCUR = -lXcursor
 # freetype
 FREETYPELIBS = -lfontconfig -lXft
 FREETYPEINC = /usr/include/freetype2
@@ -26,7 +27,7 @@ FREETYPEINC = /usr/include/freetype2
 
 # includes and libs
 INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER}
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER} ${XCUR}
 
 #X86 isnt explicitly supported and some code might need to be tweaked
 X86SUPPORT = -m32
