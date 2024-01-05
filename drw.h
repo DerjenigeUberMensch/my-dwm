@@ -1,21 +1,29 @@
 /* See LICENSE file for copyright and license details. */
 
-typedef struct {
-    Cursor cursor;
-} Cur;
+enum { ColFg, ColBg, ColBorder }; /* Clr scheme index */
 
-typedef struct Fnt {
+typedef struct Cur Cur;
+typedef struct XCur XCur;
+typedef struct Fnt Fnt;
+typedef struct Drw Drw;
+
+typedef XftColor Clr;
+
+struct Cur
+{
+    Cursor cursor;
+    XcursorImage *img;
+};
+struct Fnt
+{
     Display *dpy;
     unsigned int h;
     XftFont *xfont;
     FcPattern *pattern;
     struct Fnt *next;
-} Fnt;
-
-enum { ColFg, ColBg, ColBorder }; /* Clr scheme index */
-typedef XftColor Clr;
-
-typedef struct {
+};
+struct Drw
+{
     unsigned int w, h;
     Display *dpy;
     int screen;
@@ -28,7 +36,7 @@ typedef struct {
     GC gc;
     Clr *scheme;
     Fnt *fonts;
-} Drw;
+};
 
 /* Drawable abstraction */
 Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h);
@@ -48,6 +56,8 @@ Clr *drw_scm_create(Drw *drw, char *clrnames[], size_t clrcount);
 
 /* Cursor abstraction */
 Cur *drw_cur_create(Drw *drw, int shape);
+/* create cur from image */
+Cur *drw_cur_create_img(Drw *drw, const char *restrict img);
 void drw_cur_free(Drw *drw, Cur *cursor);
 
 /* Drawing context manipulation */

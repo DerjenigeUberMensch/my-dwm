@@ -4,6 +4,7 @@
 #include <string.h>
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
+#include <X11/Xcursor/Xcursor.h>
 #include <Imlib2.h>
 
 #include "drw.h"
@@ -553,16 +554,30 @@ drw_cur_create(Drw *drw, int shape)
         return NULL;
 
     cur->cursor = XCreateFontCursor(drw->dpy, shape);
+    cur->img    = None;
+    return cur;
+}
 
+Cur *
+drw_cur_create_img(Drw *drw, const char *img)
+{
+    /* XcursorSetDefaultSize(dpy, size); */
+    Cur *cur;
+    XcursorImage *curimg;
+    if(!drw || !(cur = ecalloc(1, sizeof(Cur))))
+        return NULL;
+    curimg = XcursorLibraryLoadImage(img, NULL, XcursorGetDefaultSize(drw->dpy));
+    if(!curimg) return NULL;
+    cur->cursor= XcursorImageLoadCursor(drw->dpy, curimg);
+    cur->img   = curimg;
     return cur;
 }
 
 void
 drw_cur_free(Drw *drw, Cur *cursor)
 {
-    if (!cursor)
-        return;
-
+    if (!cursor) return;
+    if(cursor->img) XcursorImageDestroy(cursor->img);
     XFreeCursor(drw->dpy, cursor->cursor);
     free(cursor);
 }

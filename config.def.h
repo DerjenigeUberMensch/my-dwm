@@ -3,7 +3,8 @@
  * Basic overview of dwm => https://ratfactor.com/dwm
  * For more information about xlib (X11)       visit https://x.org/releases/current/doc/libX11/libX11/libX11.html
  * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/ 
- *
+ * Cursors : https://tronche.com/gui/x/xlib/appendix/b/
+ * XCursor:  https://man.archlinux.org/man/Xcursor.3
  */
 
 /* window */
@@ -17,6 +18,7 @@
 /* status bar */
 #define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
+#define CFG_ACTIVE_MON          1           /* Show seletected even if no clients in monitor; 0 to disable      */
 #define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
 #define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per icon); 0 to disable      */
 #define CFG_ICON_SIZE           16          /* icon size                                                        */

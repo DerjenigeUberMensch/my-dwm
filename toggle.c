@@ -171,6 +171,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     unsigned int dui;
     Window dummy;
 
+    Cursor *cur;
     Client *c;
     Monitor *m;
     XEvent ev;
@@ -179,9 +180,21 @@ ResizeWindow(const Arg *arg) /* resizemouse */
 
     /* client checks */
     if (!c || c->isfullscreen) return;/* no support resizing fullscreen windows by mouse */
-    if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                     None, cursor[CurResize]->cursor, CurrentTime) != GrabSuccess) return;
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
+    horiz = nx < c->w >> 1 ? -1 : 1;
+    vert  = ny < c->h >> 1 ? -1 : 1;
+    if(horiz == -1) 
+    {
+        if(vert == -1) cur = cursor[CurResizeTopLeft]->cursor;
+        else cur = cursor[CurResizeBottomRight]->cursor;
+    }
+    else
+    {
+        if(vert == -1) cur = cursor[CurResizeTopRight]->cursor;
+        else cur = cursor[CurResizeBottomLeft]->cursor;
+    }
+    if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+                     None, cur, CurrentTime) != GrabSuccess) return;
     if (!c->isfloating || selmon->lt[selmon->sellt]->arrange) ToggleFloating(NULL);
     restack(selmon);
     ocw = c->w;
@@ -189,8 +202,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     ocx = c->x;
     ocy = c->y;
 
-    horiz = nx < c->w >> 1 ? -1 : 1;
-    vert  = ny < c->h >> 1 ? -1 : 1;
     basew = MAX(c->minw, CFG_RESIZE_BASE_WIDTH);
     baseh = MAX(c->minh, CFG_RESIZE_BASE_HEIGHT);
     XRaiseWindow(dpy, c->win); /* redundant but just in case */
@@ -223,18 +234,19 @@ ResizeWindow(const Arg *arg) /* resizemouse */
         }
     } while (ev.type != ButtonRelease);
     /* add if w + x > monx || w + x < 0 resize */
-    if(c->w + c->bw > c->mon->ww)
+    if(WIDTH(c) > c->mon->ww)
         MaximizeWindowHorizontal(NULL);
-    if(c->h + c->bw + bh * c->mon->showbar > c->mon->wh)
+    if(HEIGHT(c) + bh * c->mon->showbar >= c->mon->wh)
         MaximizeWindowVertical(NULL);
-    if(clientdocked(c))
+    if(clientdocked(c) && c->isfloating)
     {
         /* maxmize stuff */
         c->ismax = 1;
         c->oldx += CFG_SNAP;
         c->oldy += CFG_SNAP;
+        c->isfloating = 0;
     }
-    else c->ismax = 0;
+    else if(c->isfloating)c->ismax = 0;
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -300,15 +312,15 @@ MaximizeWindowHorizontal(const Arg *arg) {
     maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * CFG_BORDER_PX, selmon->sel->h);
     selmon->sel->ismax = 0; /* no such thing as horzmax being fully maxed */
 }
+
 void
 AltTab(const Arg *arg)
 {
-    Monitor *m;
-    Client *c;
     int grabbed;
     int listindex;
-    unsigned int kcodecycle;
-    unsigned int kcodeswitch;
+    Monitor *m;
+    Client *c;
+    XEvent event;
     struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
 
     m = selmon;
@@ -317,40 +329,36 @@ AltTab(const Arg *arg)
     m->nTabs    = 0;
     grabbed     = 0;
     listindex   = 0;
-    kcodecycle  = CFG_ALT_TAB_CYCLE_KEY;
-    kcodeswitch = CFG_ALT_TAB_SWITCH_KEY;
     for(c = m->clients; c; c = c->next) m->nTabs += !!ISVISIBLE(c);
     if(!(m->nTabs > 0)) return;
 
     m->altsnext = (Client **) malloc(m->nTabs * sizeof(Client *));
     /* add clients to list */
     for(c = m->stack; c; c = c->snext) !!ISVISIBLE(c) ? m->altsnext[listindex++] = c : NULL;
-
     drawalttab(m->nTabs, 1, m);
-
-    for (int i = 0; i < 1000; i++) 
-    {
-        if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
-        {
-            grabbed = 1;
-            break;
-        }
-        nanosleep(&ts, NULL);
-    }
-    XEvent event;
     alttab();
+    if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
+        grabbed = 1;
+    else return;
+
+    /* prevent cursor from doing other stuff that could break this */
+    if(XGrabPointer(dpy, m->altsnext[m->altTabN]->win, True, 
+            ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+            GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
+        return;
 
     while (grabbed) 
     {
         XNextEvent(dpy, &event);
         switch(event.type)
-        {case KeyPress:   if(event.xkey.keycode == kcodecycle) alttab();    break;
-         case KeyRelease: if(event.xkey.keycode == kcodeswitch)grabbed = 0; break;
+        {case KeyPress:   if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) alttab();    break;
+         case KeyRelease: if(event.xkey.keycode == CFG_ALT_TAB_SWITCH_KEY)grabbed = 0; break;
         }
     }
 
     alttabend(); /* end the alt-tab functionality */
     XUngrabKeyboard(dpy, CurrentTime);
+    XUngrabPointer(dpy, CurrentTime);
 }
 
 void
@@ -441,7 +449,8 @@ ToggleView(const Arg *arg)
 {
     unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
 
-    if (newtagset) {
+    if (newtagset) 
+    {
         selmon->tagset[selmon->seltags] = newtagset;
         focus(NULL);
         arrange(selmon);
@@ -453,8 +462,7 @@ View(const Arg *arg)
 {
     if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) return;
     selmon->seltags ^= 1; /* toggle sel tagset */
-    if (arg->ui & TAGMASK)
-        selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
+    if (arg->ui & TAGMASK) selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
     focus(NULL);
     arrange(selmon);
     updatedesktop();
