@@ -87,7 +87,7 @@ alttab()
                 winmap(altsnext, 1);
             }
         }
-        if(!CFG_ALT_TAB_FIXED_TILE) movstack(altsnext, FIRST);
+        if(!CFG_ALT_TAB_FIXED_TILE) {detach(altsnext); attach(altsnext); }
         focus(altsnext);
         if(CFG_ALT_TAB_SHOW_PREVIEW) arrange(m);
     }
@@ -331,6 +331,7 @@ buttonpress(XEvent *e)
         detach(c);
         attach(c);
         focus(c);
+        if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
         click = ClkClientWin;
     }
@@ -367,9 +368,8 @@ cleanup(void)
     View(&a);
     selmon->lt[selmon->sellt] = &foo;
     for (m = mons; m; m = m->next)
-    {
-        while (m->stack) unmanage(m->stack, 0);
-    }
+        while (m->stack) 
+            unmanage(m->stack, 0);
     XUngrabKey(dpy, AnyKey, AnyModifier, root);
     while (mons) cleanupmon(mons);
     for (i = 0; i < CurLast; ++i) drw_cur_free(drw, cursor[i]);
@@ -591,7 +591,7 @@ createmon(void)
     m->topbar   = CFG_TOP_BAR;
     m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
     m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
-    m->tagmap = ecalloc(LENGTH(tags), sizeof(Pixmap));
+    m->tagmap   = ecalloc(LENGTH(tags), sizeof(Pixmap));
     m->nTabs    = 0;
     m->isfullscreen = 0;
     m->lyt      = CFG_DEFAULT_LAYOUT;
@@ -861,7 +861,7 @@ drawbartabs(Monitor *m, int x, int y, int maxw, int height)
         iconspace = m->sel->icon ? m->sel->icw + CFG_ICON_SPACE : lrpad >> 1;
         drw_text(drw, x, y, maxw, height, iconspace, m->sel->name, 0);
         if(m->sel->icon)
-            drw_pic( drw, x, y + ((height - m->sel->ich ) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
+            drw_pic( drw, x, y + ((height - m->sel->ich) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
         if(m->sel->isfloating)
             drw_rect(drw, x, y + boxh, boxw, boxw, m->sel->isfixed, 0);
         return;
@@ -1028,7 +1028,7 @@ prealpha(uint32_t p) {
 Picture
 geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 {
-    /* could be done with XGetWMHints? */
+    XWMHints *hints;
     int format;
     int bitformat = 32;
     unsigned int unitbytecount = 16384;
@@ -1036,6 +1036,14 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     unsigned long n, extra;
     unsigned long *p= NULL;
     Atom real;
+
+    hints = XGetWMHints(dpy, win);
+    if(!hints || !(hints->flags & IconPixmapHint)) 
+    {
+        if(hints) XFree(hints);
+        return None;
+    }
+    XFree(hints);
     if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType,
                            &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
     if (n == 0 || format != bitformat) {
@@ -1496,33 +1504,6 @@ motionnotify(XEvent *e)
     mon = m;
 }
 
-void
-movstack(Client *sel, int SHIFT_TYPE) {
-    /* shifts the stack instead of moving it around
-     * SHIFT_TYPE:
-     * {PREVSEL, BEFORE, NEXT, FIRST, SECOND, THIRD, LAST}
-     */
-    int i = stackpos(SHIFT_TYPE);
-    Client *c, *p;
-
-    if(i < 0) return;
-    if(!i)
-    {
-        detach(sel);
-        attach(sel);
-    }
-    else
-    {
-        for(p = NULL, c = selmon->clients; c; p = c, c = c->next)
-            if(!(i -= (ISVISIBLE(c) && c != sel)))
-                break;
-        c = c ? c : p;
-        detach(sel);
-        sel->next = c->next;
-        c->next = sel;
-    }
-}
-
 Client *
 nexttiled(Client *c)
 {
@@ -1712,7 +1693,6 @@ restack(Monitor *m)
     drawbar(m);
     if (!m->sel) return;
     if (m->lt[m->sellt]->arrange)
-
     {
         wc.stack_mode = Below;
         wc.sibling = m->barwin;
@@ -1730,9 +1710,8 @@ restack(Monitor *m)
         }
     }
     if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
-    for(int i = 0; i < ccontop; ++i) {
+    for(int i = ccontop - 1; i >= 0; --i)
         XRaiseWindow(dpy, alwaysontop[i]->win);
-    }
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2601,7 +2580,6 @@ updatesizehints(Client *c)
     if (!XGetWMNormalHints(dpy, c->win, &size, &msize))
         /* size is uninitialized, ensure that size.flags aren't used */
         size.flags = PSize;
-
     if (size.flags & PMinSize)
     {
         c->minw = size.min_width;
@@ -2694,9 +2672,8 @@ updatewmhints(Client *c)
             wmh->flags &= ~XUrgencyHint;
             XSetWMHints(dpy, c->win, wmh);
         }
-        else
-            c->isurgent = !!(wmh->flags & XUrgencyHint);
-        if (wmh->flags & InputHint)
+        else c->isurgent = !!(wmh->flags & XUrgencyHint);
+        if (wmh->flags & InputHint) 
             c->neverfocus = !wmh->input;
         else
             c->neverfocus = 0;
@@ -2736,8 +2713,7 @@ winmap(Client *c, int deiconify)
 {
     Window win = c->win;
 
-    if (deiconify)
-        winsetstate(win, NormalState);
+    if (deiconify) winsetstate(win, NormalState);
 
     XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
     XSetInputFocus(dpy, win, RevertToPointerRoot, CurrentTime);
@@ -2751,12 +2727,8 @@ wintoclient(Window w)
     Monitor *m;
 
     for (m = mons; m; m = m->next)
-    {
         for (c = m->clients; c; c = c->next)
-        {
             if (c->win == w) return c;
-        }
-    }
     return NULL;
 }
 
@@ -2767,13 +2739,10 @@ wintomon(Window w)
     Client *c;
     Monitor *m;
 
-    if (w == root && getrootptr(&x, &y))
-        return recttomon(x, y, 1, 1);
-    for (m = mons; m; m = m->next)
-        if (w == m->barwin)
-            return m;
-    if ((c = wintoclient(w)))
-        return c->mon;
+    if (w == root && getrootptr(&x, &y)) return recttomon(x, y, 1, 1);
+    for (m = mons; m; m = m->next) 
+        if (w == m->barwin) return m;
+    if ((c = wintoclient(w))) return c->mon;
     return selmon;
 }
 
@@ -2792,8 +2761,7 @@ winunmap(Window win, Window winroot, int iconify)
 
     XUnmapWindow(dpy, win);
 
-    if (iconify)
-        winsetstate(win, IconicState);
+    if (iconify) winsetstate(win, IconicState);
 
     XSelectInput(dpy, winroot, ra.your_event_mask);
     XSelectInput(dpy, win, ca.your_event_mask);

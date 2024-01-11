@@ -114,12 +114,6 @@ struct Button
     const Arg arg;
 };
 
-struct Tag
-{
-    int num;
-
-};
-
 struct Client
 {
     char name[256];

@@ -29,22 +29,8 @@
 #include "config.def.h"
 #include "toggle.h"
 */
-void img()
-{
-    XWMHints *h;
-
-    h = XGetWMHints(dpy, selmon->sel->win);
-    if (h != NULL) {
-        if (h->flags & IconPixmapHint) { // Check if the icon pixmap hint is set
-            XSetWindowBackgroundPixmap(dpy, selmon->sel->win, h->icon_pixmap);
-            XClearWindow(dpy, selmon->sel->win); // Clear the window to make the change visible
-        }
-        XFree(h); // Don't forget to free the allocated memory
-    }
-}
 void tester(const Arg *arg)
 {
-    img();
 }
 
 void
@@ -73,7 +59,6 @@ FocusNextWindow(const Arg *arg) /* Non functional focusstack */
     {
         for (c = m->sel->next; c && !ISVISIBLE(c); c = c->next);
         if(!c) for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
-
     }
     else
     {
@@ -368,7 +353,6 @@ AltTab(const Arg *arg)
     Monitor *m;
     Client *c;
     XEvent event;
-    struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000 };
 
     m = selmon;
     m->altsnext = NULL;
@@ -476,7 +460,8 @@ ToggleFullscreen(const Arg *arg)
     Monitor *m;
     m = selmon;
     m->isfullscreen = !m->isfullscreen;
-    for (c = m->clients; c; c = c->snext) {
+    for (c = m->clients; c; c = c->snext) 
+    {
         if(!ISVISIBLE(c) || c->alwaysontop) continue;
         setfullscreen(c, m->isfullscreen);
     }
