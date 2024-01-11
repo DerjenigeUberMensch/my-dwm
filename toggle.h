@@ -29,5 +29,4 @@ void AltTab(const Arg *arg);
 /* debug */
 void tester(const Arg *arg);
 
-
 #endif

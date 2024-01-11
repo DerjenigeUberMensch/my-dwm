@@ -31,7 +31,7 @@ void *
 ecalloc(size_t nmemb, size_t size)
 {
     void *p;
-    
+
     p = calloc(nmemb, size);
     return p;
     if(p) return p;
@@ -62,9 +62,9 @@ smprintf(char *fmt, ...)
     return ret;
 }
 
-void 
+void
 debug(char *fmt, ...)
-{ 
+{
     char *txt;
     va_list args;
     va_start(args, fmt);
@@ -77,7 +77,7 @@ debug(char *fmt, ...)
     free(txt);
 }
 
-unsigned int 
+unsigned int
 ui_hash(unsigned int x)
 {
     x = ((x >> 16) ^ x) * 0x45d9f3b;
@@ -86,8 +86,8 @@ ui_hash(unsigned int x)
     return x;
 }
 
-unsigned int 
-ui_unhash(unsigned int x) 
+unsigned int
+ui_unhash(unsigned int x)
 {
     x = ((x >> 16) ^ x) * 0x119de1f3;
     x = ((x >> 16) ^ x) * 0x119de1f3;

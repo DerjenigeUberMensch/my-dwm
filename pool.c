@@ -30,7 +30,7 @@ poolcreate(size_t count, size_t blocksize)
     pool->size = count * blocksize;
     pool->bsize= blocksize;
     pool->mem  = ecalloc(count, sizeof(Block *));
-    for(i = 0; i < count; ++i) 
+    for(i = 0; i < count; ++i)
     {
         pool->mem[(int)i] = ecalloc(1, sizeof(Block ));
         pool->mem[(int)i]->mem = ecalloc(1, blocksize);
