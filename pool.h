@@ -22,5 +22,4 @@ void *poolgrab(Pool *pool, int est);
 void poolfree(Pool *pool, void *mem, int est);
 void pooldestroy(Pool *pool);
 
-
 #endif

@@ -1,12 +1,11 @@
 #ifndef CFG_H_
 #define CFG_H_
 
-
 /* See LICENSE file for copyright and license details.
  * 4 Tab spaces; No tab characters use spaces for tabs
  * Basic overview of dwm => https://ratfactor.com/dwm
  * For more information about xlib (X11)       visit https://x.org/releases/current/doc/libX11/libX11/libX11.html
- * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/ 
+ * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/
  * Cursors : https://tronche.com/gui/x/xlib/appendix/b/
  * XCursor:  https://man.archlinux.org/man/Xcursor.3
  */
@@ -70,7 +69,6 @@
 static const char *fonts[]      =   {"monospace:size=12" };
 static const char dmenufont[]   =   {"monospace:size=12"};
 
-
 /* COLOURS */
 #define COL_BLACK       "#000000"
 #define COL_WHITE       "#ffffff"
@@ -81,7 +79,7 @@ static const char dmenufont[]   =   {"monospace:size=12"};
 #define COL_YELLOW      "#FFFF00"
 
 /* static char col_term_blue[]   = "#ecffff"; */
-static char *colors[][3] = 
+static char *colors[][3] =
 {
     /*					        fg         bg          border   */
     [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme normal */
@@ -112,7 +110,7 @@ static const char *tagcols[][2] = {
     {COL_WHITE, COL_BLACK},
     {COL_WHITE, COL_BLACK},
 };
-static const Rule rules[] = 
+static const Rule rules[] =
 {
     /* xprop(1):
      *	WM_CLASS(STRING) = instance, class
@@ -124,15 +122,13 @@ static const Rule rules[] =
 
 /* layout(s) */
 
-static const Layout layouts[] = 
+static const Layout layouts[] =
 {
     /* symbol     arrange function */
-    [TILED]     = { "[T]",      tile            },    
-    [FLOATING]  = { "[F]",      NULL            },    
+    [TILED]     = { "[T]",      tile            },
+    [FLOATING]  = { "[F]",      NULL            },
     [MONOCLE]   = { "[M]",      monocle         },
     [GRID]      = { "[G]",      grid            },
 };
-
-
 
 #endif

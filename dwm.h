@@ -14,7 +14,7 @@
 #define TAGSLENGTH              (LENGTH(tags))
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define OPAQUE                  0xffU
-#define SESSION_FILE            "/tmp/dwm-session"        
+#define SESSION_FILE            "/tmp/dwm-session"
 #define BROKEN                  "borked."
 /* motif window decoration */
 #define MWM_HINTS_FLAGS_FIELD       0
@@ -25,16 +25,16 @@
 #define MWM_DECOR_TITLE             (1 << 3)
 /* enums */
 /* cursor */
-enum 
+enum
 {
-    CurNormal, 
+    CurNormal,
     CurResizeTopLeft, CurResizeTopRight, CurResizeBottomLeft, CurResizeBottomRight,
-    CurMove, 
-    CurLast 
+    CurMove,
+    CurLast
 };
 
 /* color schemes */
-enum 
+enum
 {
     SchemeNorm, SchemeSel,                      /* default */
     SchemeUrgent, SchemeWarn,                   /* signals */
@@ -45,14 +45,14 @@ enum
 
 /* EWMH atoms */
 /* when adding new properties make sure NetLast is indeed last to allocate enough memory to store all Nets in an array */
-enum 
+enum
 {
     NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
-    NetWMFullscreen, NetWMAlwaysOnTop,NetActiveWindow, 
+    NetWMFullscreen, NetWMAlwaysOnTop,NetActiveWindow,
     NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
     NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, /* EMWH */
     NetWMWindowsOpacity, /* unset */
-    NetLast, 
+    NetLast,
 };
 
 /* default atoms */
@@ -60,18 +60,18 @@ enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
 
 /* clicks */
 enum
-{   
+{
     ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
     ClkClientWin, ClkRootWin, ClkLast,
 };
 /* stack shifting */
 enum
-{  
+{
     BEFORE, PREVSEL, NEXT,
     FIRST, SECOND, THIRD, LAST,
 };
 /* layouts */
-enum 
+enum
 {
     TILED, FLOATING, MONOCLE, GRID,
 };
@@ -120,7 +120,7 @@ struct Tag
 
 };
 
-struct Client 
+struct Client
 {
     char name[256];
     float mina, maxa;
@@ -156,7 +156,7 @@ struct Layout
     void (*arrange)(Monitor *);
 };
 
-struct Monitor 
+struct Monitor
 {
     char ltsymbol[16];
     float mfact;
@@ -184,7 +184,7 @@ struct Monitor
     Client *sel;
     Client **altsnext; /* array of all clients in the tag */
     Monitor *next;
-	Pixmap *tagmap;
+    Pixmap *tagmap;
     Window barwin;      /* ulong */
     Window tabwin;      /* ulong */
     Window tagwin;
@@ -323,7 +323,6 @@ int  xerror(Display *dpy, XErrorEvent *ee);
 int  xerrordummy(Display *dpy, XErrorEvent *ee);
 int  xerrorstart(Display *dpy, XErrorEvent *ee);
 
-
 /* variables */
 Client *lastfocused = NULL;
 Pool *pl = NULL;
@@ -335,7 +334,7 @@ int lrpad;           /* sum of left and right padding for text */
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
 int tagsel;
-void (*handler[LASTEvent]) (XEvent *) = 
+void (*handler[LASTEvent]) (XEvent *) =
 {
     /* Input */
     [ButtonPress] = buttonpress,
@@ -369,8 +368,7 @@ Display *dpy;
 Drw *drw;
 Monitor *mons, *selmon;
 Window root, wmcheckwin;
-                    /* ACC */
+/* ACC */
 unsigned int accnum; /* Active client counter Number */
-
 
 #endif
