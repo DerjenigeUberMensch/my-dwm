@@ -1,28 +1,33 @@
-
-static void FocusMonitor(const Arg *arg);
-static void FocusNextWindow(const Arg *arg);
-static void ChangeMasterWindow(const Arg *arg);
-static void KillWindow(const Arg *arg);
-static void TerminateWindow(const Arg *arg);
-static void DragWindow(const Arg *arg);
-static void Quit(const Arg *arg);
-static void Restart(const Arg *arg);
-static void ResizeWindow(const Arg *arg);
-static void SetWindowLayout(const Arg *arg);
-static void SetMonitorFact(const Arg *arg);
-static void SpawnWindow(const Arg *arg);
-static void MaximizeWindow(const Arg *arg);
-static void MaximizeWindowVertical(const Arg *arg);
-static void MaximizeWindowHorizontal(const Arg *arg);
-static void TagWindow(const Arg *arg);
-static void TagMonitor(const Arg *arg);
-static void ToggleStatusBar(const Arg *arg);
-static void ToggleFloating(const Arg *arg);
-static void ToggleFullscreen(const Arg *arg);
-static void ToggleTag(const Arg *arg);
-static void ToggleView(const Arg *arg);
-static void View(const Arg *arg);
-static void Zoom(const Arg *arg);
-static void AltTab(const Arg *arg);
+#ifndef TOGGLE_H_
+#define TOGGLE_H_
+void FocusMonitor(const Arg *arg);
+void FocusNextWindow(const Arg *arg);
+void ChangeMasterWindow(const Arg *arg);
+void KillWindow(const Arg *arg);
+void TerminateWindow(const Arg *arg);
+void DragWindow(const Arg *arg);
+void Quit(const Arg *arg);
+void Restart(const Arg *arg);
+void ResizeWindow(const Arg *arg);
+void SetWindowLayout(const Arg *arg);
+void SetMonitorFact(const Arg *arg);
+void SpawnWindow(const Arg *arg);
+void MaximizeWindow(const Arg *arg);
+void MaximizeWindowVertical(const Arg *arg);
+void MaximizeWindowHorizontal(const Arg *arg);
+void PreviewTag(const Arg *arg);
+void TagWindow(const Arg *arg);
+void TagMonitor(const Arg *arg);
+void ToggleStatusBar(const Arg *arg);
+void ToggleFloating(const Arg *arg);
+void ToggleFullscreen(const Arg *arg);
+void ToggleTag(const Arg *arg);
+void ToggleView(const Arg *arg);
+void View(const Arg *arg);
+void Zoom(const Arg *arg);
+void AltTab(const Arg *arg);
 /* debug */
-static void tester(const Arg *arg);
+void tester(const Arg *arg);
+
+
+#endif

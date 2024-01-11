@@ -3,8 +3,8 @@
 
 include config.mk
 
-SRC = drw.c dwm.c util.c
-SRCH= drw.h       util.h
+SRC = drw.c dwm.c util.c pool.c
+SRCH= drw.h dwm.h util.h pool.h
 CONF= config.def.h keybinds.def.h
 OBJ = ${SRC:.c=.o}
 EXE = dwm
@@ -29,7 +29,7 @@ release:
 	rm -f -- dwm-${VERSION}
 	mkdir -p dwm-${VERSION}
 	cp -R LICENSE Makefile README.md ${CONF} config.mk\
-		${SRCH} ${SRC} transient.c dwm-${VERSION}
+		${SRCH} ${SRC} toggle.c toggle.h dwm-${VERSION}
 	tar -cf dwm-${VERSION}.tar dwm-${VERSION}
 	gzip dwm-${VERSION}.tar
 	rm -rf -f -- dwm-${VERSION}
