@@ -1,3 +1,5 @@
+#ifndef DRW_H_
+#define DRW_H_
 /* See LICENSE file for copyright and license details. */
 
 enum { ColFg, ColBg, ColBorder }; /* Clr scheme index */
@@ -73,3 +75,5 @@ void drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic
 
 /* Map functions */
 void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
+
+#endif

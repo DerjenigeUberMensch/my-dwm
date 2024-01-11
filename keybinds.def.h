@@ -1,4 +1,6 @@
 
+#ifndef KEYBINDS_DEF_H_
+#define KEYBINDS_DEF_H_
 
 /* key definitions */
 #define ALT     Mod1Mask
@@ -101,3 +103,5 @@ static const Button buttons[] =
     { ClkTagBar,            SUPER,          RMB,            ToggleTag,          {0} },
 };
 
+
+#endif
