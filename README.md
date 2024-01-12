@@ -38,7 +38,7 @@
 8. xorg
 9. xorg-xinit
 10. libxcursor
-11. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
+11. 13MiB > MEM + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
 
 **Pacman && yay**
 ```
