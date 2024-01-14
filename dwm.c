@@ -55,88 +55,67 @@
 #include "pool.h"
 /* dwm */
 #include "dwm.h"
-#include "toggle.h"
 #include "config.def.h"
+#include "toggle.c" /* separate list of functions used by user NOT a header file */
 #include "keybinds.def.h"
-#include "toggle.c" /* If you can find a way to not use .c do it but if it takes more than 15 minutes dont */
+
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags
 {
     char limitexceeded[LENGTH(tags) > 31 ? -1 : 1];
 };
 
-void
-alttab()
+Client *
+alttab(int ended)
 {
-    Monitor *m;
-    Client *c;
-    Client *altsnext;
-    m = selmon;
-    c = selmon->sel;
-    /* move to next window */
-    if (c && c->snext)
+    /* fixe later */
+    Monitor *m = selmon;
+    static Client *c = NULL, *tabnext = NULL;
+    if(ended) tabnext = m->sel;
+    if(ended) c = tabnext;
+    if(!c) c = nextvisible(m->clients);
+
+    /* get the next visible window */
+    c = nextvisible(c->next);
+    if(!c) c = nextvisible(m->clients);
+    focus(c);
+    if(m->lyt == MONOCLE)
     {
-        ++m->altTabN;
-        if (m->altTabN >= m->nTabs) m->altTabN = 0; /* reset altTabN */
-        altsnext = m->altsnext[m->altTabN];
-        if(CFG_ALT_TAB_MAP_WINDOWS && m->lyt == MONOCLE)
+        if(CFG_ALT_TAB_MAP_WINDOWS)
         {
-            if(!altsnext->isfloating && !altsnext->alwaysontop)
+            if(!c->isfloating && !c->alwaysontop)
             {
-                winunmap(altsnext->win, root, 1);
-                winmap(altsnext, 1);
+                winunmap(c->win, root, 1);
+                winmap(c, 1);
             }
         }
-        if(!CFG_ALT_TAB_FIXED_TILE) {detach(altsnext); attach(altsnext); }
-        focus(altsnext);
         if(CFG_ALT_TAB_SHOW_PREVIEW) arrange(m);
     }
-    /* prob could fix it to work on fullscreen but currently just ignore */
-    if(!m->isfullscreen)
-    {
-        drawalttab(m->nTabs, 0, m);
-        XRaiseWindow(dpy, m->tabwin);
-    }
+    return tabnext;
 }
 
 void
-alttabend()
+alttabend(Client *tabnext)
 {
+    Client *c;
     Monitor *m;
 
     m = selmon;
+    c = m->sel;
 
-    if (selmon->nTabs > 1)
+    if(!CFG_ALT_TAB_FIXED_TILE)
     {
-        if (m->altTabN)
-        {
-            Client *buff = selmon->altsnext[selmon->altTabN];
-            if (selmon->altTabN > 1)
-                for (int i = selmon->altTabN; i > 0; i--)
-                    selmon->altsnext[i] = selmon->altsnext[i - 1];
-            else /* swap em if just 2 clients */
-                selmon->altsnext[selmon->altTabN] = selmon->altsnext[0];
-            selmon->altsnext[0] = buff;
-            /* restacking */
-        }
-        for (int i = selmon->nTabs - 1; i >= 0; i--)
-        {
-            detach(selmon->altsnext[i]);
-            attach(selmon->altsnext[i]);
-            focus(selmon->altsnext[i]);
-        }
-        arrange(selmon);
+        if(tabnext) { detach(tabnext);  attach(tabnext); }
+        if(c)       { detach(c);        attach(c);       }
     }
 
-    /* turn off/destroy the window */
-    selmon->nTabs = 0;
-    free(selmon->altsnext); /* free list of clients */
-    if(selmon->tabwin)
-    {
-        XUnmapWindow(dpy, selmon->tabwin);
-        XDestroyWindow(dpy, selmon->tabwin);
-    }
+    focus(tabnext);
+    focus(c);
+    arrange(m);
+    XUnmapWindow(dpy, selmon->tabwin);
+    XDestroyWindow(dpy, selmon->tabwin);
 }
+
 /* function implementations */
 void
 applyrules(Client *c)
@@ -364,7 +343,7 @@ cleanup(void)
     Monitor *m;
     size_t i;
 
-    alttabend();
+    alttabend(NULL);
     View(&a);
     selmon->lt[selmon->sellt] = &foo;
     for (m = mons; m; m = m->next)
@@ -465,7 +444,7 @@ clientmessage(XEvent *e)
             c->alwaysontop = 1;
         }
     }
-    else if (cme->message_type == isnetactive) if (c != selmon->sel && !c->isurgent) seturgent(c, 1);
+    else if (cme->message_type == (long unsigned int)isnetactive) if (c != selmon->sel && !c->isurgent) seturgent(c, 1);
 
 }
 
@@ -592,7 +571,6 @@ createmon(void)
     m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
     m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
     m->tagmap   = ecalloc(LENGTH(tags), sizeof(Pixmap));
-    m->nTabs    = 0;
     m->isfullscreen = 0;
     m->lyt      = CFG_DEFAULT_LAYOUT;
     m->olyt     = CFG_DEFAULT_PREV_LAYOUT;
@@ -671,26 +649,27 @@ dirtomon(int dir)
 }
 
 void
-drawalttab(int nwins, int first, Monitor *m)
+drawalttab(int first, Monitor *m)
 {
     Client *c;
     int maxhNeeded; /*max height needed to draw alt-tab*/
     int maxwNeeded; /*see above (width)*/
     int txtpad;     /*text padding */
-    int namewpxl[nwins]; /* array of each px width for every tab name*/
-    char *cnames[nwins]; /* client names */
-    maxwNeeded = 0;
-    maxhNeeded = MIN(lrpad * nwins, CFG_ALT_TAB_MAX_HEIGHT); /* breaks with too many clients MAX is not recommended */
-    txtpad = 0;
+    int nwins;
 
-    for(int i = 0; i < nwins; ++i)
+    maxwNeeded = 0;
+    txtpad = 0;
+    nwins = 0;
+
+    for(c = m->clients; c; c = c->next) 
     {
-        /* we HAVE to loop through this so might as well store the data we already used */
-        cnames[i]   = m->altsnext[i]->name;
-        namewpxl[i] = TEXTW(cnames[i]) - lrpad;
-        maxwNeeded  = MAX(namewpxl[i], maxwNeeded);
+        if(!ISVISIBLE(c)) continue;
+        maxwNeeded = MAX((TEXTW(c->name) - lrpad), maxwNeeded);
+        ++nwins;
     }
+
     maxwNeeded = MIN(maxwNeeded + CFG_ALT_TAB_MIN_WIDTH, CFG_ALT_TAB_MAX_WIDTH);
+    maxhNeeded = MIN(lrpad * nwins, CFG_ALT_TAB_MAX_HEIGHT); /* breaks with too many clients MAX is not recommended */
 
     if (first)
     {
@@ -707,37 +686,14 @@ drawalttab(int nwins, int first, Monitor *m)
         /* decide position of tabwin */
         int posx = selmon->mx;
         int posy = selmon->my;
+        if(CFG_ALT_TAB_POS_X == 0) posx += 0;
+        if(CFG_ALT_TAB_POS_X == 1) posx += (selmon->mw >> 1) - (maxwNeeded >> 1);
+        if(CFG_ALT_TAB_POS_X == 2) posx += selmon->mw - maxwNeeded;
 
-        switch(CFG_ALT_TAB_POS_X)
-        {
-        case 0:
-            posx += 0;
-            break;
-        case 1:
-            posx += (selmon->mw >> 1) - (maxwNeeded >> 1);
-            break;
-        case 2:
-            posx += selmon->mw - maxwNeeded;
-            break;
-        default:
-            posx += 0;
-            break;
-        }
-        switch(CFG_ALT_TAB_POS_Y)
-        {
-        case 0:
-            posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;
-            break;
-        case 1:
-            posy += (selmon->mh >> 1) - (CFG_ALT_TAB_MAX_HEIGHT >> 1);
-            break;
-        case 2:
-            posy += 0;
-            break;
-        default:
-            posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;
-            break;
-        }
+        if(CFG_ALT_TAB_POS_Y == 0) posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;
+        if(CFG_ALT_TAB_POS_Y == 1) posy += (selmon->mh >> 1) - (CFG_ALT_TAB_MAX_HEIGHT >> 1);
+        if(CFG_ALT_TAB_POS_Y == 2) posy += 0;
+
         if (m->showbar) posy+=bh;
 
         /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
@@ -750,25 +706,17 @@ drawalttab(int nwins, int first, Monitor *m)
     int y = 0;
     int schemecol;
     maxhNeeded/=nwins;
-    for (int i = 0; i < nwins; i++) /* draw all clients into tabwin */
+    for(c = m->clients; c; c = c->next) 
     {
-        c = m->altsnext[i];
         if(!ISVISIBLE(c)) continue;
         schemecol = c != selmon->sel ? SchemeAltTab : SchemeAltTabSelect;
         drw_setscheme(drw, scheme[schemecol]);
-        switch(CFG_ALT_TAB_TEXT_POS_X)
-        {
-        case 0:
-            txtpad = 0;
-            break;
-        case 1:
-            txtpad = MAX(maxwNeeded - namewpxl[i], 0) >> 1;
-            break;
-        case 2:
-            txtpad = MAX(maxwNeeded - namewpxl[i], 0);
-            break;
-        }
-        drw_text(drw, 0, y, CFG_ALT_TAB_MAX_WIDTH, maxhNeeded, txtpad, cnames[i], 0);
+
+        if(CFG_ALT_TAB_TEXT_POS_X == 0) txtpad = 0;
+        if(CFG_ALT_TAB_TEXT_POS_X == 1) txtpad = MAX(maxwNeeded - TEXTW(c->name) + lrpad, 0) >> 1;
+        if(CFG_ALT_TAB_TEXT_POS_X == 2) txtpad = MAX(maxwNeeded - TEXTW(c->name) + lrpad, 0);
+
+        drw_text(drw, 0, y, CFG_ALT_TAB_MAX_WIDTH, maxhNeeded, txtpad, c->name, 0);
         y += maxhNeeded;
     }
     drw_setscheme(drw, scheme[SchemeNorm]); /* set scheme back to normal */
@@ -833,14 +781,14 @@ void
 drawbartabs(Monitor *m, int x, int y, int maxw, int height)
 {
     Client *c;
-    int tabcnt;     /* tab count                    */
-    int tabsz;      /* tab size                     */
-    int iconspace;
-    int boxh;       /* tiny floating box indicator h*/
-    int boxw;       /* tiny floating box indicator w*/
-    int curscheme;  /* current scheme               */
-    int cc;         /* client counter               */
-    int btpos;      /* current bartab positon x     */
+    unsigned int tabcnt;     /* tab count                    */
+    unsigned int tabsz;      /* tab size                     */
+    unsigned int iconspace;
+    unsigned int boxh;       /* tiny floating box indicator h*/
+    unsigned int boxw;       /* tiny floating box indicator w*/
+    unsigned int curscheme;  /* current scheme               */
+    unsigned int cc;         /* client counter               */
+    unsigned int btpos;      /* current bartab positon x     */
 
     btpos = 0;
     cc = 0;
@@ -851,14 +799,14 @@ drawbartabs(Monitor *m, int x, int y, int maxw, int height)
     /* set default scheme (blank canvas)*/
     drw_setscheme(drw, scheme[curscheme]);
     drw_rect(drw, x, 0, maxw, height, 1, 1);
-    for(c = m->clients; c; c = c->snext) tabcnt += !!ISVISIBLE(c);
+    for(c = m->clients; c; c = c->next) tabcnt += !!ISVISIBLE(c);
     /* exit if no clients selected */
     if(!tabcnt) return;
     tabsz = maxw / tabcnt;
     /* draw only selmon->sel if tabs to small */
-    if(tabsz < (int)TEXTW("..."))
+    if(tabsz < (unsigned int)TEXTW("..."))
     {
-        iconspace = m->sel->icon ? m->sel->icw + CFG_ICON_SPACE : lrpad >> 1;
+        iconspace = m->sel->icon ? m->sel->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_text(drw, x, y, maxw, height, iconspace, m->sel->name, 0);
         if(m->sel->icon)
             drw_pic( drw, x, y + ((height - m->sel->ich) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
@@ -872,7 +820,7 @@ drawbartabs(Monitor *m, int x, int y, int maxw, int height)
         if(!ISVISIBLE(c)) continue;
         btpos = cc * tabsz;
         curscheme = c == m->sel ? SchemeBarTabActive  : SchemeBarTabInactive;
-        iconspace = c->icon ? c->icw + CFG_ICON_SPACE : lrpad >> 1;
+        iconspace = c->icon ? c->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_setscheme(drw, scheme[curscheme]);
         drw_text(drw, x + btpos, y, tabsz, height, iconspace, c->name, 0);
         /* draw icon */
@@ -1028,7 +976,6 @@ prealpha(uint32_t p) {
 Picture
 geticonprop(Window win, unsigned int *picw, unsigned int *pich)
 {
-    XWMHints *hints;
     int format;
     int bitformat = 32;
     unsigned int unitbytecount = 16384;
@@ -1036,7 +983,9 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     unsigned long n, extra;
     unsigned long *p= NULL;
     Atom real;
-
+    /* not reliable to use hints as some windows dont set them */
+    /*
+    XWMHints *hints;
     hints = XGetWMHints(dpy, win);
     if(!hints || !(hints->flags & IconPixmapHint)) 
     {
@@ -1044,6 +993,7 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
         return None;
     }
     XFree(hints);
+    */
     if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType,
                            &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
     if (n == 0 || format != bitformat) {
@@ -1213,7 +1163,7 @@ grabkeys(void)
         XDisplayKeycodes(dpy, &start, &end);
         syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
         if (!syms) return;
-        for (k = start; k <= end; k++)
+        for (k = start; k <= (unsigned int)end; k++)
         {
             for (i = 0; i < LENGTH(keys); i++)
             {
@@ -1276,7 +1226,6 @@ isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
 void
 keypress(XEvent *e)
 {
-    static KeyCode **table = NULL;
     unsigned int i;
     KeySym keysym;
     XKeyEvent *ev;
@@ -1367,7 +1316,7 @@ manage(Window w, XWindowAttributes *wa)
     updatesizehints(c);
     updatewmhints(c);
     updatemotifhints(c);
-    XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask|VisibilityChangeMask);
+    XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
     grabbuttons(c, 0);
     c->wasfloating = 0;
     c->ismax = 0;
@@ -1452,18 +1401,18 @@ motionnotify(XEvent *e)
     XMotionEvent *ev = &e->xmotion;
 
     /* tag preview start */
-    unsigned int i, x;
+    int i;
+    int x;
 
     if (ev->window == selmon->barwin)
     {
         i = x = 0;
-        do
-            x += TEXTW(tags[i]);
-        while (ev->x >= x && ++i < LENGTH(tags));
+        do x += TEXTW(tags[i]);
+        while (ev->x >= x && ++i < (int)LENGTH(tags));
         /* FIXME when hovering the mouse over the tags and we view the tag,
          *       the preview window get's in the preview shot */
 
-        if (i < LENGTH(tags))
+        if (i < (int)LENGTH(tags))
         {
             if (selmon->showpreview != (i + 1) && !(selmon->tagset[selmon->seltags] & 1 << i))
             {
@@ -1508,6 +1457,13 @@ Client *
 nexttiled(Client *c)
 {
     for (; c && (c->isfloating || !ISVISIBLE(c)); c = c->next);
+    return c;
+}
+
+Client *
+nextvisible(Client *c)
+{
+    for(; c && !ISVISIBLE(c); c = c->next);
     return c;
 }
 
@@ -1692,17 +1648,19 @@ restack(Monitor *m)
     Client *alwaysontop[accnum + 1];
     drawbar(m);
     if (!m->sel) return;
+
+    ccontop = 0;
     if (m->lt[m->sellt]->arrange)
     {
         wc.stack_mode = Below;
         wc.sibling = m->barwin;
-        ccontop = 0;
         for (c = m->stack; c; c = c->snext)
         {
             if(!ISVISIBLE(c)) continue;
             alwaysontop[ccontop] = c;
             ccontop += c->isfloating;
-            if(!c->isfloating) {
+            if(!c->isfloating) 
+            {
                 XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
                 wc.sibling = c->win;
             }
@@ -1710,8 +1668,7 @@ restack(Monitor *m)
         }
     }
     if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
-    for(int i = ccontop - 1; i >= 0; --i)
-        XRaiseWindow(dpy, alwaysontop[i]->win);
+    for(ccontop -= 1; ccontop >= 0; --ccontop) XRaiseWindow(dpy, alwaysontop[ccontop]->win);
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2287,7 +2244,7 @@ tile(Monitor *m)
             nw = mw - (c->bw << 1);
             nh = h - (c->bw << 1);
             resize(c, nx, ny, nw, nh, 0);
-            if (my + HEIGHT(c) < m->wh) my += HEIGHT(c);
+            if (my + HEIGHT(c) < (unsigned int)m->wh) my += HEIGHT(c);
         }
         else
         {
@@ -2297,7 +2254,7 @@ tile(Monitor *m)
             nw = m->ww - mw - (c->bw << 1);
             nh = h - (c->bw << 1);
             resize(c, nx, ny, nw, nh, 0);
-            if (ty + HEIGHT(c) < m->wh) ty += HEIGHT(c);
+            if (ty + HEIGHT(c) < (unsigned int)m->wh) ty += HEIGHT(c);
         }
 }
 
@@ -2686,6 +2643,7 @@ visiblitynotify(XEvent *e)
 {
     /* issues with implementation as barwin causes all windwos to be visible for some reason? */
     return;
+    /* to use set VisibilityChangeMask in bit mask manage() XSelectInput() */
     XVisibilityEvent *ev = &e->xvisibility;
     switch(ev->state)
     {

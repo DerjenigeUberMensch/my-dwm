@@ -39,7 +39,7 @@
 #define CFG_ALT_TAB_MIN_WIDTH       0       /* Add padding if text length is shorter; 0 to disable              */
 #define CFG_ALT_TAB_MAP_WINDOWS     1       /* 1 compositor fadding when switching tabs; 0 to disable           */
 #define CFG_ALT_TAB_SHOW_PREVIEW    1       /* shows window preview when alt tabbing                            */
-#define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab only changes focused window; 0 to disable               */
+#define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab moves down client list instead; 0 to disable            */
 /* Misc */
 #define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
 #define CFG_MAX_CLIENT_COUNT        250     /* max number of clients assuming you can handle this many          */
