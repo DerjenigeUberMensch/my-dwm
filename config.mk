@@ -37,14 +37,13 @@ DYNAMICLINK= -ldl
 SELFFLAGS  = -march=native -mtune=native
 STRIPFLAGS = -ffunction-sections -fdata-sections -Wl,--strip-all -s
 DEBUGFLAGS = -ggdb -g -pg 
-WARNINGFLAGS = -pedantic -Wall -Wextra -Wno-deprecated-declarations -Wshadow -Wmaybe-uninitialized 
+WARNINGFLAGS = -pedantic -Wall -Wno-deprecated-declarations -Wshadow -Wmaybe-uninitialized 
 
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
 cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X64SUPPORT} ${STATICLINK}
 #-flto saves a couple instructions in certain functions; 
 RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS} -flto
-
-DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O2
+DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O0
 SIZE  	= ${RELEASEFLAGS} -Os
 SIZEONLY= ${RELEASEFLAGS} -Oz
 

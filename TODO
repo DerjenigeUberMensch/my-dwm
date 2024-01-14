@@ -8,6 +8,7 @@
 **  (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
 **  (Fix) Fix monitor switching not having persistant window mapping
 **  (Fix) Alt-tab screen artifacts (fullscreen)
+**  (Fix) small Memory leak in focus()
 **  (Fix) scrot screenshotcmd
 *   (Fix) Weird memory bug with geticonprop(); mallocing memory that is never freed but never reallocated?
 *   Small Memory leak when compiled?, inconsistent. further investigation required

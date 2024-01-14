@@ -29,6 +29,8 @@
 #include "config.def.h"
 #include "toggle.h"
 */
+
+#include "toggle.h"
 void tester(const Arg *arg)
 {
 }
@@ -208,7 +210,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     c = selmon->sel;
 
     /* client checks */
-    if (!c || c->isfullscreen) return;/* no support resizing fullscreen windows by mouse */
+    if (!c || c->isfullscreen) return;
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     horiz = nx < c->w >> 1 ? -1 : 1;
     vert  = ny < c->h >> 1 ? -1 : 1;
@@ -232,8 +234,8 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     ocy = c->y;
     incw = c->incw;
     inch = c->inch;
-    basew = MAX(c->minw, CFG_RESIZE_BASE_WIDTH);
-    baseh = MAX(c->minh, CFG_RESIZE_BASE_HEIGHT);
+    basew = MAX(c->minw ? c->minw : c->basew, CFG_RESIZE_BASE_WIDTH);
+    baseh = MAX(c->minh ? c->minh : c->baseh, CFG_RESIZE_BASE_HEIGHT);
     do
     {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
@@ -349,34 +351,26 @@ void
 AltTab(const Arg *arg)
 {
     int grabbed;
-    int listindex;
     Monitor *m;
-    Client *c;
+    Client *tabnext;
     XEvent event;
 
     m = selmon;
-    m->altsnext = NULL;
-    m->altTabN  = 0;
-    m->nTabs    = 0;
-    grabbed     = 0;
-    listindex   = 0;
-    for(c = m->clients; c; c = c->next) m->nTabs += !!ISVISIBLE(c);
-    if(!(m->nTabs > 0)) return;
+    grabbed = 0;
 
-    m->altsnext = (Client **) malloc(m->nTabs * sizeof(Client *));
-    /* add clients to list */
-    for(c = m->stack; c; c = c->snext) !!ISVISIBLE(c) ? m->altsnext[listindex++] = c : NULL;
-    if(!m->isfullscreen) drawalttab(m->nTabs, 1, m);
-    alttab();
-    if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
+    if(!m->sel) for(m->sel = m->clients; m->sel && !ISVISIBLE(m->sel); m->sel = m->sel->next);
+    if(!m->sel) return;
+    if(!m->isfullscreen) drawalttab(1, m);
+    tabnext = alttab(1);
+    drawalttab(0, m);
+
+    /* grab keyboard (input) grab mouse (prevent detaching of over clients) */
+    if(XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
         grabbed = 1;
-    else return;
-
-    /* prevent cursor from doing other stuff that could break this */
-    if(XGrabPointer(dpy, m->altsnext[m->altTabN]->win, True,
-                    ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
-                    GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
-        return;
+    else { alttabend(tabnext); return; }
+    if(XGrabPointer(dpy, root, True, ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+                GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
+        { XUngrabKeyboard(dpy, CurrentTime); alttabend(tabnext); return; }
 
     while (grabbed)
     {
@@ -384,15 +378,33 @@ AltTab(const Arg *arg)
         switch(event.type)
         {
         case KeyPress:
-            if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) alttab();
+            if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) 
+            {
+                tabnext = alttab(0);
+                if(!m->isfullscreen) drawalttab(0, m);
+            }
             break;
         case KeyRelease:
-            if(event.xkey.keycode == CFG_ALT_TAB_SWITCH_KEY)grabbed = 0;
+            grabbed = event.xkey.keycode != CFG_ALT_TAB_SWITCH_KEY;
             break;
+        case PropertyNotify:
+            if(event.type == PropertyNotify)
+            {
+                /* update window if changes */
+                if(event.xproperty.atom == XA_WM_NAME || event.xproperty.atom == netatom[NetWMName])
+                {
+                    XUnmapWindow(dpy, selmon->tabwin);
+                    XDestroyWindow(dpy, selmon->tabwin);
+                    drawalttab(1, selmon);
+                }
+            }
+            handler[event.type](&event);
+        default: /* still handle events */
+            if (handler[event.type]) handler[event.type](&event);
         }
     }
 
-    alttabend(); /* end the alt-tab functionality */
+    alttabend(tabnext); /* end the alt-tab functionality */
     XUngrabKeyboard(dpy, CurrentTime);
     XUngrabPointer(dpy, CurrentTime);
 }

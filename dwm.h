@@ -159,8 +159,6 @@ struct Monitor
     int by;               /* bar geometry */
     int mx, my, mw, mh;   /* screen size  */
     int wx, wy, ww, wh;   /* window area  */
-    int altTabN;		  /* move that many clients forward */
-    int nTabs;			  /* number of active clients in tag */
     unsigned int isfullscreen   : 1;     /* toggle fullscr vs reg fullscr */
     unsigned int showbar        : 1;
     unsigned int oshowbar       : 1;
@@ -176,7 +174,7 @@ struct Monitor
     Client *clients, *clast;
     Client *stack, *slast;
     Client *sel;
-    Client **altsnext; /* array of all clients in the tag */
+    Client *tabnext;    /* alt tab next client */
     Monitor *next;
     Pixmap *tagmap;
     Window barwin;      /* ulong */
@@ -196,8 +194,8 @@ struct Rule
 };
 
 /* function declarations */
-void alttab(void);
-void alttabend(void);
+Client *alttab(int ended);
+void alttabend(Client *tabnext);
 void applyrules(Client *c);
 int  applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
 void arrange(Monitor *m);
@@ -220,7 +218,7 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 Monitor *dirtomon(int dir);
-void drawalttab(int nwins, int first, Monitor *m);
+void drawalttab(int first, Monitor *m);
 void drawbar(Monitor *m);
 void drawbars(void);
 void drawbartabs(Monitor *m, int x, int y, int maxw, int height);
@@ -251,6 +249,7 @@ void monocle(Monitor *m);
 void motionnotify(XEvent *e);
 void movstack(Client *c, int SHIFT_TYPE);
 Client *nexttiled(Client *c);
+Client *nextvisible(Client *c);
 void pop(Client *c);
 void propertynotify(XEvent *e);
 void quit(void);
