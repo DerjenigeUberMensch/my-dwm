@@ -388,15 +388,12 @@ AltTab(const Arg *arg)
             grabbed = event.xkey.keycode != CFG_ALT_TAB_SWITCH_KEY;
             break;
         case PropertyNotify:
-            if(event.type == PropertyNotify)
+            /* update window if changes */
+            if(event.xproperty.atom == XA_WM_NAME || event.xproperty.atom == netatom[NetWMName])
             {
-                /* update window if changes */
-                if(event.xproperty.atom == XA_WM_NAME || event.xproperty.atom == netatom[NetWMName])
-                {
-                    XUnmapWindow(dpy, selmon->tabwin);
-                    XDestroyWindow(dpy, selmon->tabwin);
-                    drawalttab(1, selmon);
-                }
+                XUnmapWindow(dpy, selmon->tabwin);
+                XDestroyWindow(dpy, selmon->tabwin);
+                drawalttab(1, selmon);
             }
             handler[event.type](&event);
         default: /* still handle events */
