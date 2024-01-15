@@ -47,10 +47,22 @@ enum
 /* when adding new properties make sure NetLast is indeed last to allocate enough memory to store all Nets in an array */
 enum
 {
-    NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
-    NetWMFullscreen, NetWMAlwaysOnTop,NetActiveWindow,
+    NetSupported, NetWMName, NetWMIcon, NetWMState, NetCloseWindow, NetWMCheck,
+    NetWMFullscreen, NetWMAlwaysOnTop, NetWMStayOnTop, NetActiveWindow,
     NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
+    /* Net Actions */
+    NetWMActionMove, NetWMActionResize, NetWMActionMinimize, NetWMActionMaximizeHorz,
+    NetWMActionMaximizeVert, NetWMActionFullscreen, NetWMActionChangeDesktop, NetWMActionClose, 
+    NetWMActionAbove, NetWMActionBelow,
+    /* special requests */
+    NetMoveResizeWindow, NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinize,
+    NetWMAbove, NetWMBelow, NetWMDemandAttention, 
+    /* tracking */
+    NetWMUserTime, NetWMPing,
+    /* desktop */
     NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, /* EMWH */
+
+    /* unsused */
     NetWMWindowsOpacity, /* unset */
     NetLast,
 };
@@ -64,22 +76,17 @@ enum
     ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
     ClkClientWin, ClkRootWin, ClkLast,
 };
-/* stack shifting */
-enum
-{
-    BEFORE, PREVSEL, NEXT,
-    FIRST, SECOND, THIRD, LAST,
-};
+
 /* layouts */
 enum
 {
-    TILED, FLOATING, MONOCLE, GRID,
+    Tiled, Floating, Monocle, Grid
 };
 
 /* kill client */
 enum
 {
-    GRACEFUL, SAFEDESTROY, DESTROY,
+    Graceful, Safedestroy, Destroy,
 };
 
 typedef union  Arg Arg;
@@ -125,6 +132,7 @@ struct Client
 
     unsigned int tags;
     unsigned int alwaysontop     : 1;
+    unsigned int stayontop       : 1;
     unsigned int hintsvalid      : 1;
     unsigned int ismax           : 1;
     unsigned int wasfloating     : 1;
@@ -207,6 +215,7 @@ void checkotherwm(void);
 void cleanup(void);
 void cleanupmon(Monitor *mon);
 void cleanupsbar(Monitor *m);
+void cleanuptabwin(Monitor *m);
 void cleanuptagpreview(Monitor *m);
 int  clientdocked(Client *c);
 void clientmessage(XEvent *e);
@@ -226,7 +235,6 @@ void enternotify(XEvent *e);
 void expose(XEvent *e);
 void focus(Client *c);
 void focusin(XEvent *e);
-void focusstack(int SHIFT_TYPE);
 void freeicon(Client *c);
 Atom getatomprop(Client *c, Atom prop);
 int  getwinpid(Window window);
@@ -266,12 +274,12 @@ void scan(void);
 int  sendevent(Client *c, Atom proto);
 void sendmon(Client *c, Monitor *m);
 void setclientstate(Client *c, long state);
-void setclientlayout(Monitor *m, int layout);
 void setdesktop(void);
 void setdesktopnames(void);
 void setdesktopnum(void);
 void setfocus(Client *c);
 void setfullscreen(Client *c, int fullscreen);
+void setmonitorlayout(Monitor *m, int layout);
 void setshowbar(Monitor *m, int show);
 void setup(void);
 void setupatom(void);
@@ -282,10 +290,9 @@ void seturgent(Client *c, int urg);
 void setviewport(void);
 void showhide(Client *c);
 void showtagpreview(unsigned int i);
-void sigchld();
-void sighup();
-void sigterm();
-int  stackpos(int SHIFT_TYPE);
+void sigchld(); /* dont make this void */
+void sighup();  /* dont make this void */
+void sigterm(); /* dont make this void */
 void takepreview(void);
 void tile(Monitor *m);
 void unfocus(Client *c, int setfocus);
@@ -302,6 +309,7 @@ void updatesizehints(Client *c);
 void updatestatus(void);
 void updatetitle(Client *c);
 void updateicon(Client *c);
+void updatewindowstate(Client *c, Atom state);
 void updatewindowtype(Client *c);
 void updatewmhints(Client *c);
 void visiblitynotify(XEvent *e);

@@ -61,10 +61,10 @@ static const Key keys[] =
     { KeyPress,         SUPER,                      XK_w,       MaximizeWindow,     {0} },
     { KeyRelease,       SUPER|SHIFT,                XK_p,       Quit,               {0} },
     { KeyPress,         SUPER|CTRL,                 XK_p,       Restart,            {0} }, 
-    { KeyPress,         SUPER,                      XK_z,       SetWindowLayout,    {TILED} },
-    { KeyPress,         SUPER,                      XK_x,       SetWindowLayout,    {FLOATING} },
-    { KeyPress,         SUPER,                      XK_c,       SetWindowLayout,    {MONOCLE} },
-    { KeyPress,         SUPER,                      XK_g,       SetWindowLayout,    {GRID} },
+    { KeyPress,         SUPER,                      XK_z,       SetWindowLayout,    {Tiled} },
+    { KeyPress,         SUPER,                      XK_x,       SetWindowLayout,    {Floating} },
+    { KeyPress,         SUPER,                      XK_c,       SetWindowLayout,    {Monocle} },
+    { KeyPress,         SUPER,                      XK_g,       SetWindowLayout,    {Grid} },
     { KeyPress,         0,                          XK_F11,     ToggleFullscreen,   {0} },
 
     { KeyPress,         ALT,                        TAB,        AltTab,	            {0} },
@@ -94,8 +94,8 @@ static const Key keys[] =
 static const Button buttons[] = 
 {
     /* click                event mask      button          function            argument */
-    { ClkLtSymbol,          0,              LMB,            SetWindowLayout,    {.i = TILED} },
-    { ClkLtSymbol,          0,              RMB,            SetWindowLayout,    {.i = MONOCLE} },
+    { ClkLtSymbol,          0,              LMB,            SetWindowLayout,    {.i = Tiled} },
+    { ClkLtSymbol,          0,              RMB,            SetWindowLayout,    {.i = Monocle} },
     { ClkClientWin,         SUPER,          LMB,            DragWindow,         {0} },
     { ClkClientWin,         SUPER,          RMB,            ResizeWindow,       {0} },
     { ClkTagBar,            0,              LMB,            View,               {0} },

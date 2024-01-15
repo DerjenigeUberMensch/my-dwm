@@ -31,6 +31,7 @@
 */
 
 #include "toggle.h"
+
 void tester(const Arg *arg)
 {
 }
@@ -84,12 +85,12 @@ ChangeMasterWindow(const Arg *arg)
 void
 KillWindow(const Arg *arg)
 {
-    killclient(selmon->sel, GRACEFUL);
+    killclient(selmon->sel, Graceful);
 }
 void
 TerminateWindow(const Arg *arg)
 {
-    killclient(selmon->sel, DESTROY);
+    killclient(selmon->sel, Destroy);
 }
 void
 DragWindow(const Arg *arg) /* movemouse */
@@ -210,7 +211,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     c = selmon->sel;
 
     /* client checks */
-    if (!c || c->isfullscreen) return;
+    if (!c || c->isfullscreen || c->isfixed) return;
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     horiz = nx < c->w >> 1 ? -1 : 1;
     vert  = ny < c->h >> 1 ? -1 : 1;
@@ -296,12 +297,18 @@ void
 SetWindowLayout(const Arg *arg)
 {
     Monitor *m;
+    Client *mnext;
     m = selmon;
 
     if(!m || m->isfullscreen) return;
-    setclientlayout(m, arg->i);
+    setmonitorlayout(m, arg->i);
     arrangemon(m);
-    if(m->sel) arrange(m);
+    if(m->sel) 
+    {       
+        mnext = nextvisible(m->clients);
+        if(m->sel != mnext) { detach(m->sel); attach(m->sel); }
+        arrange(m);
+    }
     else drawbar(m);
 }
 
@@ -333,18 +340,27 @@ void
 MaximizeWindow(const Arg *arg)
 {
     maximize(selmon->wx, selmon->wy, selmon->ww - 2 * CFG_BORDER_PX, selmon->wh - 2 * CFG_BORDER_PX);
+    arrange(selmon);
 }
 
 void
-MaximizeWindowVertical(const Arg *arg) {
-    maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * CFG_BORDER_PX);
-    selmon->sel->ismax = 0; /* no such thing as vertmax being fully maxed */
+MaximizeWindowVertical(const Arg *arg) 
+{
+    Client *c = selmon->sel;
+    maximize(c->x, selmon->wy, c->w, selmon->wh - 2 * CFG_BORDER_PX);
+    arrange(selmon);
+    c->ismax = clientdocked(c);
+    c->isfloating = clientdocked(c) || c->isfloating;
 }
 
 void
-MaximizeWindowHorizontal(const Arg *arg) {
-    maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * CFG_BORDER_PX, selmon->sel->h);
-    selmon->sel->ismax = 0; /* no such thing as horzmax being fully maxed */
+MaximizeWindowHorizontal(const Arg *arg) 
+{
+    Client *c = selmon->sel;
+    maximize(selmon->wx, c->y, selmon->ww - 2 * CFG_BORDER_PX, c->h);
+    arrange(selmon);
+    c->ismax = clientdocked(c); 
+    c->isfloating = clientdocked(c) || c->isfloating;
 }
 
 void
@@ -474,8 +490,8 @@ ToggleFullscreen(const Arg *arg)
         if(!ISVISIBLE(c) || c->alwaysontop) continue;
         setfullscreen(c, m->isfullscreen);
     }
-    if(m->isfullscreen)  setclientlayout(m, MONOCLE);
-    else setclientlayout(m, m->olyt);
+    if(m->isfullscreen)  setmonitorlayout(m, Monocle);
+    else setmonitorlayout(m, m->olyt);
     ToggleStatusBar(NULL);
     arrange(m);
 }
