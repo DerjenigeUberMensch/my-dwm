@@ -63,5 +63,5 @@ CFLAGS = ${RELEASES}
 
 LDFLAGS  = ${LIBS}
 
-# compiler and linker
+# compiler (gcc) and linker
 CC = cc

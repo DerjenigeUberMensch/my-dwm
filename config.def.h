@@ -8,6 +8,8 @@
  * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/
  * Cursors : https://tronche.com/gui/x/xlib/appendix/b/
  * XCursor:  https://man.archlinux.org/man/Xcursor.3
+ * EWMH:     https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html
+ * XEvent:   https://tronche.com/gui/x/xlib/events/structures.html
  */
 
 /* window */
@@ -23,7 +25,7 @@
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
 #define CFG_ACTIVE_MON          1           /* Show seletected even if no clients in monitor; 0 to disable      */
 #define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
-#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per icon); 0 to disable      */
+#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per window); 0 to disable      */
 #define CFG_ICON_SIZE           16          /* icon size                                                        */
 #define CFG_ICON_SPACE          2           /* space between icon and title                                     */
 #define CFG_SHOW_WM_NAME        0           /* 1 Show window manager name at end of status bar; 0 to disable    */
@@ -47,12 +49,19 @@
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
 #define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
-#define CFG_DEFAULT_LAYOUT          MONOCLE /* Default window layout GRID,TILED,MONOCLE,FLOATING;               */
-#define CFG_DEFAULT_PREV_LAYOUT     TILED   /* See above; Sets previous layout when starting dwm                */
+#define CFG_DEFAULT_LAYOUT          Monocle /* Default window layout Grid,Tiled,Monocle,Floating;               */
+#define CFG_DEFAULT_PREV_LAYOUT     Tiled   /* See above; Sets previous layout when starting dwm                */
 #define CFG_DEFAULT_TAG_NUM         1       /* Tag number when starting dwm (1-9); 0 for default tag            */
 #define CFG_TAG_PREVIEW_SCALE       4       /* Tag preview scaling (display w + display h) / SCALE              */
 #define CFG_TAG_PREVIEW_BAR         1       /* 1 show bar in preview; 0 to disable                              */
 #define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this)     */
+/* Tracking (Not Recommended) */
+#define CFG_TRACK_WIN_LAST_ACCESED  0       /* track the time since you last accesed a window                   */ /* _NET_WM_USER_TIME */
+#define CFG_TRACK_WIN_USAGE_TIME    0       /* track how long you have been on a window                         */ 
+#define CFG_TRACK_WIN_PINGING       0       /* Allows you to get a clients state, for example if its frozen     */ /* _NET_WM_PING */
+#define CFG_TRACK_ENABLE_USER_STATS 0       /* enables you to view these statistics in a nice window format     */
+#define CFG_TRACK_SAVE_USER_STATS   0       /* This saves the statistics for the current session                */
+#define CFG_TRACK_SAVE_LOC          "/tmp/dwm/userstats.txt" /* This is the save location; see above            */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
 #define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
@@ -125,10 +134,10 @@ static const Rule rules[] =
 static const Layout layouts[] =
 {
     /* symbol     arrange function */
-    [TILED]     = { "[T]",      tile            },
-    [FLOATING]  = { "[F]",      NULL            },
-    [MONOCLE]   = { "[M]",      monocle         },
-    [GRID]      = { "[G]",      grid            },
+    [Tiled]     = { "[T]",      tile            },
+    [Floating]  = { "[F]",      NULL            },
+    [Monocle]   = { "[M]",      monocle         },
+    [Grid]      = { "[G]",      grid            },
 };
 
 #endif

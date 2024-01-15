@@ -19,6 +19,10 @@
 * Keys and tagging rules are organized as arrays and defined in config.h.
 *
 * To understand everything else, start reading main().
+*
+* ~Caveats, this version of dwm is bloated relative to the main branch of dwm -> https://git.suckless.org/dwm/
+* ~So you should not expect this to be able to run as well as dwm
+* ~Tested on a i7-4790 16G ddr3, integrated graphics, -> WITH an ssd <-
 */
 #include <errno.h>
 #include <locale.h>
@@ -79,7 +83,7 @@ alttab(int ended)
     c = nextvisible(c->next);
     if(!c) c = nextvisible(m->clients);
     focus(c);
-    if(m->lyt == MONOCLE)
+    if(m->lyt == Monocle)
     {
         if(CFG_ALT_TAB_MAP_WINDOWS)
         {
@@ -374,6 +378,7 @@ cleanupmon(Monitor *mon)
     }
     free(mon->tagmap);
     cleanupsbar(mon);
+    cleanuptabwin(mon);
     cleanuptagpreview(mon);
     free(mon);
 }
@@ -392,6 +397,13 @@ cleanuptagpreview(Monitor *m)
     for (i = 0; i < LENGTH(tags); i++) if (m->tagmap[i]) XFreePixmap(dpy, m->tagmap[i]);
     XUnmapWindow(dpy, m->tagwin);
     XDestroyWindow(dpy, m->tagwin);
+}
+
+void
+cleanuptabwin(Monitor *m)
+{
+    XUnmapWindow(dpy, m->tabwin);
+    XDestroyWindow(dpy, m->tabwin);
 }
 
 int
@@ -426,26 +438,28 @@ void
 clientmessage(XEvent *e)
 {
     XClientMessageEvent *cme = &e->xclient;
+    Atom msg = cme->message_type;
+    long data0;
+    long data1;
+    long data2;
     Client *c = wintoclient(cme->window);
     if(!c) return;
-    long int isfullscreen, isalwaysontop, isnetactive;
-
-    isfullscreen  = netatom[NetWMFullscreen];
-    isalwaysontop = netatom[NetWMAlwaysOnTop];
-    isnetactive   = netatom[NetActiveWindow];
-    if (cme->message_type == netatom[NetWMState])
+    /* maybe we could hash the atoms for a switch statment? */
+    if (msg == netatom[NetWMState])
     {
-        if (cme->data.l[1] == isfullscreen || cme->data.l[2] == isfullscreen)
-            setfullscreen(c, (cme->data.l[0] == 1 /* _NET_WM_STATE_ADD    */
-                              || (cme->data.l[0] == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
-        if(cme->data.l[1] == isalwaysontop || cme->data.l[2] == isalwaysontop)
-        {
-            c->isfloating = 1;
-            c->alwaysontop = 1;
-        }
+        data0 = cme->data.l[0];
+        data1 = cme->data.l[1];
+        data2 = cme->data.l[2];
+        if (data1 == netatom[NetWMFullscreen] || data2 == netatom[NetWMFullscreen])
+            setfullscreen(c, (data0 == 1 /* _NET_WM_STATE_ADD    */
+                        || (data0 == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
+        updatewindowstate(c, data1);
+        updatewindowstate(c, data2);
     }
-    else if (cme->message_type == (long unsigned int)isnetactive) if (c != selmon->sel && !c->isurgent) seturgent(c, 1);
-
+    else if (msg == netatom[NetActiveWindow])   { if (c != selmon->sel && !c->isurgent) seturgent(c, 1); }
+    else if (msg == netatom[NetCloseWindow] ) { killclient(c, Graceful); }
+    else if (msg == netatom[NetMoveResizeWindow]) { resizeclient(c, cme->data.l[1], cme->data.l[2], cme->data.l[4], 0); }
+    else if (msg == netatom[NetWMMinize]) {/**/}
 }
 
 void
@@ -622,7 +636,8 @@ detachstack(Client *c)
     *tc = c->snext;
     if(!(*tc)) m->slast = c->sprev;
     else if(c->snext) c->snext->sprev = c->sprev;
-    else if(c->sprev) {
+    else if(c->sprev) 
+    {
         m->slast = c->sprev;
         c->sprev->snext = NULL;
     }
@@ -905,20 +920,6 @@ focusin(XEvent *e)
 
     if (selmon->sel && ev->window != selmon->sel->win)
         setfocus(selmon->sel);
-}
-
-/* fix later, usage may result in undefined behaviour */
-void
-focusstack(int SHIFT_TYPE)
-{
-    int i = stackpos(SHIFT_TYPE);
-    Client *c, *p;
-
-    if(i < 0) return;
-    for(p = NULL, c = selmon->clients; c && (i || !ISVISIBLE(c));
-            i -= ISVISIBLE(c) ? 1 : 0, p = c, c = c->next);
-    focus(c ? c : p);
-    restack(selmon);
 }
 
 void
@@ -1341,7 +1342,7 @@ manage(Window w, XWindowAttributes *wa)
     if(accnum > CFG_MAX_CLIENT_COUNT )
     {
         XMapWindow(dpy, c->win);
-        killclient(c, SAFEDESTROY);
+        killclient(c, Safedestroy);
         unmanage(c, 1);
         return;
     }
@@ -1538,15 +1539,21 @@ restoresession(void)
     FILE *fr = fopen(SESSION_FILE, "r");
     Client *c;
     Client *selc = NULL; /* selected client */
+    Monitor *m;
+    winlayout = 0;
+    selcpos = 0;
+    tagsForWin = 0;
+    winId = 0;
+    check = 0;
     if (!fr) return;
     /* malloc enough for input*/
     char *str = malloc(MAX_LENGTH * sizeof(char));
     while (fscanf(fr, "%[^\n] ", str) != EOF)
     {
         check = sscanf(str,
-                       "%lu %u \
-                %u %u"
-                       ,&winId, &tagsForWin,
+                        "%lu %u "
+                        "%u %u \n",
+                       &winId, &tagsForWin,
                        &winlayout, &selcpos
                       );
         if (check != CHECK_SUM) continue;
@@ -1555,18 +1562,17 @@ restoresession(void)
             if (c->win == winId)
             {
                 c->tags = tagsForWin;
-                setclientlayout(c->mon, winlayout);
-                arrangemon(c->mon);
-                if(selcpos) {
-                    selc = c;
-                }
+                if(selcpos) selc = c;
                 break;
             }
         }
     }
     if(selc) pop(selc);
     else focus(NULL);
-    for (Monitor *m = selmon; m; m = m->next) arrange(m);
+    m = selc ? selc->mon : selmon;
+    setmonitorlayout(m, winlayout);
+    arrangemon(m);
+    for (m = selmon; m; m = m->next) arrange(m);
     restack(selmon);
     free(str);
     fclose(fr);
@@ -1644,12 +1650,13 @@ restack(Monitor *m)
     XEvent ev;
     XWindowChanges wc;
     int ccontop; /* client counter on top */
-    /* one extra as new client deleted in manage (if accnum > max) COULD be alwaysontop though unlikely */
+    int styontop;
     Client *alwaysontop[accnum + 1];
+    Client *stayontop[accnum + 1];
     drawbar(m);
     if (!m->sel) return;
 
-    ccontop = 0;
+    ccontop = styontop = 0;
     if (m->lt[m->sellt]->arrange)
     {
         wc.stack_mode = Below;
@@ -1657,8 +1664,12 @@ restack(Monitor *m)
         for (c = m->stack; c; c = c->snext)
         {
             if(!ISVISIBLE(c)) continue;
+
             alwaysontop[ccontop] = c;
-            ccontop += c->isfloating;
+            stayontop[styontop] = c;
+            ccontop += c->alwaysontop;
+            styontop+= c->stayontop;
+
             if(!c->isfloating) 
             {
                 XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
@@ -1669,6 +1680,7 @@ restack(Monitor *m)
     }
     if(m->sel->isfloating || m->sel->alwaysontop || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
     for(ccontop -= 1; ccontop >= 0; --ccontop) XRaiseWindow(dpy, alwaysontop[ccontop]->win);
+    for(styontop-= 1; styontop>= 0; --styontop) XRaiseWindow(dpy, stayontop[styontop]->win);
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -1694,9 +1706,8 @@ savesession(void)
     for (c = selmon->clients; c; c = c->next)
     {
         fprintf(fw,
-                "%lu %u \
-                %u %d \
-                \n",
+                "%lu %u "
+                "%u %u \n",
                 c->win, c->tags,
                 c->mon->lyt, selmon->sel == c
                );
@@ -1784,13 +1795,6 @@ sendevent(Client *c, Atom proto)
     return exists;
 }
 
-void
-setclientlayout(Monitor *m, int layout)
-{
-    m->lt[selmon->sellt] = (Layout *)&layouts[layout];
-    m->olyt= m->lyt;
-    m->lyt = layout;
-}
 
 void
 setdesktop()
@@ -1851,6 +1855,14 @@ setfullscreen(Client *c, int fullscreen)
         resizeclient(c, c->x, c->y, c->w, c->h);
         arrange(c->mon);
     }
+}
+
+void
+setmonitorlayout(Monitor *m, int layout)
+{
+    m->lt[selmon->sellt] = (Layout *)&layouts[layout];
+    m->olyt= m->lyt;
+    m->lyt = layout;
 }
 
 void
@@ -1924,13 +1936,10 @@ setupatom(void)
     wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
     /* ewmh */
     netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-    netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
     netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
     netatom[NetWMIcon] = XInternAtom(dpy, "_NET_WM_ICON", False);
-    netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
+    netatom[NetCloseWindow] = XInternAtom(dpy, "_NET_CLOSE_WINDOW", False);
     netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-    netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-    netatom[NetWMAlwaysOnTop] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
     netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
     netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
     netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
@@ -1940,6 +1949,35 @@ setupatom(void)
     netatom[NetDesktopNames] = XInternAtom(dpy, "_NET_DESKTOP_NAMES", False);
     netatom[NetWMWindowsOpacity] = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
 
+    netatom[NetMoveResizeWindow] = XInternAtom(dpy, "_NET_MOVERESIZE_WINDOW", False);
+
+    /* wm state */
+    netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
+    netatom[NetWMStayOnTop] = XInternAtom(dpy, "_NET_WM_STATE_STAYS_ON_TOP", False);
+    netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
+    netatom[NetWMAlwaysOnTop] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
+    netatom[NetWMMaximizedVert] = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    netatom[NetWMMaximizedHorz] = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+    netatom[NetWMAbove] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
+    netatom[NetWMBelow] = XInternAtom(dpy, "_NET_WM_STATE_BELOW", False);
+    netatom[NetWMDemandAttention] = XInternAtom(dpy, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
+    netatom[NetWMMinize] = XInternAtom(dpy, "_NET_WM_MINIMIZE", False);
+    /* tracking */
+    netatom[NetWMUserTime] = XInternAtom(dpy, "_NET_WM_USER_TIME", False);
+    netatom[NetWMPing] = XInternAtom(dpy, "_NET_WM_PING", False);
+    /* actions suppoorted */
+    netatom[NetWMActionMove] = XInternAtom(dpy, "_NET_WM_ACTION_MOVE", False);
+    netatom[NetWMActionResize] = XInternAtom(dpy, "_NET_WM_ACTION_RESIZE", False);
+    netatom[NetWMActionMinimize] = XInternAtom(dpy, "_NET_WM_ACTION_MINIMIZE", False);
+    netatom[NetWMActionMaximizeHorz] = XInternAtom(dpy, "_NET_WM_ACTION_MAXIMIZE_HORZ", False);
+    netatom[NetWMActionMaximizeVert] = XInternAtom(dpy, "_NET_WM_ACTION_MAXIMIZE_VERT", False);
+    netatom[NetWMActionFullscreen] = XInternAtom(dpy, "_NET_WM_ACTION_FULLSCREEN", False);
+    netatom[NetWMActionChangeDesktop] = XInternAtom(dpy, "_NET_WM_ACTION_CHANGE_DESKTOP", False);
+    netatom[NetWMActionClose] = XInternAtom(dpy, "_NET_WM_ACTION_CLOSE", False);
+    netatom[NetWMActionAbove] = XInternAtom(dpy, "_NET_WM_ACTION_ABOVE", False);
+    netatom[NetWMActionBelow] = XInternAtom(dpy, "_NET_WM_ACTION_BELOW", False);
+
+    netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
     motifatom = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
 
 }
@@ -2047,49 +2085,6 @@ sigterm()
     quit();
 }
 
-int
-stackpos(int SHIFT_TYPE)
-{
-    int n, i;
-    Client *c, *l;
-
-    if(!selmon->clients)
-        return -1;
-
-    switch(SHIFT_TYPE)
-    {
-    case BEFORE:
-        if(!selmon->sel)
-            return -1;
-        for(i = 0, c = selmon->clients; c != selmon->sel; i += !!ISVISIBLE(c), c = c->next);
-        for(n = i; c; n += !!ISVISIBLE(c), c = c->next);
-        return MOD(i - 1, n);
-    case PREVSEL:
-        for(l = selmon->stack; l && (!ISVISIBLE(l) || l == selmon->sel); l = l->snext);
-        if(!l)
-            return -1;
-        for(i = 0, c = selmon->clients; c != l; i += !!ISVISIBLE(c), c = c->next);
-        return i;
-    case NEXT:
-        if(!selmon->sel)
-            return -1;
-        for(i = 0, c = selmon->clients; c != selmon->sel; i += !!ISVISIBLE(c), c = c->next);
-        for(n = i; c; n += !!ISVISIBLE(c), c = c->next);
-        return MOD(i + 1, n);
-    case FIRST:
-        return 0;
-    case SECOND:
-        return 1;
-    case THIRD:
-        return 2;
-    case LAST:
-        for(i = 0, c = selmon->clients; c; i += !!ISVISIBLE(c), c = c->next) {};
-        return MAX(i - 1, 0);
-    default:
-        return 0;
-    }
-}
-
 void
 takepreview(void)
 {
@@ -2153,13 +2148,13 @@ killclient(Client *c, int type)
         XSetCloseDownMode(dpy, DestroyAll);
         switch(type)
         {
-        case GRACEFUL:
+        case Graceful:
             XKillClient(dpy, c->win);
             break;
-        case DESTROY:
+        case Destroy:
             XDestroyWindow(dpy, c->win);
             break;
-        case SAFEDESTROY:
+        case Safedestroy:
             /* get window */
             XSelectInput(dpy, c->win, StructureNotifyMask);
             XKillClient(dpy, c->win);
@@ -2167,6 +2162,7 @@ killclient(Client *c, int type)
             /* check if received DestroyNotify */
             XWindowEvent(dpy, c->win, StructureNotifyMask, &ev);
             XGrabServer(dpy);
+            /* if it didnt it likely is frozen, Destroy it */
             if(ev.type != DestroyNotify) XDestroyWindow(dpy, c->win);
             break;
         }
@@ -2592,13 +2588,37 @@ updatetitle(Client *c)
 void
 updateicon(Client *c)
 {
-    if(!CFG_ICON_SHOW)
-    {
-        c->icon = None;
-        return;
-    }
+    if(!CFG_ICON_SHOW) { c->icon = None; return; }
     freeicon(c);
     c->icon = geticonprop(c->win, &c->icw, &c->ich);
+}
+
+void
+updatewindowstate(Client *c, Atom state)
+{
+    /* possible states
+     * _NET_WM_STATE_MODAL, ATOM
+     _NET_WM_STATE_STICKY, ATOM
+     _NET_WM_STATE_MAXIMIZED_VERT, ATOM
+     _NET_WM_STATE_MAXIMIZED_HORZ, ATOM
+     _NET_WM_STATE_SHADED, ATOM
+     _NET_WM_STATE_SKIP_TASKBAR, ATOM
+     _NET_WM_STATE_SKIP_PAGER, ATOM
+     _NET_WM_STATE_HIDDEN, ATOM
+     _NET_WM_STATE_FULLSCREEN, ATOM
+     _NET_WM_STATE_ABOVE, ATOM
+     _NET_WM_STATE_BELOW, ATOM
+     _NET_WM_STATE_DEMANDS_ATTENTION, ATOM
+     */
+    Client *temp;
+    if (state == netatom[NetWMAlwaysOnTop]) { c->alwaysontop = c->isfloating = 1; }
+    else if (state == netatom[NetWMStayOnTop]) { c->stayontop = c->isfloating = 1; }
+    else if (state == netatom[NetWMFullscreen]) { setfullscreen(c, 1); }
+    else if (state == netatom[NetWMDemandAttention]) { c->isfloating = c->isurgent = 1; XRaiseWindow(dpy, c->win);}
+    else if (state == netatom[NetWMMaximizedHorz]) { temp = selmon->sel; selmon->sel = c; MaximizeWindowHorizontal(NULL); selmon->sel = temp; arrange(c->mon);}
+    else if (state == netatom[NetWMMaximizedVert]) { temp = selmon->sel; selmon->sel = c; MaximizeWindowVertical(NULL);   selmon->sel = temp; arrange(c->mon);}
+    else if (state == netatom[NetWMAbove]) {/**/}
+    else if (state == netatom[NetWMBelow]) {/**/}
 }
 
 void
@@ -2606,15 +2626,8 @@ updatewindowtype(Client *c)
 {
     Atom state = getatomprop(c, netatom[NetWMState]);
     Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
-    if (state == netatom[NetWMAlwaysOnTop])
-    {
-        c->alwaysontop = 1;
-        c->isfloating = 1;
-    }
-    if (state == netatom[NetWMFullscreen])
-        setfullscreen(c, 1);
-    if (wtype == netatom[NetWMWindowTypeDialog])
-        c->isfloating = 1;
+    updatewindowstate(c, state);
+    if (wtype == netatom[NetWMWindowTypeDialog]) c->isfloating = 1;
 }
 
 void
