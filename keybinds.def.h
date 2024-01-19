@@ -1,4 +1,6 @@
 
+#ifndef KEYBINDS_DEF_H_
+#define KEYBINDS_DEF_H_
 
 /* key definitions */
 #define ALT     Mod1Mask
@@ -7,6 +9,10 @@
 #define CTRL    ControlMask
 #define SHIFT   ShiftMask
 #define TAB     XK_Tab
+/* Mouse definitions */
+#define LMB  Button1 /* left  mouse button */
+#define MMB  Button2 /* midde mouse button */
+#define RMB  Button3 /* Right mouse button */
 /* #define ISO_LEVEL5_SHIFT Mod3Mask
  * #define ISO_LEVEL3_SHIFT Mod5Mask */
 
@@ -40,15 +46,14 @@ static const char *dmenucmd[] =
     CFG_DMENU_TOP_BAR ? NULL : "-b", CFG_DMENU_FAST_INPUT ? "-f" : NULL ,CFG_DMENU_CASE_SENSITIVE ? "-i" : NULL, NULL
 }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
 static const char *termcmd[]        = { "st", NULL };
-static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.png", NULL}; /*doesnt work*/
-
+static const char *filemanager[]    = {"thunar", NULL };
 static const Key keys[] = 
 {
     /*Action            modifier                    key         function            argument */
     { KeyPress,         SUPER,                      XK_n,       tester,             {0} },
     { KeyPress,         SUPER,                      XK_d,       SpawnWindow,        {.v = dmenucmd } },
     { KeyPress,         SUPER,                      XK_Return,  SpawnWindow,        {.v = termcmd } },
-    { KeyRelease,       SUPER,                      XK_Print,   SpawnWindow,        {.v = screenshotcmd } },
+    { KeyPress,         SUPER,                      XK_e,       SpawnWindow,        {.v = filemanager } },
     { KeyPress,         SUPER,                      XK_b,       ToggleStatusBar,    {0} },
     { KeyPress,         SUPER,                      XK_q,	    View,               {0} },
     { KeyPress,         SUPER|SHIFT,                XK_q,       KillWindow,         {0} },
@@ -86,18 +91,17 @@ static const Key keys[] =
 
 /* button definitions */
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
-static const Button buttons[] = {
+static const Button buttons[] = 
+{
     /* click                event mask      button          function            argument */
-    { ClkLtSymbol,          0,              Button1,        SetWindowLayout,    {0} },
-    { ClkLtSymbol,          0,              Button3,        SetWindowLayout,    {.v = &layouts[2]} },
-    { ClkWinTitle,          0,              Button2,        Zoom,               {0} },
-    { ClkStatusText,        0,              Button2,        SpawnWindow,        {.v = termcmd } },
-    { ClkClientWin,         SUPER,          Button1,        DragWindow,         {0} },
-    { ClkClientWin,         SUPER,          Button2,        ToggleFloating,     {0} },
-    { ClkClientWin,         SUPER,          Button3,        ResizeWindow,       {0} },
-    { ClkTagBar,            0,              Button1,        View,               {0} },
-    { ClkTagBar,            0,              Button3,        ToggleView,         {0} },
-    { ClkTagBar,            SUPER,          Button1,        TagWindow,          {0} },
-    { ClkTagBar,            SUPER,          Button3,        ToggleTag,          {0} },
+    { ClkLtSymbol,          0,              LMB,            SetWindowLayout,    {.i = TILED} },
+    { ClkLtSymbol,          0,              RMB,            SetWindowLayout,    {.i = MONOCLE} },
+    { ClkClientWin,         SUPER,          LMB,            DragWindow,         {0} },
+    { ClkClientWin,         SUPER,          RMB,            ResizeWindow,       {0} },
+    { ClkTagBar,            0,              LMB,            View,               {0} },
+    { ClkTagBar,            SUPER,          LMB,            TagWindow,          {0} },
+    { ClkTagBar,            SUPER,          RMB,            ToggleTag,          {0} },
 };
 
+
+#endif

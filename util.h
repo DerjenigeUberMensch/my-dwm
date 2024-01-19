@@ -1,3 +1,6 @@
+#ifndef UTIL_H_
+#define UTIL_H_
+
 /* See LICENSE file for copyright and license details. */
 
 #define MAX(A, B)               ((A) > (B) ? (A) : (B))
@@ -9,4 +12,9 @@
 void die(const char *fmt, ...);
 void *ecalloc(size_t nmemb, size_t size);
 char *smprintf(char *fmt, ...);
-void debuglog(const char *text);
+void debug(char *fmt, ...);
+unsigned int ui_hash(unsigned int x);
+unsigned int ui_unhash(unsigned int x);
+double functime(void (*_timefunction)());
+
+#endif

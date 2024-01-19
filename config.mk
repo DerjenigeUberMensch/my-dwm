@@ -9,7 +9,6 @@ MANPREFIX = ${PREFIX}/share/man
 
 X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib
-
 # Xinerama, comment if you don't want it
 XINERAMALIBS  = -lXinerama
 XINERAMAFLAGS = -DXINERAMA
@@ -17,7 +16,8 @@ XINERAMAFLAGS = -DXINERAMA
 # lXrender (window icons)
 XRENDER = -lXrender
 IMLIB2LIBS = -lImlib2
-
+# Cursor fonts
+XCUR = -lXcursor
 # freetype
 FREETYPELIBS = -lfontconfig -lXft
 FREETYPEINC = /usr/include/freetype2
@@ -27,26 +27,41 @@ FREETYPEINC = /usr/include/freetype2
 
 # includes and libs
 INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER}
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER} ${XCUR}
 
-# flags
-# WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
-# -g -> debug
+#X86 isnt explicitly supported and some code might need to be tweaked
+X86SUPPORT = -m32
+X64SUPPORT = -march=x86-64 -mtune=generic
+STATICLINK = -static
+DYNAMICLINK= -ldl
+SELFFLAGS  = -march=native -mtune=native
+STRIPFLAGS = -ffunction-sections -fdata-sections -Wl,--strip-all -s
+DEBUGFLAGS = -ggdb -g -pg 
+WARNINGFLAGS = -pedantic -Wall -Wextra -Wno-deprecated-declarations -Wshadow -Wmaybe-uninitialized 
+
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -ggdb -g -std=c99 -pedantic -Wall -Wextra -Wshadow ${INCS} ${CPPFLAGS} -O0
+cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X64SUPPORT} ${STATICLINK}
+#-flto saves a couple instructions in certain functions; 
+RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS} -flto
 
+DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O2
+SIZE  	= ${RELEASEFLAGS} -Os
+SIZEONLY= ${RELEASEFLAGS} -Oz
 
-# SZ
-#CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow ${INCS} ${CPPFLAGS} -Os
+#Release Stable (-O2)
+RELEASE = ${RELEASEFLAGS} -O2
+#Release Speed (-O3)
+RELEASES= ${RELEASEFLAGS} -O3 
 
-# Release
-CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -ftree-vectorize ${INCS} ${CPPFLAGS} -O2
+#Build using cpu specific instruction set for more performance (Optional)
+BUILDSELF = ${RELEASEFLAGS} ${SELFFLAGS} ${DYNAMICLINK} -O3
+
+#Set your options or presets (see above) ex: ${PRESETNAME}
+CFLAGS = ${RELEASES}
 
 # Solaris
 #CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"
-#DEBUG 
-#LDFLAGS = ${LIBS}
-#Release
+
 LDFLAGS  = ${LIBS}
 
 # compiler and linker

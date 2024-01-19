@@ -2,14 +2,12 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
-**  (Fix) ResizeWindow not working properly for windows that dont set sizehints and have a size limit; ex: thunar
-**  (Fix) bartabs not having "..." if text to long (unknown)
-**  (Fix) Fix maximize issues when moving windows (movemouse)
+*** (Fix) m->num always being 0 for some reason?
+*** (Fix) Alt tab breaking linked list? or attach/detach
+**  (Fix) ResizeWindow() not working within dimentions
+**  (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
+**  (Fix) Fix monitor switching not having persistant window mapping
 **  (Fix) Alt-tab screen artifacts (fullscreen)
-**  (Fix) Alt-tab Add limit to stop undefined behaviour with too many windows
-**  (Feature) Have panic mode (incase of a freeze) that allows some functionality (enough to fix the problem)
 **  (Fix) scrot screenshotcmd
-*   Rework Window functionality and how floating windows behave
 *   (Fix) Weird memory bug with geticonprop(); mallocing memory that is never freed but never reallocated?
-*   Create extra windows? to reduces space from alttab of windows without long names 
 *   Small Memory leak when compiled?, inconsistent. further investigation required

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <time.h>
+
 #include "util.h"
 
 void
@@ -15,12 +17,12 @@ die(const char *fmt, ...)
     vfprintf(stderr, fmt, ap);
     va_end(ap);
 
-    if (fmt[0] && fmt[strlen(fmt)-1] == ':') {
+    if (fmt[0] && fmt[strlen(fmt)-1] == ':')
+    {
         fputc(' ', stderr);
         perror(NULL);
-    } else {
-        fputc('\n', stderr);
     }
+    else fputc('\n', stderr);
 
     exit(1);
 }
@@ -30,9 +32,12 @@ ecalloc(size_t nmemb, size_t size)
 {
     void *p;
 
-    if (!(p = calloc(nmemb, size)))
-        die("calloc:");
+    p = calloc(nmemb, size);
     return p;
+    if(p) return p;
+    /* exit if calloc failed Likely OS is out of memory */
+    debug("FATAL: FAILED TO CALLOC MEMORY");
+    exit(1);
 }
 char *
 smprintf(char *fmt, ...)
@@ -58,11 +63,44 @@ smprintf(char *fmt, ...)
 }
 
 void
-debuglog(const char *text)
+debug(char *fmt, ...)
 {
-    FILE *fp;
-    fp = fopen("/home/ram/Github/suckless/Sd-WM/err.log", "a");
-    if(!fp) return;
-    fprintf(fp, "%s\n", text);
-    fclose(fp);
+    char *txt;
+    va_list args;
+    va_start(args, fmt);
+    txt = smprintf(fmt, args);
+    va_end(args);
+
+    perror(txt);
+    fprintf(stdout, "%s", txt);
+
+    free(txt);
+}
+
+unsigned int
+ui_hash(unsigned int x)
+{
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = (x >> 16) ^ x;
+    return x;
+}
+
+unsigned int
+ui_unhash(unsigned int x)
+{
+    x = ((x >> 16) ^ x) * 0x119de1f3;
+    x = ((x >> 16) ^ x) * 0x119de1f3;
+    x = (x >> 16) ^ x;
+    return x;
+}
+
+double functime(void (*_timefunction)())
+{
+    clock_t start, end;
+    start = clock();
+    _timefunction();
+    end = clock();
+
+    return ((double)(end - start)) / CLOCKS_PER_SEC;
 }
