@@ -322,14 +322,26 @@ drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int 
 void
 drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert)
 {
-    if (!drw || !drw->scheme)
-        return;
+    if (!drw || !drw->scheme) return;
     XSetForeground(drw->dpy, drw->gc, invert ? drw->scheme[ColBg].pixel : drw->scheme[ColFg].pixel);
     if (filled)
         XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
     else
         XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
 }
+
+void
+drw_line(Drw *drw, int x1, int x2, int y1, int y2)
+{
+    XDrawLine(drw->dpy, drw->drawable, drw->gc, x1, x2, y1, y2);
+}
+
+void
+drw_arc(Drw *drw, int x, int y, int w, int h, int angle1, int angle2)
+{
+    XDrawArc(drw->dpy, drw->drawable, drw->gc, x, y, w, h, angle1, angle2);
+}
+
 void
 drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
 {
@@ -337,6 +349,7 @@ drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
         return;
     XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
 }
+
 int
 drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert)
 {

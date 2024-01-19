@@ -56,7 +56,8 @@ enum
     NetWMActionAbove, NetWMActionBelow,
     /* special requests */
     NetMoveResizeWindow, NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinize,
-    NetWMAbove, NetWMBelow, NetWMDemandAttention, 
+    NetWMAbove, NetWMBelow, NetWMDemandAttention, NetWMFocused, NetWMSticky,
+    NetWMModal, NetWMHidden,
     /* tracking */
     NetWMUserTime, NetWMPing,
     /* desktop */
@@ -237,8 +238,7 @@ void focus(Client *c);
 void focusin(XEvent *e);
 void freeicon(Client *c);
 Atom getatomprop(Client *c, Atom prop);
-int  getwinpid(Window window);
-uint32_t prealpha(uint32_t p);
+pid_t getwinpid(Window window);
 Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
 int  getrootptr(int *x, int *y);
 long getstate(Window w);
@@ -255,9 +255,10 @@ void maprequest(XEvent *e);
 void maximize(int x, int y, int w, int h);
 void monocle(Monitor *m);
 void motionnotify(XEvent *e);
-void movstack(Client *c, int SHIFT_TYPE);
 Client *nexttiled(Client *c);
 Client *nextvisible(Client *c);
+long unsigned int *pingclient(Client *c, int wait_time_milliseconds);
+uint32_t prealpha(uint32_t p);
 void pop(Client *c);
 void propertynotify(XEvent *e);
 void quit(void);
@@ -286,6 +287,7 @@ void setupatom(void);
 void setupcur(void);
 void setuppool(void);
 void setuptags(void);
+void setuptimezone(void);
 void seturgent(Client *c, int urg);
 void setviewport(void);
 void showhide(Client *c);
@@ -309,7 +311,7 @@ void updatesizehints(Client *c);
 void updatestatus(void);
 void updatetitle(Client *c);
 void updateicon(Client *c);
-void updatewindowstate(Client *c, Atom state);
+void updatewindowstate(Client *c, Atom state, int data);
 void updatewindowtype(Client *c);
 void updatewmhints(Client *c);
 void visiblitynotify(XEvent *e);

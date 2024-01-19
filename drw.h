@@ -70,6 +70,8 @@ Picture drw_picture_create_resized(Drw *drw, char *src, unsigned int src_w, unsi
 
 /* Drawing functions */
 void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
+void drw_line(Drw *drw, int x1, int x2, int y1, int y2);
+void drw_arc(Drw *drw, int x, int y, int w, int h, int angle1, int angle2);
 int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
 void drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic);
 

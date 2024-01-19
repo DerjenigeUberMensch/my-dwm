@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <time.h>
 
@@ -95,6 +96,23 @@ ui_unhash(unsigned int x)
     return x;
 }
 
+unsigned long
+ul_hash(unsigned long x)
+{
+    x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
+    x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
+    x = x ^ (x >> 31);
+    return x;
+}
+
+unsigned long
+ul_unhash(unsigned long x)
+{
+    x = (x ^ (x >> 31) ^ (x >> 62)) * UINT64_C(0x319642b2d24d8ec3);
+    x = (x ^ (x >> 27) ^ (x >> 54)) * UINT64_C(0x96de1b173f119089);
+    x = x ^ (x >> 30) ^ (x >> 60);
+    return x;
+}
 double functime(void (*_timefunction)())
 {
     clock_t start, end;
