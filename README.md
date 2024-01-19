@@ -54,18 +54,16 @@ Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 1. Clone this repository: 
 https://github.com/DerjenigeUberMensch/Sd-WM.git
 2. ```cd Sd-WM``` into the repository
-3. ```git checkout origin/Experimental```
+3. ```git checkout origin/Release```
 3. Configure it See **Configuration** (Optional)
 4. `sudo make install` to compile or 'make' to compile but not install on system
-5. Done.
 
 ## Configuration
 To **configure** Sd-WM head on over to `config.def.h` and change the variables there to fit your needs.
 If you feel like **patching** Sd-WM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**. 
-Once you **finish** `rm config.h` if it exists and **recompile.**
 
 ## Troubleshoot
-This is an **_experimental_** build and may contain bugs,
+This is an **Release** build and shouldnt but may contain bugs,
 Screen tearing can be mitigated by using a compositor or by enabling it in your driver setting
 HOWEVER do note that using a compositor may reduce performance when having a large amounts of windows open +50
 
