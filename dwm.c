@@ -23,6 +23,9 @@
 * ~Caveats, this version of dwm is bloated relative to the main branch of dwm -> https://git.suckless.org/dwm/
 * ~So you should not expect this to be able to run as well as dwm
 * ~Tested on a i7-4790 16G ddr3, integrated graphics, -> WITH an ssd <-
+*
+* When drawing using drw make sure to clear it by setting scheme + drw_rect(area you want)
+* AND that the drw GC starts at 0,0 so perform your drw actions relative to 0,0
 */
 #include <errno.h>
 #include <locale.h>
@@ -36,6 +39,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <X11/cursorfont.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/keysym.h>
@@ -62,6 +66,7 @@
 #include "config.def.h"
 #include "toggle.c" /* separate list of functions used by user NOT a header file */
 #include "keybinds.def.h"
+
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags
@@ -450,11 +455,8 @@ clientmessage(XEvent *e)
         data0 = cme->data.l[0];
         data1 = cme->data.l[1];
         data2 = cme->data.l[2];
-        if (data1 == netatom[NetWMFullscreen] || data2 == netatom[NetWMFullscreen])
-            setfullscreen(c, (data0 == 1 /* _NET_WM_STATE_ADD    */
-                        || (data0 == 2 /* _NET_WM_STATE_TOGGLE */ && !c->isfullscreen)));
-        updatewindowstate(c, data1);
-        updatewindowstate(c, data2);
+        updatewindowstate(c, data1, data0);
+        updatewindowstate(c, data2, data0);
     }
     else if (msg == netatom[NetActiveWindow])   { if (c != selmon->sel && !c->isurgent) seturgent(c, 1); }
     else if (msg == netatom[NetCloseWindow] ) { killclient(c, Graceful); }
@@ -709,12 +711,10 @@ drawalttab(int first, Monitor *m)
         if(CFG_ALT_TAB_POS_Y == 1) posy += (selmon->mh >> 1) - (CFG_ALT_TAB_MAX_HEIGHT >> 1);
         if(CFG_ALT_TAB_POS_Y == 2) posy += 0;
 
-        if (m->showbar) posy+=bh;
-
         /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
         m->tabwin = XCreateWindow(dpy, root, posx, posy, maxwNeeded, maxhNeeded, 0, DefaultDepth(dpy, screen),
                                   None, DefaultVisual(dpy, screen),
-                                  CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa); /* create tabwin */
+                                  CWOverrideRedirect|CWBackPixmap|CWEventMask|CWBorderPixel|CWSaveUnder, &wa); /* create tabwin */
         XMapRaised(dpy, m->tabwin);
         XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
     }
@@ -947,8 +947,10 @@ getatomprop(Client *c, Atom prop)
     }
     return atom;
 }
-int
-getwinpid(Window window) {
+
+pid_t
+getwinpid(Window window) 
+{
     Atom actualType;
     int format;
     unsigned long nitems, bytesAfter;
@@ -964,14 +966,6 @@ getwinpid(Window window) {
         return pid;
     }
     return -1;
-}
-
-uint32_t
-prealpha(uint32_t p) {
-    uint8_t a = p >> 24u;
-    uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
-    uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
-    return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
 }
 
 Picture
@@ -1468,6 +1462,75 @@ nextvisible(Client *c)
     return c;
 }
 
+long unsigned int *
+pingclient(Client *c, int wait_time_milliseconds)
+{
+    if(!c) return NULL;
+    XEvent ev;
+    XEvent pingback;
+    Window win = c->win;
+    Atom *winproto;
+    int winprotocount = 0;
+    unsigned long *retdata;
+    unsigned long curtime;
+    int i;
+    retdata = malloc(sizeof(long ) * 5); if(!retdata) return NULL;
+    retdata[0] = 0; /* window id returned from ping back (Window)*/
+    retdata[1] = 0; /* time alloated for ping back */
+    retdata[2] = 0; /* EMPTY */
+    retdata[3] = 0; /* EMPTY */
+    retdata[4] = 1; /* 0 PING SUCCESS, 1 PING FAILED, 2 PING NOT SET */ /* INITIALY SET TO 1 */
+    if (XGetWMProtocols(dpy, c->win, &winproto, &winprotocount))
+    {
+        for (i = 0; i < winprotocount; i++)
+        {
+            if (winproto[i] == netatom[NetWMPing]) 
+            {
+                i = -1;
+                break;
+            }
+        }
+        /* i only equals -1 if found */
+        if(i != -1)
+        {
+            retdata[0] = c->win;
+            retdata[4] = 2;
+            return retdata;
+        }
+    }
+    ev.xclient.type = ClientMessage;
+    ev.xclient.window = win;
+    ev.xclient.message_type = netatom[WMProtocols];
+    ev.xclient.format = 32;
+    ev.xclient.data.l[0] = netatom[NetWMPing];
+    ev.xclient.data.l[1] = CurrentTime;
+    ev.xclient.data.l[2] = win;
+    XSendEvent(dpy, win, False, SubstructureNotifyMask | SubstructureRedirectMask, &ev);
+
+    /* fix later */
+    curtime = time(NULL) * 1000;
+    while(1 && running)
+    {
+        XNextEvent(dpy, &pingback);
+        if  (pingback.xclient.type == ClientMessage
+             && pingback.xclient.message_type == netatom[WMProtocols]
+             && pingback.xclient.format == 32 
+             && pingback.xclient.data.l[0] == netatom[NetWMPing]
+             && pingback.xclient.data.l[2] == win
+             && pingback.xclient.window == root)
+        {
+            retdata[0] = pingback.xclient.data.l[2];
+            retdata[1] = (time(NULL) * 1000) - curtime;
+            retdata[4] = 0;
+            return retdata;
+        }
+        if (handler[pingback.type]) handler[pingback.type](&pingback); /* process other events */
+        if ((time(NULL) * 1000 - curtime) > wait_time_milliseconds) break;
+    }
+    /* fall through */
+    return retdata;
+}
+
 void
 pop(Client *c)
 {
@@ -1475,6 +1538,14 @@ pop(Client *c)
     attach(c);
     focus(c);
     arrange(c->mon);
+}
+
+uint32_t
+prealpha(uint32_t p) {
+    uint8_t a = p >> 24u;
+    uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
+    uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
+    return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
 }
 /* when a window changes properties for what ever reason this is called */
 void
@@ -1494,7 +1565,8 @@ propertynotify(XEvent *e)
         updatestatus();
     else if (ev->state == PropertyDelete)
         return; /* ignore */
-    else if ((c = wintoclient(ev->window))) {
+    else if ((c = wintoclient(ev->window))) 
+    {
         switch(ev->atom)
         {
         case XA_WM_TRANSIENT_FOR:
@@ -1548,6 +1620,8 @@ restoresession(void)
     if (!fr) return;
     /* malloc enough for input*/
     char *str = malloc(MAX_LENGTH * sizeof(char));
+    Client **clients = malloc(sizeof(Client) * CFG_MAX_CLIENT_COUNT);
+    int clientindex = 0;
     while (fscanf(fr, "%[^\n] ", str) != EOF)
     {
         check = sscanf(str,
@@ -1561,11 +1635,22 @@ restoresession(void)
         {
             if (c->win == winId)
             {
+                if(clientindex >= CFG_MAX_CLIENT_COUNT - 1) /* minux 1 because 0 is the index */
+                {
+                    clients[clientindex] = c;
+                    ++clientindex;
+                }
                 c->tags = tagsForWin;
                 if(selcpos) selc = c;
                 break;
             }
         }
+    }
+    for(int i = clientindex - 1; i >= 0; --i)
+    {
+        detach(clients[i]);
+        attach(clients[i]);
+        focus(clients[i]);
     }
     if(selc) pop(selc);
     else focus(NULL);
@@ -1712,6 +1797,7 @@ savesession(void)
                 c->mon->lyt, selmon->sel == c
                );
     }
+
     fclose(fw);
 }
 
@@ -1890,7 +1976,7 @@ setup(void)
     drw = drw_create(dpy, screen, root, sw, sh);
     tagsel = CFG_DEFAULT_TAG_NUM;
     if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
-        die("FATAL ERROR: NO FONTS LOADED.");
+        die("FATAL: NO_FONTS_LOADED");
     lrpad = drw->fonts->h;
     bh = drw->fonts->h + 2;
     updategeom();
@@ -1962,6 +2048,9 @@ setupatom(void)
     netatom[NetWMBelow] = XInternAtom(dpy, "_NET_WM_STATE_BELOW", False);
     netatom[NetWMDemandAttention] = XInternAtom(dpy, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
     netatom[NetWMMinize] = XInternAtom(dpy, "_NET_WM_MINIMIZE", False);
+    netatom[NetWMSticky] = XInternAtom(dpy, "_NET_WM_STATE_STICKY", False);
+    netatom[NetWMHidden] = XInternAtom(dpy, "_NET_WM_STATE_HIDDEN", False);
+    netatom[NetWMModal] = XInternAtom(dpy, "_NET_WM_STATE_MODAL", False);
     /* tracking */
     netatom[NetWMUserTime] = XInternAtom(dpy, "_NET_WM_USER_TIME", False);
     netatom[NetWMPing] = XInternAtom(dpy, "_NET_WM_PING", False);
@@ -1978,6 +2067,7 @@ setupatom(void)
     netatom[NetWMActionBelow] = XInternAtom(dpy, "_NET_WM_ACTION_BELOW", False);
 
     netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
+
     motifatom = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
 
 }
@@ -2010,6 +2100,12 @@ setuptags()
     tagscheme = ecalloc(LENGTH(tagcols), sizeof(Clr *));
     for (i = 0; (long unsigned int)i < LENGTH(tagcols); i++) tagscheme[i] = drw_scm_create(drw, (char **)tagcols[i], 2);
 
+}
+
+void
+setuptimezone()
+{
+    if(!CFG_AUTO_TIME_ZONE && CFG_TIME_ZONE)  setenv("TZ", CFG_TIME_ZONE, 1);
 }
 
 void
@@ -2068,7 +2164,7 @@ void
 sigchld()
 {
     if (signal(SIGCHLD, sigchld) == SIG_ERR)
-        die("FATAL ERROR: CANNOT INSTALL SIGCHLD HANDLER:");
+        die("FATAL: CANNOT_INSTALL_SIGCHLD_HANDLER");
 
     while (0 < waitpid(-1, NULL, WNOHANG));
 }
@@ -2139,7 +2235,7 @@ void
 killclient(Client *c, int type)
 {
     XEvent ev;
-
+    pid_t pid;
     if(!c) return;
     if(!sendevent(c, wmatom[WMDelete]))
     {
@@ -2153,6 +2249,18 @@ killclient(Client *c, int type)
             break;
         case Destroy:
             XDestroyWindow(dpy, c->win);
+            XUngrabServer(dpy);
+            XSync(dpy, False);
+            XGrabServer(dpy);
+            if(CFG_ALLOW_PID_KILL && c && c->win)
+            {
+                char *cname = smprintf("ATTEMPTED MANUAL KILL ON: %s",c->name);
+                pid = getwinpid(c->win);
+                /* most system pids are < 100 also covers the '-1' if it fails */
+                if(pid > 100) kill(pid, SIGKILL);
+                debug(cname);
+                free(cname);
+            }
             break;
         case Safedestroy:
             /* get window */
@@ -2543,12 +2651,16 @@ updatesizehints(Client *c)
         c->minw = size.base_width;
         c->minh = size.base_height;
     }
-    c->basew = c->minw;
-    c->baseh = c->minh;
+
     if (size.flags & PBaseSize)
     {
         c->basew = size.base_width;
         c->baseh = size.base_height;
+    }
+    else if(size.flags & PMinSize)
+    {
+        c->basew = c->minw;
+        c->baseh = c->minh;
     }
     if (size.flags & PResizeInc)
     {
@@ -2594,10 +2706,10 @@ updateicon(Client *c)
 }
 
 void
-updatewindowstate(Client *c, Atom state)
+updatewindowstate(Client *c, Atom state, int data)
 {
     /* possible states
-     * _NET_WM_STATE_MODAL, ATOM
+     _NET_WM_STATE_MODAL, ATOM
      _NET_WM_STATE_STICKY, ATOM
      _NET_WM_STATE_MAXIMIZED_VERT, ATOM
      _NET_WM_STATE_MAXIMIZED_HORZ, ATOM
@@ -2609,16 +2721,25 @@ updatewindowstate(Client *c, Atom state)
      _NET_WM_STATE_ABOVE, ATOM
      _NET_WM_STATE_BELOW, ATOM
      _NET_WM_STATE_DEMANDS_ATTENTION, ATOM
+     _NET_WM_STATE_FOCUSED, ATOM
      */
+    /* 0 remove
+     * 1 add
+     * 2 toggle
+     */
+    /* this is a headache to look at fix later */
     Client *temp;
-    if (state == netatom[NetWMAlwaysOnTop]) { c->alwaysontop = c->isfloating = 1; }
-    else if (state == netatom[NetWMStayOnTop]) { c->stayontop = c->isfloating = 1; }
-    else if (state == netatom[NetWMFullscreen]) { setfullscreen(c, 1); }
-    else if (state == netatom[NetWMDemandAttention]) { c->isfloating = c->isurgent = 1; XRaiseWindow(dpy, c->win);}
-    else if (state == netatom[NetWMMaximizedHorz]) { temp = selmon->sel; selmon->sel = c; MaximizeWindowHorizontal(NULL); selmon->sel = temp; arrange(c->mon);}
-    else if (state == netatom[NetWMMaximizedVert]) { temp = selmon->sel; selmon->sel = c; MaximizeWindowVertical(NULL);   selmon->sel = temp; arrange(c->mon);}
-    else if (state == netatom[NetWMAbove]) {/**/}
-    else if (state == netatom[NetWMBelow]) {/**/}
+    int toggle = data == 2;
+    if      (state == netatom[NetWMAlwaysOnTop])    { c->alwaysontop = c->isfloating = toggle ? !c->alwaysontop : !!data;}
+    else if (state == netatom[NetWMStayOnTop])      { c->stayontop = c->isfloating = toggle ? !c->stayontop : !!data;}
+    else if (state == netatom[NetWMFullscreen])     { setfullscreen(c, toggle ? !c->isfullscreen : !!data); }
+    else if (state == netatom[NetWMDemandAttention]){ c->isfloating = c->isurgent = toggle ? !c->isurgent : !!data; if(c->isurgent) XRaiseWindow(dpy, c->win);}
+    else if (state == netatom[NetWMMaximizedHorz])  { temp = selmon->sel; selmon->sel = c; MaximizeWindowHorizontal(NULL); selmon->sel = temp; arrange(c->mon);}
+    else if (state == netatom[NetWMMaximizedVert])  { temp = selmon->sel; selmon->sel = c; MaximizeWindowVertical(NULL);   selmon->sel = temp; arrange(c->mon);}
+    else if (state == netatom[NetWMFocused])        {/**/}
+    else if (state == netatom[NetWMSticky])         {  }
+    else if (state == netatom[NetWMAbove])          {/**/}
+    else if (state == netatom[NetWMBelow])          {/**/}
 }
 
 void
@@ -2626,7 +2747,7 @@ updatewindowtype(Client *c)
 {
     Atom state = getatomprop(c, netatom[NetWMState]);
     Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
-    updatewindowstate(c, state);
+    updatewindowstate(c, state, 1); /* _NET_WM_STATE_ADD */
     if (wtype == netatom[NetWMWindowTypeDialog]) c->isfloating = 1;
 }
 
@@ -2783,15 +2904,16 @@ main(int argc, char *argv[])
     else if (argc != 1)
         die("usage: args[-v]");
     if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
-        fputs("WARN: no locale support\n", stderr);
+        fputs("WARN: NO_LOCALE_SUPPORT\n", stderr);
+    if(!XInitThreads()) die("FATAL: NO_MULTI_THREADING");
     if (!(dpy = XOpenDisplay(NULL)))
-        die("FATAL ERROR: CANNOT OPEN DISPLAY");
+        die("FATAL: CANNOT_OPEN_DISPLAY");
     checkotherwm();
     setup();
 
 #ifdef __OpenBSD__
     if (pledge("stdio rpath proc exec", NULL) == -1)
-        die("pledge");
+        die("FATAL: OPEN_BSD_PLEDGE");
 #endif
     scan();
     restoresession();

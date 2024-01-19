@@ -50,7 +50,7 @@ static const char *filemanager[]    = {"thunar", NULL };
 static const Key keys[] = 
 {
     /*Action            modifier                    key         function            argument */
-    { KeyPress,         SUPER,                      XK_n,       tester,             {0} },
+    { KeyPress,         SUPER,                      XK_n,       UserStats,          {0} },
     { KeyPress,         SUPER,                      XK_d,       SpawnWindow,        {.v = dmenucmd } },
     { KeyPress,         SUPER,                      XK_Return,  SpawnWindow,        {.v = termcmd } },
     { KeyPress,         SUPER,                      XK_e,       SpawnWindow,        {.v = filemanager } },
@@ -66,7 +66,6 @@ static const Key keys[] =
     { KeyPress,         SUPER,                      XK_c,       SetWindowLayout,    {Monocle} },
     { KeyPress,         SUPER,                      XK_g,       SetWindowLayout,    {Grid} },
     { KeyPress,         0,                          XK_F11,     ToggleFullscreen,   {0} },
-
     { KeyPress,         ALT,                        TAB,        AltTab,	            {0} },
     { KeyPress,         0, XF86XK_AudioMute,                    SpawnWindow,        {.v = mute_vol } },
     { KeyPress,         0, XF86XK_AudioLowerVolume,             SpawnWindow,        {.v = down_vol } },

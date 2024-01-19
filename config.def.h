@@ -20,6 +20,7 @@
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+#define CFG_ALLOW_PID_KILL      1           /* Allow PID to be grabbed to Terminate a window ONLY on failure    */
 /* status bar */
 #define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
@@ -55,13 +56,6 @@
 #define CFG_TAG_PREVIEW_SCALE       4       /* Tag preview scaling (display w + display h) / SCALE              */
 #define CFG_TAG_PREVIEW_BAR         1       /* 1 show bar in preview; 0 to disable                              */
 #define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this)     */
-/* Tracking (Not Recommended) */
-#define CFG_TRACK_WIN_LAST_ACCESED  0       /* track the time since you last accesed a window                   */ /* _NET_WM_USER_TIME */
-#define CFG_TRACK_WIN_USAGE_TIME    0       /* track how long you have been on a window                         */ 
-#define CFG_TRACK_WIN_PINGING       0       /* Allows you to get a clients state, for example if its frozen     */ /* _NET_WM_PING */
-#define CFG_TRACK_ENABLE_USER_STATS 0       /* enables you to view these statistics in a nice window format     */
-#define CFG_TRACK_SAVE_USER_STATS   0       /* This saves the statistics for the current session                */
-#define CFG_TRACK_SAVE_LOC          "/tmp/dwm/userstats.txt" /* This is the save location; see above            */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
 #define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
@@ -71,6 +65,10 @@
 #define CFG_DMENU_COL_NORM_FOREGROUND       "#ffffff" /* dmenu text colour for NON selected items       */
 #define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */
 #define CFG_DMENU_COL_SEL_FOREGROUND        "#ffffff" /* dmenu text colour for SELECTED items           */
+
+/* NOT FULLY IMPLEMENTED (DONT REMOVE) */
+#define CFG_AUTO_TIME_ZONE          1       /* Get System time instead of time set below                        */
+#define CFG_TIME_ZONE               "Country/City" /* see https://wiki.archlinux.org/title/System_time          */
 /* caveats
  * CFG_MAX_CLIENT_COUNT may limit your client count lower than usual when using a compositor.
  * FAST_INPUT feels janky
@@ -141,3 +139,6 @@ static const Layout layouts[] =
 };
 
 #endif
+
+
+/* Any version past v3.0.0 IS BLOATWARE USER DISCRETION IS ADVICED */ 

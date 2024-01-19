@@ -32,7 +32,8 @@
 
 #include "toggle.h"
 
-void tester(const Arg *arg)
+void
+UserStats(const Arg *arg)
 {
 }
 
@@ -388,7 +389,7 @@ AltTab(const Arg *arg)
                 GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
         { XUngrabKeyboard(dpy, CurrentTime); alttabend(tabnext); return; }
 
-    while (grabbed)
+    while (grabbed && running)
     {
         XNextEvent(dpy, &event);
         switch(event.type)

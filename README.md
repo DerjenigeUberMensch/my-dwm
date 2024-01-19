@@ -72,3 +72,6 @@ Screen tearing can be mitigated by using a compositor or by enabling it in your 
 
 If you have any **major** **issues** with a **current** commit you can **revert** to a **previous commit** for a generally stabler version.
 Or you can open an **[issue](https://github.com/DerjenigeUberMensch/Sd-WM/issues)** about it.
+
+## Know Issues
+Icons seem to be never freed for some reason resulting in high memory usage ~20Mib or more
