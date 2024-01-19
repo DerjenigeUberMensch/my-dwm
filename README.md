@@ -1,52 +1,73 @@
-# deprecated see branch/Experimental for current build
-
-
-
-
-## dwm
+# dwm
 
 > _"dwm is an extremely fast, small, and dynamic window manager for X."_
 
 **_Not for long._**
 
-### Patches applied:
+## Patches applied:
 
-1. **Actual fullscreen**
-2. **Alt-Tab**
-3. Alt-Tab minimal
-4. **maximize**
-5. **refreshrate**
-6. **resizehere**
-7. **resizecorners** (Not fully supported)
-8. Easy config
+- **Actual fullscreen**
+- **Alt-Tab**
+- **maximize**
+- **refreshrate**
+- **noborderflicker**
+- **activetagindicatorbar**
+- **activemonitor**
+- **bartabgroups**
+- **stacker**
+- **grid**
+- **winicon**
+- **restartrig**
+- **restoreafterrestart**
+- **windowmap**
+- **rainbowtags**
+- **updatemotifhints**
+- resize anywhere
+- Alt-Tab minimal
 
-### Preview:
+## Preview:
 
 ![alttab](/cool_images/alt_tab.png "AltTab.")
 
-### Usage 
+## Requirements
+1. pactl
+2. playerctl
+3. brightnessctl
+4. dmenu
+5. st
+6. scrot   
+7. x11 (xlib)
+8. xorg
+9. xorg-xinit
+10. 8MiB <~> 15MiB + (xorg RAM) depending on your system this number may vary though legacy systems may use less RAM
+
+**Pacman && yay**
+```
+sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit imlib2 && yay -S st
+```
+
+## Usage 
 To **use** Sd-WM you must first **compile it**.
 Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 
 
-### Compiling
-**NOTE See experimental for current build**
+## Compiling
 1. Clone this repository: 
 https://github.com/DerjenigeUberMensch/Sd-WM.git
-2. `cd Sd-WM` into the repository
+2. ```cd Sd-WM``` into the repository
+3. ```git checkout origin/Experimental```
 3. Configure it See **Configuration** (Optional)
 4. `sudo make clean install` to compiled
-5. Ignore any warnings (compiled with O0)
-5. Enjoy!
+5. Done.
 
-*-O1+ compilation not fully supported.*
-
-### Configuration
+## Configuration
 To **configure** Sd-WM head on over to `config.def.h` and change the variables there to fit your needs.
 If you feel like **patching** Sd-WM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**. 
 Once you **finish** `rm config.h` if it exists and **recompile.**
 
-### Troubleshoot
+## Troubleshoot
+This is an **_experimental_** build and may contain bugs,
+Screen tearing can be mitigated by using a compositor or by enabling it in your driver setting
 
-You may need libraries such as x11 or "xlib" `sudo pacman -S libx11`
-
+If you have any **major** **issues** with a **current** commit you can **revert** to a **previous commit** for a generally stabler version.
+Or you can open an **[issue](https://github.com/DerjenigeUberMensch/Sd-WM/issues)** about it.

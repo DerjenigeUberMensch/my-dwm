@@ -1,44 +1,109 @@
-/* See LICENSE file for copyright and license details. */
-/*4 Tab spaces; No tab characters use spaces for tabs  */
-
-/* appearance */
-static char WM_NAME[]               = "dwm.exe";        /* wm name displayed when using X (type neofetch to see this) */
-static const unsigned int borderpx  = 0;    /* border pixel of windows */
-static const unsigned int snap      = 15;   /* snap pixel */
-static const unsigned int windowrate= 120;  /* max refresh rate when resizing, moving windows; set 0 to disable */
-static const int hoverfocus         = 0;    /* 0 to disable; 1 on mouse hover focus that window */
-
-static const int barpadding         = 0;    /* padding in pixels x 2 */
-static const int showbar            = 1;    /* 0 means no bar */
-static const int topbar             = 0;    /* 0 means bottom bar */
-static const int fastinputbar       = 0;    /* 0 means no fastinput; 1 prioritizes input over bar render */
-static const char *fonts[]          = {"monospace:size=15" };
-static const char dmenufont[]       = "monospace:size=15";
+/* See LICENSE file for copyright and license details.
+ * 4 Tab spaces; No tab characters use spaces for tabs
+ * Basic overview of dwm => https://ratfactor.com/dwm
+ * For more information about xlib (X11)       visit https://x.org/releases/current/doc/libX11/libX11/libX11.html
+ * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/ 
+ * For broad information about xlib (X11) visit {
+ * List of utils: https://www.freedesktop.org/wiki/Specifications/
+ * }
+ */
+/* window */
+#define CFG_BORDER_PX           0           /* border pixel of windows                                          */
+#define CFG_SNAP                15          /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
+#define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
+#define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
+#define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
+#define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
+#define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+/* status bar */
+#define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
+#define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
+#define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
+#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per icon); 0 to disable      */
+#define CFG_ICON_SIZE           16          /* icon size                                                        */
+#define CFG_ICON_SPACE          2           /* space between icon and title                                     */
 
 /* alt-tab configuration */
-static const unsigned int tabModKey 		= 0x40;	/* if this key is hold the alt-tab functionality stays acitve. This key must be the same as key that is used to active functin altTabStart `*/
-static const unsigned int tabCycleKey 		= 0x17;	/* if this key is hit the alt-tab program moves one position forward in clients stack. This key must be the same as key that is used to active functin altTabStart */
-static const unsigned int tabPosX 			= 1;	/* tab position on X axis, 0 = left, 1 = center, 2 = right */
-static const unsigned int tabPosY 			= 1;	/* tab position on Y axis, 0 = bottom, 1 = center, 2 = top */
-static const unsigned int centerTabText     = 1;    /* 0 to disable */
-static const unsigned int maxWTab 			= 600;	/* MAX tab menu width */
-static const unsigned int maxHTab 			= 200;	/* MAX tab menu height */
-static const unsigned int minWidthDraw      = 0;  /* if (textlength < minWidthDraw): add padding */
+/* to get keycode you can do xev and press a type */
+#define CFG_ALT_TAB_SWITCH_KEY      64      /* Hold this key to keep alt-tab active                             */
+#define CFG_ALT_TAB_CYCLE_KEY       23      /* Tap this key to focus next client                                */
+#define CFG_ALT_TAB_POS_X           1       /* tab position on X axis, 0 = left, 1 = center, 2 = right          */
+#define CFG_ALT_TAB_POS_Y           1       /* tab position on Y axis, 0 = bottom, 1 = center, 2 = top          */
+#define CFG_ALT_TAB_TEXT_POS_X      1       /* tab position on x axis, 0 = left , 1 = center, 2 = right         */
+#define CFG_ALT_TAB_MAX_WIDTH       600     /* MAX tab menu width                                               */
+#define CFG_ALT_TAB_MAX_HEIGHT      200     /* MAX tab menu height                                              */
+#define CFG_ALT_TAB_MIN_WIDTH       0       /* Add padding if text length is shorter; 0 to disable              */
+#define CFG_ALT_TAB_MAP_WINDOWS     1       /* 1 compositor fadding when switching tabs; 0 to disable           */
+#define CFG_ALT_TAB_SHOW_PREVIEW    1       /* shows window preview when alt tabbing                            */
+#define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab only changes focused window; 0 to disable               */
+/* Misc */
+#define CFG_SHOW_WM_NAME            0       /* 1 Show window manager name at end of status bar; 0 to disable    */
+#define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
+#define CFG_MAX_CLIENT_COUNT        256     /* max number of clients assuming you can handle this many          */
+#define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
+#define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
+#define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
+#define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
+#define CFG_DEFAULT_LAYOUT          MONOCLE /* Default window layout GRID,TILED,MONOCLE,FLOATING;               */
+#define CFG_DEFAULT_PREV_LAYOUT     TILED   /* See above; Sets previous layout when starting dwm                */
+#define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this)     */
+/* dmenu */
+#define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
+#define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
+#define CFG_DMENU_CASE_SENSITIVE    1       /* 1 dmenu searches case senstivly; 0 to disable                    */
+/* dmenu colours */
+#define CFG_DMENU_COL_NORM_BACKGROUND       "#000000" /* dmenu background colour for NON selected items */
+#define CFG_DMENU_COL_NORM_FOREGROUND       "#ffffff" /* dmenu text colour for NON selected items       */
+#define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */
+#define CFG_DMENU_COL_SEL_FOREGROUND        "#ffffff" /* dmenu text colour for SELECTED items           */
 
-static char col_black[]       = "#000000";
-static char col_white[]       = "#ffffff";
-/*static char col_term_blue[]   = "#ecffff"; */
-static char *colors[][3]      = {
-    /*					fg         bg          border   */
-    /*                  fg=textColour                   */
-    [SchemeNorm]    = { col_white, col_black, col_white},
-    [SchemeSel]     = { col_white, col_black, col_white},
-    [SchemeAltTab]  = { col_white, col_black, col_white},
+static const char *fonts[]      =   {"monospace:size=12" };
+static const char dmenufont[]   =   {"monospace:size=12"};
+
+
+/* COLOURS */
+#define COL_BLACK       "#000000"
+#define COL_WHITE       "#ffffff"
+#define COL_GREY        "#C0C0C0"
+#define COL_RED         "#ff0000"
+#define COL_PINK        "#FF00FF"
+#define COL_BLUE        "#0000FF"
+#define COL_YELLOW      "#FFFF00"
+
+/* static char col_term_blue[]   = "#ecffff"; */
+static char *colors[][3] = 
+{
+    /*					        fg         bg          border   */
+    [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE},
+    [SchemeSel]             = { COL_WHITE, COL_BLACK, COL_WHITE},
+    [SchemeUrgent]          = { COL_BLUE,  COL_RED,   COL_BLUE},
+    [SchemeWarn]            = { COL_WHITE, COL_YELLOW, COL_WHITE},
+
+    [SchemeAltTab]          = { COL_WHITE, COL_BLACK, COL_BLACK},
+    [SchemeAltTabSelect]    = { COL_BLACK, COL_WHITE, COL_WHITE},
+
+    [SchemeBarTabActive]    = { COL_BLACK, COL_WHITE, COL_WHITE},
+    [SchemeBarTabInactive]  = { COL_WHITE, COL_BLACK, COL_BLACK},
+    [SchemeTagActive]       = { COL_BLACK, COL_WHITE, COL_WHITE},
+
 };
+/* appearance */
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-
-static const Rule rules[] = {
+static const char *tagsel[][2] = {
+    /* fg       bg */
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+    {COL_WHITE, COL_BLACK},
+};
+static const Rule rules[] = 
+{
     /* xprop(1):
      *	WM_CLASS(STRING) = instance, class
      *	WM_NAME(STRING) = title
@@ -48,105 +113,13 @@ static const Rule rules[] = {
 };
 
 /* layout(s) */
-static const float mfact     = 0.55; /* factor of master area size [0.05..0.95]      */
-static const int nmaster     = 1;    /* number of clients in master area             */
-static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
-static const int lockfullscreen = 1; /* 1 will force focus on the fullscreen window  */
 
-static const Layout layouts[] = {
+static const Layout layouts[] = 
+{
     /* symbol     arrange function */
-    { "[T]",      tile },    /* first entry is default */
-    { "[F]",      NULL },    /* no layout function means floating behavior */
-    { "[M]",      monocle },
-};
+    [TILED]     = { "[T]",      tile },    
+    [FLOATING]  = { "[F]",      NULL },    
+    [MONOCLE]   = { "[M]",      monocle },
+    [GRID]      = { "[G]",      grid },
 
-/* key definitions */
-#define ALT     Mod1Mask
-#define NUMLOCK Mod2Mask
-#define SUPER   Mod4Mask /* windows key */
-#define CTRL    ControlMask
-#define SHIFT   ShiftMask
-#define TAB     XK_Tab
-/* #define ISO_LEVEL5_SHIFT Mod3Mask
- * #define ISO_LEVEL3_SHIFT Mod5Mask */
-#define TAGKEYS(KEY,TAG) \
-{ SUPER,                       KEY,      view,           {.ui = 1 << TAG} }, \
-{ SUPER|CTRL,                  KEY,      toggleview,     {.ui = 1 << TAG} }, \
-{ SUPER|SHIFT,                 KEY,      tag,            {.ui = 1 << TAG} }, \
-{ SUPER|CTRL|SHIFT,            KEY,      toggletag,      {.ui = 1 << TAG} },
-
-/* helper for spawning shell commands in the pre dwm-5.0 fashion */
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
-
-/* Multimedia Keys (laptops and function keyboards) */
-static const char *up_vol[]   = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+1%",   NULL };
-static const char *down_vol[] = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-1%",   NULL };
-static const char *mute_vol[] = { "pactl", "set-sink-mute",   "@DEFAULT_SINK@", "toggle", NULL };
-static const char *pause_vol[]= { "playerctl", "play-pause"};
-static const char *next_vol[] = { "playerctl", "next"};
-static const char *prev_vol[] = { "playerctl", "previous"};
-static const char *brighter[] = { "brightnessctl", "set", "1%+", NULL };
-static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
-
-//refer here => https://ratfactor.com/dwm
-/* commands */
-static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", col_black, "-nf", col_white, "-sb", col_black, "-sf", col_white, topbar ? NULL : "-b", fastinputbar ? "-f" : NULL, NULL }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
-static const char *termcmd[]        = { "st", NULL };
-static const char *screenshotcmd[]  = {"scrot","-d3", "$HOME/Pictures/Screenshots/%Y-%m-%d-%T-screenshot.png", NULL}; /*doesnt work*/
-
-static const Key keys[] = {
-    /* modifier                     key        function        argument */
-    { SUPER,                        XK_d,       spawn,          {.v = dmenucmd } },
-    { SUPER,                        XK_Return,  spawn,          {.v = termcmd } },
-    { SUPER,                        XK_Print,   spawn,          {.v = screenshotcmd } },
-    { SUPER,                        XK_b,       togglebar,      {0} },
-    { SUPER,                        XK_q,	    view,           {0} },
-    { SUPER|SHIFT,                  XK_q,       killclient,     {0} },
-    { CTRL|ALT,                     XK_q,	    forcekillclient,{0} },
-    { SUPER,                        XK_w,       togglemaximize, {0} },
-    { SUPER|SHIFT,                  XK_p,       quit,           {0} },
-    { SUPER,                        XK_z,       setlayout,      {.v = &layouts[0]} },/* TILED    */
-    { SUPER,                        XK_x,       setlayout,      {.v = &layouts[1]} },/* FLOATING */
-    { SUPER,                        XK_c,       setlayout,      {.v = &layouts[2]} },/* MONOCLE  */
-    { 0,                            XK_F11,     togglefullscr,  {0} },
-
-    { ALT,             		        TAB,        altTabStart,	{0} },
-
-    { 0, XF86XK_AudioMute,                      spawn, {.v = mute_vol } },
-    { 0, XF86XK_AudioLowerVolume,               spawn, {.v = down_vol } },
-    { 0, XF86XK_AudioRaiseVolume,               spawn, {.v = up_vol } },
-    { 0, XF86XK_MonBrightnessDown,              spawn, {.v = dimmer } },
-    { 0, XF86XK_MonBrightnessUp,                spawn, {.v = brighter } },
-    { 0, XF86XK_AudioPlay,                      spawn, {.v = pause_vol } },
-    { 0, XF86XK_AudioPause,                     spawn, {.v = pause_vol } },
-    { 0, XF86XK_AudioNext,                      spawn, {.v = next_vol } },
-    { 0, XF86XK_AudioPrev,                      spawn, {.v = prev_vol } },
-
-    TAGKEYS(                        XK_1,                      0)
-    TAGKEYS(                        XK_2,                      1)
-    TAGKEYS(                        XK_3,                      2)
-    TAGKEYS(                        XK_4,                      3)
-    TAGKEYS(                        XK_5,                      4)
-    TAGKEYS(                        XK_6,                      5)
-    TAGKEYS(                        XK_7,                      6)
-    TAGKEYS(                        XK_8,                      7)
-    TAGKEYS(                        XK_9,                      8)
-};
-
-/* button definitions */
-/* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
-static const Button buttons[] = {
-    /* click                event mask      button          function        argument */
-    { ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
-    { ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
-    { ClkWinTitle,          0,              Button2,        zoom,           {0} },
-    { ClkStatusText,        0,              Button2,        spawn,          {.v = termcmd } },
-    { ClkClientWin,         SUPER,          Button1,        movemouse,      {0} },
-    { ClkClientWin,         SUPER,          Button2,        togglefloating, {0} },
-    { ClkClientWin,         SUPER,          Button3,        resizemouse,    {0} },
-    { ClkTagBar,            0,              Button1,        view,           {0} },
-    { ClkTagBar,            0,              Button3,        toggleview,     {0} },
-    { ClkTagBar,            SUPER,          Button1,        tag,            {0} },
-    { ClkTagBar,            SUPER,          Button3,        toggletag,      {0} },
 };

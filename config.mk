@@ -14,6 +14,10 @@ X11LIB = /usr/X11R6/lib
 XINERAMALIBS  = -lXinerama
 XINERAMAFLAGS = -DXINERAMA
 
+# lXrender (window icons)
+XRENDER = -lXrender
+IMLIB2LIBS = -lImlib2
+
 # freetype
 FREETYPELIBS = -lfontconfig -lXft
 FREETYPEINC = /usr/include/freetype2
@@ -23,24 +27,27 @@ FREETYPEINC = /usr/include/freetype2
 
 # includes and libs
 INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} -lXrender
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${IMLIB2LIBS} ${XRENDER}
 
 # flags
+# WARN: WHEN DEBUGGING USING -pg / other gcc debugging settings CRASHES WILL occur when restarting
 # -g -> debug
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-CFLAGS   = -g -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
+CFLAGS   = -ggdb -g -std=c99 -pedantic -Wall -Wextra -Wshadow ${INCS} ${CPPFLAGS} -O0
 
 
-# compile for smaller binary size
-#CFLAGS   = -g -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O0 ${INCS} ${CPPFLAGS}
+# SZ
+#CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow ${INCS} ${CPPFLAGS} -Os
 
-# Compile for better cpu usage ~1% decrease Xorg cpu usage may cause memory leak
-#CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -O2 ${INCS} ${CPPFLAGS}
-LDFLAGS  = ${LIBS}
+# Release
+CFLAGS  = -s -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Wshadow -ftree-vectorize ${INCS} ${CPPFLAGS} -O2
 
 # Solaris
-#CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"
+#CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"
+#DEBUG 
 #LDFLAGS = ${LIBS}
+#Release
+LDFLAGS  = ${LIBS}
 
 # compiler and linker
 CC = cc
