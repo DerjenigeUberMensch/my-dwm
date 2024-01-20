@@ -424,16 +424,6 @@ AltTab(const Arg *arg)
 }
 
 void
-PreviewTag(const Arg *arg)
-{
-    if (selmon->showpreview != (arg->ui + 1))
-        selmon->showpreview = arg->ui + 1;
-    else
-        selmon->showpreview = 0;
-    showtagpreview(arg->ui);
-}
-
-void
 TagWindow(const Arg *arg)
 {
     if (selmon->sel && arg->ui & TAGMASK)
@@ -488,7 +478,7 @@ ToggleFullscreen(const Arg *arg)
     m->isfullscreen = !m->isfullscreen;
     for (c = m->clients; c; c = c->snext) 
     {
-        if(!ISVISIBLE(c) || c->alwaysontop) continue;
+        if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop) continue;
         setfullscreen(c, m->isfullscreen);
     }
     if(m->isfullscreen)  setmonitorlayout(m, Monocle);
@@ -520,7 +510,6 @@ ToggleView(const Arg *arg)
 
     if (newtagset)
     {
-        takepreview();
         selmon->tagset[selmon->seltags] = newtagset;
         focus(NULL);
         arrange(selmon);
@@ -531,7 +520,6 @@ void
 View(const Arg *arg)
 {
     if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) return;
-    takepreview();
     selmon->seltags ^= 1; /* toggle sel tagset */
     if (arg->ui & TAGMASK) selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
     focus(NULL);

@@ -142,7 +142,8 @@ applyrules(Client *c)
     class    = ch.res_class ? ch.res_class : BROKEN;
     instance = ch.res_name  ? ch.res_name  : BROKEN;
 
-    for (i = 0; i < LENGTH(rules); i++) {
+    for (i = 0; i < LENGTH(rules); i++) 
+    {
         r = &rules[i];
         if ((!r->title || strstr(c->name, r->title))
                 && (!r->class || strstr(class, r->class))
@@ -302,11 +303,6 @@ buttonpress(XEvent *e)
             click = ClkTagBar;
             arg.ui = 1 << i;
             /* hide preview if we click the bar */
-            if (selmon->showpreview)
-            {
-                selmon->showpreview = 0;
-                XUnmapWindow(dpy, selmon->tagwin);
-            }
         }
         else if (ev->x < x + (int)TEXTW(selmon->ltsymbol))
             click = ClkLtSymbol;
@@ -384,7 +380,6 @@ cleanupmon(Monitor *mon)
     free(mon->tagmap);
     cleanupsbar(mon);
     cleanuptabwin(mon);
-    cleanuptagpreview(mon);
     free(mon);
 }
 
@@ -393,15 +388,6 @@ cleanupsbar(Monitor *m) /* status bar */
 {
     XUnmapWindow(dpy, m->barwin);
     XDestroyWindow(dpy, m->barwin);
-}
-
-void
-cleanuptagpreview(Monitor *m)
-{
-    size_t i;
-    for (i = 0; i < LENGTH(tags); i++) if (m->tagmap[i]) XFreePixmap(dpy, m->tagmap[i]);
-    XUnmapWindow(dpy, m->tagwin);
-    XDestroyWindow(dpy, m->tagwin);
 }
 
 void
@@ -414,29 +400,9 @@ cleanuptabwin(Monitor *m)
 int
 clientdocked(Client *c)
 {
-    int wx; /* Window  X */
-    int wy; /* Window  Y */
-    int mx; /* Monitor X */
-    int my; /* Monitor Y */
-
-    int ww; /* Window Width   */
-    int wh; /* Window Height  */
-    int mw; /* Monitor Width  */
-    int mh; /* Monitor Height */
-
-    wx = c->x;
-    wy = c->y;
-    mx = c->mon->wx;
-    my = c->mon->wy;
-
-    ww = c->w + c->bw;
-    wh = c->h + c->bw + c->mon->showbar * bh;
-    wh = c->h;
-    mw = c->mon->ww;
-    mh = c->mon->wh;
-
-    /* Check if dockable -> same height width, location, as monitor */
-    return mx == wx && my == wy && mw == ww && mh == wh;
+    return c->mon->wx == c->x && c->mon->wy == c->y
+        && c->mon->ww == WIDTH(c)
+        && c->mon->wh == HEIGHT(c);
 }
 
 void
@@ -456,7 +422,7 @@ clientmessage(XEvent *e)
         data1 = cme->data.l[1];
         data2 = cme->data.l[2];
         updatewindowstate(c, data1, data0);
-        updatewindowstate(c, data2, data0);
+        if(data1 != data2) updatewindowstate(c, data2, data0);
     }
     else if (msg == netatom[NetActiveWindow])   { if (c != selmon->sel && !c->isurgent) seturgent(c, 1); }
     else if (msg == netatom[NetCloseWindow] ) { killclient(c, Graceful); }
@@ -707,8 +673,8 @@ drawalttab(int first, Monitor *m)
         if(CFG_ALT_TAB_POS_X == 1) posx += (selmon->mw >> 1) - (maxwNeeded >> 1);
         if(CFG_ALT_TAB_POS_X == 2) posx += selmon->mw - maxwNeeded;
 
-        if(CFG_ALT_TAB_POS_Y == 0) posy += selmon->mh - CFG_ALT_TAB_MAX_HEIGHT;
-        if(CFG_ALT_TAB_POS_Y == 1) posy += (selmon->mh >> 1) - (CFG_ALT_TAB_MAX_HEIGHT >> 1);
+        if(CFG_ALT_TAB_POS_Y == 0) posy += selmon->mh - maxhNeeded;
+        if(CFG_ALT_TAB_POS_Y == 1) posy += (selmon->mh >> 1) - maxhNeeded;
         if(CFG_ALT_TAB_POS_Y == 2) posy += 0;
 
         /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
@@ -720,18 +686,21 @@ drawalttab(int first, Monitor *m)
     }
     int y = 0;
     int schemecol;
+    int txtw = 0;
     maxhNeeded/=nwins;
     for(c = m->clients; c; c = c->next) 
     {
         if(!ISVISIBLE(c)) continue;
         schemecol = c != selmon->sel ? SchemeAltTab : SchemeAltTabSelect;
+        /* for some reason this breaks when not using a variable and just putting in the thing */
+        txtw = TEXTW(c->name) - lrpad;
         drw_setscheme(drw, scheme[schemecol]);
 
         if(CFG_ALT_TAB_TEXT_POS_X == 0) txtpad = 0;
-        if(CFG_ALT_TAB_TEXT_POS_X == 1) txtpad = MAX(maxwNeeded - TEXTW(c->name) + lrpad, 0) >> 1;
-        if(CFG_ALT_TAB_TEXT_POS_X == 2) txtpad = MAX(maxwNeeded - TEXTW(c->name) + lrpad, 0);
+        if(CFG_ALT_TAB_TEXT_POS_X == 1) txtpad = MAX(maxwNeeded - txtw, 0) >> 1;
+        if(CFG_ALT_TAB_TEXT_POS_X == 2) txtpad = MAX(maxwNeeded - txtw, 0);
 
-        drw_text(drw, 0, y, CFG_ALT_TAB_MAX_WIDTH, maxhNeeded, txtpad, c->name, 0);
+        drw_text(drw, 0, y, maxwNeeded, maxhNeeded, txtpad, c->name, 0);
         y += maxhNeeded;
     }
     drw_setscheme(drw, scheme[SchemeNorm]); /* set scheme back to normal */
@@ -1395,49 +1364,6 @@ motionnotify(XEvent *e)
     Monitor *m;
     XMotionEvent *ev = &e->xmotion;
 
-    /* tag preview start */
-    int i;
-    int x;
-
-    if (ev->window == selmon->barwin)
-    {
-        i = x = 0;
-        do x += TEXTW(tags[i]);
-        while (ev->x >= x && ++i < (int)LENGTH(tags));
-        /* FIXME when hovering the mouse over the tags and we view the tag,
-         *       the preview window get's in the preview shot */
-
-        if (i < (int)LENGTH(tags))
-        {
-            if (selmon->showpreview != (i + 1) && !(selmon->tagset[selmon->seltags] & 1 << i))
-            {
-                selmon->showpreview = i + 1;
-                showtagpreview(i);
-            }
-            else if (selmon->tagset[selmon->seltags] & 1 << i)
-            {
-                selmon->showpreview = 0;
-                XUnmapWindow(dpy, selmon->tagwin);
-            }
-        }
-        else if (selmon->showpreview)
-        {
-            selmon->showpreview = 0;
-            XUnmapWindow(dpy, selmon->tagwin);
-        }
-    }
-    else if (ev->window == selmon->tagwin)
-    {
-        selmon->showpreview = 0;
-        XUnmapWindow(dpy, selmon->tagwin);
-    }
-    else if (selmon->showpreview)
-    {
-        selmon->showpreview = 0;
-        XUnmapWindow(dpy, selmon->tagwin);
-    }
-    /* tag preview end */
-
     if (ev->window != root)
         return;
     if ((m = recttomon(ev->x_root, ev->y_root, 1, 1)) != mon && mon) {
@@ -2037,9 +1963,18 @@ setupatom(void)
 
     netatom[NetMoveResizeWindow] = XInternAtom(dpy, "_NET_MOVERESIZE_WINDOW", False);
 
+    /* window types */
+    netatom[NetWMWindowTypeDesktop] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
+    netatom[NetWMWindowTypeDock] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
+    netatom[NetWMWindowTypeToolbar] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
+    netatom[NetWMWindowTypeMenu] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
+    netatom[NetWMWindowTypeUtility] = XInternAtom(dpy, "_NET_WMWINDOW_TYPE_UTILITY", False);
+    netatom[NetWMWindowTypeSplash] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_SPLASH", False);
+    netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    netatom[NetWMWindowTypeNormal] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_NORMAL", False);
     /* wm state */
     netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
-    netatom[NetWMStayOnTop] = XInternAtom(dpy, "_NET_WM_STATE_STAYS_ON_TOP", False);
+    netatom[NetWMStayOnTop] = XInternAtom(dpy, "_NET_WM_STATE_STAYS_ON_TOP", False); /* either I have dementia or does this not exists? */
     netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
     netatom[NetWMAlwaysOnTop] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
     netatom[NetWMMaximizedVert] = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
@@ -2145,22 +2080,6 @@ showhide(Client *c)
 }
 
 void
-showtagpreview(unsigned int i)
-{
-    if (!selmon->showpreview || !selmon->tagmap[i]) {
-        XUnmapWindow(dpy, selmon->tagwin);
-        return;
-    }
-
-    XSetWindowBackgroundPixmap(dpy, selmon->tagwin, selmon->tagmap[i]);
-    XCopyArea(dpy, selmon->tagmap[i], selmon->tagwin, drw->gc, 0, 0,
-              selmon->mw / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE), selmon->mh / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE),
-              0, 0);
-    XSync(dpy, False);
-    XMapRaised(dpy, selmon->tagwin);
-}
-
-void
 sigchld()
 {
     if (signal(SIGCHLD, sigchld) == SIG_ERR)
@@ -2179,56 +2098,6 @@ void
 sigterm()
 {
     quit();
-}
-
-void
-takepreview(void)
-{
-    Client *c;
-    Imlib_Image image;
-    unsigned int occ = 0, i;
-
-    for (c = selmon->clients; c; c = c->next)
-        occ |= c->tags;
-    //occ |= c->tags == 255 ? 0 : c->tags; /* hide vacants */
-
-    for (i = 0; i < LENGTH(tags); i++) {
-        /* searching for tags that are occupied && selected */
-        if (!(occ & 1 << i) || !(selmon->tagset[selmon->seltags] & 1 << i))
-            continue;
-
-        if (selmon->tagmap[i]) { /* tagmap exist, clean it */
-            XFreePixmap(dpy, selmon->tagmap[i]);
-            selmon->tagmap[i] = 0;
-        }
-
-        /* try to unmap the window so it doesn't show the preview on the preview */
-        selmon->showpreview = 0;
-        XUnmapWindow(dpy, selmon->tagwin);
-        XSync(dpy, False);
-
-        if (!(image = imlib_create_image(sw, sh))) {
-            fprintf(stderr, "dwm: imlib: failed to create image, skipping.");
-            continue;
-        }
-        imlib_context_set_image(image);
-        imlib_context_set_display(dpy);
-        /* uncomment if using alpha patch */
-        //imlib_image_set_has_alpha(1);
-        //imlib_context_set_blend(0);
-        //imlib_context_set_visual(visual);
-        imlib_context_set_visual(DefaultVisual(dpy, screen));
-        imlib_context_set_drawable(root);
-
-        if (CFG_TAG_PREVIEW_BAR)
-            imlib_copy_drawable_to_image(0, selmon->wx, selmon->wy, selmon->ww, selmon->wh, 0, 0, 1);
-        else
-            imlib_copy_drawable_to_image(0, selmon->mx, selmon->my, selmon->mw,selmon->mh, 0, 0, 1);
-        selmon->tagmap[i] = XCreatePixmap(dpy, selmon->tagwin, selmon->mw / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE), selmon->mh / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE), DefaultDepth(dpy, screen));
-        imlib_context_set_drawable(selmon->tagmap[i]);
-        imlib_render_image_part_on_drawable_at_size(0, 0, selmon->mw, selmon->mh, 0, 0, selmon->mw / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE), selmon->mh / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE));
-        imlib_free_image();
-    }
 }
 
 void
@@ -2251,7 +2120,6 @@ killclient(Client *c, int type)
             XDestroyWindow(dpy, c->win);
             XUngrabServer(dpy);
             XSync(dpy, False);
-            XGrabServer(dpy);
             if(CFG_ALLOW_PID_KILL && c && c->win)
             {
                 char *cname = smprintf("ATTEMPTED MANUAL KILL ON: %s",c->name);
@@ -2709,19 +2577,19 @@ void
 updatewindowstate(Client *c, Atom state, int data)
 {
     /* possible states
-     _NET_WM_STATE_MODAL, ATOM
-     _NET_WM_STATE_STICKY, ATOM
-     _NET_WM_STATE_MAXIMIZED_VERT, ATOM
-     _NET_WM_STATE_MAXIMIZED_HORZ, ATOM
-     _NET_WM_STATE_SHADED, ATOM
-     _NET_WM_STATE_SKIP_TASKBAR, ATOM
-     _NET_WM_STATE_SKIP_PAGER, ATOM
-     _NET_WM_STATE_HIDDEN, ATOM
-     _NET_WM_STATE_FULLSCREEN, ATOM
-     _NET_WM_STATE_ABOVE, ATOM
-     _NET_WM_STATE_BELOW, ATOM
-     _NET_WM_STATE_DEMANDS_ATTENTION, ATOM
-     _NET_WM_STATE_FOCUSED, ATOM
+     _NET_WM_STATE_MODAL, (Temporary dialog window that MUST BE done before proceeding application)
+     _NET_WM_STATE_STICKY, (Remains on desktop even if we change the tag/desktop)
+     _NET_WM_STATE_MAXIMIZED_VERT, (maximize the vertical aspect)
+     _NET_WM_STATE_MAXIMIZED_HORZ, (maximize the horizontal aspect)
+     _NET_WM_STATE_SHADED,         ("indicates that the window is shaded")
+     _NET_WM_STATE_SKIP_TASKBAR,   (Is not nor will ever be a taskbar)
+     _NET_WM_STATE_SKIP_PAGER,     (Dont show as list of client options when displaying them (DESKTOPS) ex: dont show in alttab)
+     _NET_WM_STATE_HIDDEN,         (Minimized windows use this to "hide" themselves AKA not show)
+     _NET_WM_STATE_FULLSCREEN,     (Sets fullscreen)
+     _NET_WM_STATE_ABOVE,          (Moves the stacking order; This is replaced with "AlwaysOnTop")
+     _NET_WM_STATE_BELOW,          (Samething as above but remain below most windows)
+     _NET_WM_STATE_DEMANDS_ATTENTION, (Something important is happening in the window)
+     _NET_WM_STATE_FOCUSED,        (Wheter or not the clients decorations are currently drawn (Useless))
      */
     /* 0 remove
      * 1 add
@@ -2730,16 +2598,16 @@ updatewindowstate(Client *c, Atom state, int data)
     /* this is a headache to look at fix later */
     Client *temp;
     int toggle = data == 2;
-    if      (state == netatom[NetWMAlwaysOnTop])    { c->alwaysontop = c->isfloating = toggle ? !c->alwaysontop : !!data;}
+    if      (state == netatom[NetWMModal])          { c->isurgent = c->stayontop = c->isfloating = 1; }
+    else if (state == netatom[NetWMSticky])         {  }
+    else if (state == netatom[NetWMAlwaysOnTop])    { c->alwaysontop = c->isfloating = toggle ? !c->alwaysontop : !!data;}
     else if (state == netatom[NetWMStayOnTop])      { c->stayontop = c->isfloating = toggle ? !c->stayontop : !!data;}
     else if (state == netatom[NetWMFullscreen])     { setfullscreen(c, toggle ? !c->isfullscreen : !!data); }
     else if (state == netatom[NetWMDemandAttention]){ c->isfloating = c->isurgent = toggle ? !c->isurgent : !!data; if(c->isurgent) XRaiseWindow(dpy, c->win);}
     else if (state == netatom[NetWMMaximizedHorz])  { temp = selmon->sel; selmon->sel = c; MaximizeWindowHorizontal(NULL); selmon->sel = temp; arrange(c->mon);}
     else if (state == netatom[NetWMMaximizedVert])  { temp = selmon->sel; selmon->sel = c; MaximizeWindowVertical(NULL);   selmon->sel = temp; arrange(c->mon);}
-    else if (state == netatom[NetWMFocused])        {/**/}
-    else if (state == netatom[NetWMSticky])         {  }
-    else if (state == netatom[NetWMAbove])          {/**/}
     else if (state == netatom[NetWMBelow])          {/**/}
+    else if (state == netatom[NetWMFocused])        {/**/}
 }
 
 void
@@ -2748,7 +2616,14 @@ updatewindowtype(Client *c)
     Atom state = getatomprop(c, netatom[NetWMState]);
     Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
     updatewindowstate(c, state, 1); /* _NET_WM_STATE_ADD */
-    if (wtype == netatom[NetWMWindowTypeDialog]) c->isfloating = 1;
+    if      (wtype == netatom[NetWMWindowTypeDesktop]) {/**/}
+    else if (wtype == netatom[NetWMWindowTypeDock])    { c->isfloating = c->stayontop = 1; }
+    else if (wtype == netatom[NetWMWindowTypeToolbar]) {/**/}
+    else if (wtype == netatom[NetWMWindowTypeMenu])    {/**/}
+    else if (wtype == netatom[NetWMWindowTypeUtility]) {/**/}
+    else if (wtype == netatom[NetWMWindowTypeSplash])  {/**/}
+    else if (wtype == netatom[NetWMWindowTypeDialog])  { c->isfloating = 1; }
+    else if (wtype == netatom[NetWMWindowTypeNormal])  {/**/}
 }
 
 void
@@ -2923,63 +2798,3 @@ main(int argc, char *argv[])
     XCloseDisplay(dpy);
     return EXIT_SUCCESS;
 }
-/* Screen
- * screen_num = DefaultScreen(display);
- * screen_width = DisplayWidth(display, screen_num);
- * screen_height = DisplayHeight(display, screen_num);
- * root_window_id = RootWindow(display, screen_num);
- * white_pixel_value = WhitePixel(display, screen_num);
- * black_pixel_value = BlackPixel(display, screen_num);
- */
-
-/* Windows  (new window with "Window" )
- * Windows must be created to "exists" and to draw on screen you must map them
- * create_win = 		XCreateWindow(display, parent, x, y, width. height , border_width, depth,
-							class, visual, valuemask, attributes );
- * create_simple_win = 	XCreateSimpleWindow(display, parent, x, y, width, height, border_width,
-								border, background);
- * map_window = 		XMapWindow(display, win);
- */
-
-/* Events
-* XSelectInput(display, win, ExposureMask);
-* { ExposureEventMask,  ,NotEventMask,
-*
-*
-*
-*
-*
-*
-*/
-
-/* Graphics Context (GC)
- * Gc gc; 		 					GC return handler
- * XGCValues values;  					values assigned to gc
- * unsigned long valuemask 					values in values (settings)
- *
- * gc = XCreateGC(display, win, valuemask, &values); 	creates gc
- * XSetForeground(display, gc, color);  			sets colour of foreground which is usually tied to text colour
- * XSetBackground(display, gc, color); 			sets background color
- * Useless stuff
- *
- * XSetFIllStyle(display, gc, FillType); 			sets fill style,
- * {FillSolid, FillTiled, FillStippled, FIllOpaqueStippled}
- *
- * XSetLineAttributes(display, gc, line_width, line_style, cap_style, join_style)
- * line_style { LineSolid, LineOnOffDash, LineDoubleDash }
- * cap_style { CapNotLast, CapButt, CapRound, CapProjecting }
- * join_style { JoinMiter, JoinRound, JoinBevel }
- *
- * XDrawPoint(display, win, gc, x, y);
- * XDrawLine(display, win, gc, x1, y1, x2, y2); draw from point x1 to x2; y1 to y2
- * XDrawLines(display, win, gc, points, npoints, CoordmodeType)
- * XDrawArc(display, win, gc, x, y, w, h, angle1, angle) x - (w/2) for center && y;
- * XPoint points[] =
-	{
-		{x, y},
-	};
-*  npoints = sizeof(points)/sizeof(XPoint);
-* XDrawLines(display, win, gc, points, npoints, CoordmodeType)
-* XDrawRectangle(display, win, gc, x, y, width, height);
- * XFillRectangle(display, win, gc, ...);
- */
