@@ -57,8 +57,15 @@ enum
     /* special requests */
     NetMoveResizeWindow, NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinize,
     NetWMAbove, NetWMBelow, NetWMDemandAttention, NetWMFocused, NetWMSticky,
-    NetWMModal, NetWMHidden,
-    /* tracking */
+    NetWMModal, NetWMHidden, 
+    
+
+    /* wtypes */
+    NetWMWindowTypeDesktop, NetWMWindowTypeDock,
+    NetWMWindowTypeToolbar, NetWMWindowTypeMenu, 
+    NetWMWindowTypeUtility, NetWMWindowTypeSplash,
+    NetWMWindowTypeNormal,
+
     NetWMUserTime, NetWMPing,
     /* desktop */
     NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, /* EMWH */
@@ -132,16 +139,16 @@ struct Client
     int bw, oldbw; /* border width */
 
     unsigned int tags;
-    unsigned int alwaysontop     : 1;
-    unsigned int stayontop       : 1;
-    unsigned int hintsvalid      : 1;
-    unsigned int ismax           : 1;
-    unsigned int wasfloating     : 1;
-    unsigned int isfixed         : 1;
-    unsigned int isfloating      : 1;
-    unsigned int isurgent        : 1;
-    unsigned int neverfocus      : 1;
-    unsigned int isfullscreen    : 1;
+    unsigned int alwaysontop;
+    unsigned int stayontop;
+    unsigned int hintsvalid;
+    unsigned int ismax;
+    unsigned int wasfloating;
+    unsigned int isfixed;
+    unsigned int isfloating;
+    unsigned int isurgent;
+    unsigned int neverfocus;
+    unsigned int isfullscreen;
     unsigned int num;
     /* icon */
     unsigned int icw;
@@ -168,11 +175,10 @@ struct Monitor
     int by;               /* bar geometry */
     int mx, my, mw, mh;   /* screen size  */
     int wx, wy, ww, wh;   /* window area  */
-    unsigned int isfullscreen   : 1;     /* toggle fullscr vs reg fullscr */
-    unsigned int showbar        : 1;
-    unsigned int oshowbar       : 1;
-    unsigned int topbar         : 1;
-    unsigned int showpreview    : 1;
+    unsigned int isfullscreen;     /* toggle fullscr vs reg fullscr */
+    unsigned int showbar;
+    unsigned int oshowbar;
+    unsigned int topbar;
 
     unsigned int lyt;   /*    layout    */
     unsigned int olyt;  /*  old layout  */
@@ -217,7 +223,6 @@ void cleanup(void);
 void cleanupmon(Monitor *mon);
 void cleanupsbar(Monitor *m);
 void cleanuptabwin(Monitor *m);
-void cleanuptagpreview(Monitor *m);
 int  clientdocked(Client *c);
 void clientmessage(XEvent *e);
 void configure(Client *c);
@@ -291,11 +296,9 @@ void setuptimezone(void);
 void seturgent(Client *c, int urg);
 void setviewport(void);
 void showhide(Client *c);
-void showtagpreview(unsigned int i);
 void sigchld(); /* dont make this void */
 void sighup();  /* dont make this void */
 void sigterm(); /* dont make this void */
-void takepreview(void);
 void tile(Monitor *m);
 void unfocus(Client *c, int setfocus);
 void unmanage(Client *c, int destroyed);
