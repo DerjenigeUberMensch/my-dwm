@@ -1515,6 +1515,7 @@ restoresession(void)
     Client *c;
     Client **clients;
     Client *csel;
+    Arg arg;
     int cc;
 
     const int MAX_LENGTH = 1024;
@@ -1627,6 +1628,13 @@ restoresession(void)
     }
     if(selmon->sel != csel) pop(csel);
     for(m = mons; m; m = m->next) arrange(m);
+
+    /* toggle tag if arent in it */
+    if(selmon->sel)
+    {
+        arg.ui = selmon->sel->tags;
+        View(&arg);
+    }
     goto CLEANUP;
 CLEANUP:
     fclose(fr);
