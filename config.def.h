@@ -45,7 +45,7 @@
 #define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab moves down client list instead; 0 to disable            */
 /* Misc */
 #define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
-#define CFG_MAX_CLIENT_COUNT        250     /* max number of clients assuming you can handle this many          */
+#define CFG_MAX_CLIENT_COUNT        256     /* max number of clients (XOrg Default is 256)                      */
 #define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */

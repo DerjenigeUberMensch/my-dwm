@@ -40,23 +40,24 @@ DEBUGFLAGS = -ggdb -g -pg
 WARNINGFLAGS = -pedantic -Wall -Wno-deprecated-declarations -Wshadow -Wmaybe-uninitialized 
 
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}
-cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X64SUPPORT} ${STATICLINK}
-#-flto saves a couple instructions in certain functions; 
-RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS} -flto
+cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X64SUPPORT} ${STATICLINK} -flto
+# -flto saves a couple instructions in certain functions; 
+RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS}
 DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O0
 SIZE  	= ${RELEASEFLAGS} -Os
+# This rarely saves a substantial amount of instructions
 SIZEONLY= ${RELEASEFLAGS} -Oz
 
-#Release Stable (-O2)
+# Release Stable (-O2)
 RELEASE = ${RELEASEFLAGS} -O2
-#Release Speed (-O3)
+# Release Speed (-O3)
 RELEASES= ${RELEASEFLAGS} -O3 
 
-#Build using cpu specific instruction set for more performance (Optional)
+# Build using cpu specific instruction set for more performance (Optional)
 BUILDSELF = ${RELEASEFLAGS} ${SELFFLAGS} ${DYNAMICLINK} -O3
 
-#Set your options or presets (see above) ex: ${PRESETNAME}
-CFLAGS = ${RELEASE}
+# Set your options or presets (see above) ex: ${PRESETNAME}
+CFLAGS = ${RELEASES}
 
 # Solaris
 #CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"

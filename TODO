@@ -2,6 +2,7 @@
 **  REGULAR PRIORITY
 *   LOW PRIORITY
 --------------------------------------------------------------------------------
+*** (Fix) wierd priority issues with new windows
 **  (Fix) ResizeWindow() not working within dimentions
 **  (Fix) F11 -> fullscreen restacking/tearing issues when switching windows
 **  (Fix) Fix monitor switching not having persistant window mapping
