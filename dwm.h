@@ -43,41 +43,6 @@ enum
     SchemeTagActive,                            /*  tags   */
 };
 
-/* EWMH atoms */
-/* when adding new properties make sure NetLast is indeed last to allocate enough memory to store all Nets in an array */
-enum
-{
-    NetSupported, NetWMName, NetWMIcon, NetWMState, NetCloseWindow, NetWMCheck,
-    NetWMFullscreen, NetWMAlwaysOnTop, NetWMStayOnTop, NetActiveWindow,
-    NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
-    /* Net Actions */
-    NetWMActionMove, NetWMActionResize, NetWMActionMinimize, NetWMActionMaximizeHorz,
-    NetWMActionMaximizeVert, NetWMActionFullscreen, NetWMActionChangeDesktop, NetWMActionClose, 
-    NetWMActionAbove, NetWMActionBelow,
-    /* special requests */
-    NetMoveResizeWindow, NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinize,
-    NetWMAbove, NetWMBelow, NetWMDemandAttention, NetWMFocused, NetWMSticky,
-    NetWMModal, NetWMHidden, 
-    
-
-    /* wtypes */
-    NetWMWindowTypeDesktop, NetWMWindowTypeDock,
-    NetWMWindowTypeToolbar, NetWMWindowTypeMenu, 
-    NetWMWindowTypeUtility, NetWMWindowTypeSplash,
-    NetWMWindowTypeNormal,
-
-    NetWMUserTime, NetWMPing,
-    /* desktop */
-    NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, /* EMWH */
-
-    /* unsused */
-    NetWMWindowsOpacity, /* unset */
-    NetLast,
-};
-
-/* default atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
-
 /* clicks */
 enum
 {
@@ -149,6 +114,7 @@ struct Client
     unsigned int neverfocus;
     unsigned int isfullscreen;
     unsigned int num;
+    pid_t pid;
     /* icon */
     unsigned int icw;
     unsigned int ich;
@@ -289,7 +255,6 @@ void setfullscreen(Client *c, int fullscreen);
 void setmonitorlayout(Monitor *m, int layout);
 void setshowbar(Monitor *m, int show);
 void setup(void);
-void setupatom(void);
 void setupcur(void);
 void setuppool(void);
 void setuptags(void);
@@ -332,16 +297,14 @@ int  xerrordummy(Display *dpy, XErrorEvent *ee);
 int  xerrorstart(Display *dpy, XErrorEvent *ee);
 
 /* variables */
-Client *lastfocused = NULL;
 Pool *pl = NULL;
-char stext[256];     /* status WM_NAME text */
+char stext[256];   /* status WM_NAME text */
 int screen;
-int sw, sh;          /* X display screen geometry width, height */
-int bh;              /* bar height */
-int lrpad;           /* sum of left and right padding for text */
+int sw, sh;                 /* X display screen geometry width, height */
+int bh;            /* bar height */
+int lrpad;         /* sum of left and right padding for text */
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
-int tagsel;
 void (*handler[LASTEvent]) (XEvent *) =
 {
     /* Input */
@@ -366,7 +329,8 @@ void (*handler[LASTEvent]) (XEvent *) =
     [MappingNotify] = mappingnotify,
     [UnmapNotify] = unmapnotify
 };
-Atom wmatom[WMLast], netatom[NetLast], motifatom;
+Atom netatom[NetLast];
+Atom motifatom;
 int running = 1;
 int RESTART = 0;
 Cur *cursor[CurLast];
@@ -375,6 +339,7 @@ Clr **tagscheme;
 Display *dpy;
 Drw *drw;
 Monitor *mons, *selmon;
+Client *lastfocused;
 Window root, wmcheckwin;
 /* ACC */
 unsigned int accnum; /* Active client counter Number */

@@ -3,8 +3,8 @@
 
 include config.mk
 
-SRC = drw.c dwm.c util.c pool.c
-SRCH= drw.h dwm.h util.h pool.h
+SRC = drw.c dwm.c util.c pool.c winutil.c
+SRCH= drw.h dwm.h util.h pool.h winutil.h
 CONF= config.def.h keybinds.def.h
 OBJ = ${SRC:.c=.o}
 EXE = dwm
