@@ -313,7 +313,7 @@ MaximizeWindow(const Arg *arg)
         else
         {   maximize(c);
         }
-        arrange(selmon);
+        restack(selmon);
     }
 }
 

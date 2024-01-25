@@ -1,4 +1,4 @@
-/* Se LICENSE file for copyright and license details.
+/* See LICENSE file for copyright and license details.
 *
 * dynamic window manager is designed like any other X client as well. It is
 * driven through handling X events. In contrast to other X clients, a window
@@ -61,6 +61,7 @@
 #include "drw.h"
 #include "util.h"
 #include "pool.h"
+#include "winutil.h"
 /* dwm */
 #include "dwm.h"
 #include "config.def.h"
@@ -992,12 +993,15 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     */
     if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType,
                            &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
-    if (n == 0 || format != bitformat) {
+
+    if (n == 0 || format != bitformat) 
+    {
         XFree(p);
         return None;
     }
     unsigned long *bstp = NULL;
     uint32_t w, h, sz;
+    /* set icon size */
     {
         unsigned long *i;
         const unsigned long *end = p + n;
@@ -1029,13 +1033,15 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
                 }
             }
         }
-        if (!bstp) {
+        if (!bstp) 
+        {
             XFree(p);
             return None;
         }
     }
 
-    if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) {
+    if ((w = *(bstp - 2)) == 0 || (h = *(bstp - 1)) == 0) 
+    {
         XFree(p);
         return None;
     }
@@ -1083,7 +1089,7 @@ getstate(Window w)
     unsigned long n, extra;
     Atom real;
 
-    if (XGetWindowProperty(dpy, w, wmatom[WMState], 0L, 2L, False, wmatom[WMState],
+    if (XGetWindowProperty(dpy, w, netatom[WMState], 0L, 2L, False, netatom[WMState],
                            &real, &format, &n, &extra, (unsigned char **)&p) != Success)
         return -1;
     if (n != 0)
@@ -1331,9 +1337,7 @@ manage(Window w, XWindowAttributes *wa)
         c->isfloating = c->wasfloating = trans != None || c->isfixed;
     /* set floating if always on top */
     c->isfloating = c->isfloating || c->alwaysontop;
-    if (c->isfloating)
-        XRaiseWindow(dpy, c->win);
-
+    c->pid = XGetPid(dpy, c->win);
     attach(c);
     attachstack(c);
     XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1388,16 +1392,19 @@ monocle(Monitor *m)
     int nw, nh;
     int cbw; /* client border width */
     Client *c;
+    int cc;
     nx = m->wx;
     ny = m->wy;
-    if(m->cc) snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", m->cc);
+    cc = 0;
     for (c = nexttiled(m->clients); c; c = nexttiled(c->next))
     {
         cbw = c->bw << 1;
         nw = m->ww - cbw;
         nh = m->wh - cbw;
         resize(c, nx, ny, nw, nh, 0);
+        ++cc;
     }
+    if(cc) snprintf(m->ltsymbol, sizeof m->ltsymbol, "[%d]", cc);
 }
 
 void
@@ -1501,7 +1508,7 @@ propertynotify(XEvent *e)
 void
 restoresession(void)
 {
-    /* chonky function */
+    /* restore stuff */
     Window cwin;
     unsigned int ctags;
     int cx, cy;
@@ -1510,7 +1517,7 @@ restoresession(void)
     int cofloating, cfloating;
     int cissel;
     int clyt;
-
+    /* cleanup */
     Monitor *m;
     Client *c;
     Client **clients;
@@ -1523,7 +1530,7 @@ restoresession(void)
     int check;
     FILE *fr;
     char str[MAX_LENGTH];
-    char *nl;
+    char *nl; /* new line */
     int i;
 
     m = NULL;
@@ -1535,6 +1542,7 @@ restoresession(void)
     cissel = 0;
     clyt = 0;
     i = 0;
+    /* dont exit(1) as this function is non vital */
     if(!(m = selmon)) return;
     if(!m->clients) return;
     if (!(fr = fopen(SESSION_FILE, "r"))) return;
@@ -1573,6 +1581,7 @@ restoresession(void)
                         &cofloating, &cfloating,
                         &cissel, &clyt
                     );
+            /* CHECKSUM BTW IS MANUAL */
             if(check != CHECK_SUM) continue;
             for(c = m->clients; c; c = c->next) 
             {
@@ -1585,7 +1594,6 @@ restoresession(void)
                     c->oldh = coh;
                     c->wasfloating = cofloating;
                     if(cissel) csel = c;
-                    /* breaks on non floating clients */
                     if(cfloating)
                     {
                         c->isfloating = 1;
@@ -1593,17 +1601,17 @@ restoresession(void)
                     }
                     setmonitorlayout(m, clyt);
                     /* restack order (This is skipped if we fuck up) */
-                    int tmp = 0;
+                    int clientsFlag = 0;
                     for(i = 0; i < cc; ++i)
                     {
                         if(!clients[i]) 
                         {
                             clients[i] = c;
-                            tmp = 1;
+                            clientsFlag = 1;
                             break;
                         }
                     }
-                    if(!tmp) debug("WARNING: RESTORE_SESSION_TOO_MANY_CLIENTS");
+                    if(!clientsFlag) debug("WARNING: RESTORE_SESSION_TOO_MANY_CLIENTS");
                     break;
                 }
             }
@@ -1626,7 +1634,8 @@ restoresession(void)
         detach(c);
         attach(c);
     }
-    if(selmon->sel != csel) pop(csel);
+    if(csel && selmon->sel != csel) pop(csel);
+    else focus(NULL);
     for(m = mons; m; m = m->next) arrange(m);
 
     /* toggle tag if arent in it */
@@ -1723,11 +1732,11 @@ restack(Monitor *m)
         {
             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
             wc.sibling = c->win;
+            if(c->isfloating) XRaiseWindow(dpy, c->win);
         }
         if(docked(c)) setfloating(c, 0);
     }
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
-    for(c = m->slast; c; c = c->sprev) if(c->isfloating && ISVISIBLE(c)) XRaiseWindow(dpy, c->win);
     for(c = m->slast; c; c = c->sprev) if(c->alwaysontop&& ISVISIBLE(c)) XRaiseWindow(dpy, c->win);
     for(c = m->slast; c; c = c->sprev) if(c->stayontop  && ISVISIBLE(c)) XRaiseWindow(dpy, c->win);
     for(c = m->slast; c; c = c->sprev) if(c->isurgent   && ISVISIBLE(c)) XRaiseWindow(dpy, c->win);
@@ -1822,7 +1831,7 @@ setclientstate(Client *c, long state)
 {
     long data[] = { state, None };
 
-    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
+    XChangeProperty(dpy, c->win, netatom[WMState], netatom[WMState], 32,
                     PropModeReplace, (unsigned char *)data, 2);
 }
 
@@ -1844,7 +1853,7 @@ sendevent(Client *c, Atom proto)
     {
         ev.type = ClientMessage;
         ev.xclient.window = c->win;
-        ev.xclient.message_type = wmatom[WMProtocols];
+        ev.xclient.message_type = netatom[WMProtocols];
         ev.xclient.format = 32;
         ev.xclient.data.l[0] = proto;
         ev.xclient.data.l[1] = CurrentTime;
@@ -1885,8 +1894,9 @@ setfocus(Client *c)
                         XA_WINDOW, 32, PropModeReplace,
                         (unsigned char *) &(c->win), 1);
     }
-    sendevent(c, wmatom[WMTakeFocus]);
+    sendevent(c, netatom[WMTakeFocus]);
 }
+
 void
 setfloating(Client *c, int isfloating)
 {
@@ -1951,13 +1961,14 @@ setup(void)
     sh = DisplayHeight(dpy, screen);
     root = RootWindow(dpy, screen);
     drw = drw_create(dpy, screen, root, sw, sh);
-    tagsel = CFG_DEFAULT_TAG_NUM;
     if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
         die("FATAL: NO_FONTS_LOADED");
     lrpad = drw->fonts->h;
     bh = drw->fonts->h + 2;
+    if(CFG_BAR_HEIGHT) bh = CFG_BAR_HEIGHT;
     updategeom();
-    setupatom();
+    XInitAtoms(dpy);
+    motifatom = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
     setupcur();
     setuptags();
     updatebars();
@@ -1987,75 +1998,6 @@ setup(void)
     XSelectInput(dpy, root, wa.event_mask);
     grabkeys();
     focus(NULL);
-}
-
-void
-setupatom(void)
-{
-    /* wm */
-    wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
-    wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-    wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
-    wmatom[WMTakeFocus] = XInternAtom(dpy, "WM_TAKE_FOCUS", False);
-    /* ewmh */
-    netatom[NetActiveWindow] = XInternAtom(dpy, "_NET_ACTIVE_WINDOW", False);
-    netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
-    netatom[NetWMIcon] = XInternAtom(dpy, "_NET_WM_ICON", False);
-    netatom[NetCloseWindow] = XInternAtom(dpy, "_NET_CLOSE_WINDOW", False);
-    netatom[NetWMCheck] = XInternAtom(dpy, "_NET_SUPPORTING_WM_CHECK", False);
-    netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
-    netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
-    netatom[NetDesktopViewport] = XInternAtom(dpy, "_NET_DESKTOP_VIEWPORT", False);
-    netatom[NetNumberOfDesktops] = XInternAtom(dpy, "_NET_NUMBER_OF_DESKTOPS", False);
-    netatom[NetCurrentDesktop] = XInternAtom(dpy, "_NET_CURRENT_DESKTOP", False);
-    netatom[NetDesktopNames] = XInternAtom(dpy, "_NET_DESKTOP_NAMES", False);
-    netatom[NetWMWindowsOpacity] = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
-
-    netatom[NetMoveResizeWindow] = XInternAtom(dpy, "_NET_MOVERESIZE_WINDOW", False);
-
-    /* window types */
-    netatom[NetWMWindowTypeDesktop] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
-    netatom[NetWMWindowTypeDock] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    netatom[NetWMWindowTypeToolbar] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
-    netatom[NetWMWindowTypeMenu] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_MENU", False);
-    netatom[NetWMWindowTypeUtility] = XInternAtom(dpy, "_NET_WMWINDOW_TYPE_UTILITY", False);
-    netatom[NetWMWindowTypeSplash] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_SPLASH", False);
-    netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    netatom[NetWMWindowTypeNormal] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_NORMAL", False);
-    /* wm state */
-    netatom[NetWMState] = XInternAtom(dpy, "_NET_WM_STATE", False);
-    netatom[NetWMStayOnTop] = XInternAtom(dpy, "_NET_WM_STATE_STAYS_ON_TOP", False); /* either I have dementia or does this not exists? */
-    netatom[NetWMFullscreen] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-    netatom[NetWMAlwaysOnTop] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
-    netatom[NetWMMaximizedVert] = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-    netatom[NetWMMaximizedHorz] = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-    netatom[NetWMAbove] = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
-    netatom[NetWMBelow] = XInternAtom(dpy, "_NET_WM_STATE_BELOW", False);
-    netatom[NetWMDemandAttention] = XInternAtom(dpy, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
-    netatom[NetWMMinize] = XInternAtom(dpy, "_NET_WM_MINIMIZE", False);
-    netatom[NetWMSticky] = XInternAtom(dpy, "_NET_WM_STATE_STICKY", False);
-    netatom[NetWMHidden] = XInternAtom(dpy, "_NET_WM_STATE_HIDDEN", False);
-    netatom[NetWMModal] = XInternAtom(dpy, "_NET_WM_STATE_MODAL", False);
-    /* tracking */
-    netatom[NetWMUserTime] = XInternAtom(dpy, "_NET_WM_USER_TIME", False);
-    netatom[NetWMPing] = XInternAtom(dpy, "_NET_WM_PING", False);
-    /* actions suppoorted */
-    netatom[NetWMActionMove] = XInternAtom(dpy, "_NET_WM_ACTION_MOVE", False);
-    netatom[NetWMActionResize] = XInternAtom(dpy, "_NET_WM_ACTION_RESIZE", False);
-    netatom[NetWMActionMinimize] = XInternAtom(dpy, "_NET_WM_ACTION_MINIMIZE", False);
-    netatom[NetWMActionMaximizeHorz] = XInternAtom(dpy, "_NET_WM_ACTION_MAXIMIZE_HORZ", False);
-    netatom[NetWMActionMaximizeVert] = XInternAtom(dpy, "_NET_WM_ACTION_MAXIMIZE_VERT", False);
-    netatom[NetWMActionFullscreen] = XInternAtom(dpy, "_NET_WM_ACTION_FULLSCREEN", False);
-    netatom[NetWMActionChangeDesktop] = XInternAtom(dpy, "_NET_WM_ACTION_CHANGE_DESKTOP", False);
-    netatom[NetWMActionClose] = XInternAtom(dpy, "_NET_WM_ACTION_CLOSE", False);
-    netatom[NetWMActionAbove] = XInternAtom(dpy, "_NET_WM_ACTION_ABOVE", False);
-    netatom[NetWMActionBelow] = XInternAtom(dpy, "_NET_WM_ACTION_BELOW", False);
-
-    netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
-
-    motifatom = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
-
 }
 
 void
@@ -2160,7 +2102,7 @@ killclient(Client *c, int type)
     XEvent ev;
     pid_t pid;
     if(!c) return;
-    if(!sendevent(c, wmatom[WMDelete]))
+    if(!sendevent(c, netatom[WMDelete]))
     {
         XGrabServer(dpy);
         XSetErrorHandler(xerrordummy);
@@ -2172,17 +2114,6 @@ killclient(Client *c, int type)
             break;
         case Destroy:
             XDestroyWindow(dpy, c->win);
-            XUngrabServer(dpy);
-            XSync(dpy, False);
-            if(CFG_ALLOW_PID_KILL && c && c->win)
-            {
-                char *cname = smprintf("ATTEMPTED MANUAL KILL ON: %s",c->name);
-                pid = getwinpid(c->win);
-                /* most system pids are < 100 also covers the '-1' if it fails */
-                if(pid > 100) kill(pid, SIGKILL);
-                debug(cname);
-                free(cname);
-            }
             break;
         case Safedestroy:
             /* get window */
@@ -2780,6 +2711,24 @@ updatewindowtype(Client *c)
     else if (wtype == netatom[NetWMWindowTypeDialog])
     {   c->alwaysontop = c->isfloating = 1;
     }
+    else if (wtype == netatom[NetWMWindowTypeDropdownMenu])
+    {
+    }
+    else if (wtype == netatom[NetWMWindowTypePopupMenu])
+    {
+    }
+    else if (wtype == netatom[NetWMWindowTypeTooltip])
+    {
+    }
+    else if (wtype == netatom[NetWMWindowTypeNotification])
+    {
+    }
+    else if (wtype == netatom[NetWMWindowTypeCombo])
+    {
+    }
+    else if (wtype == netatom[NetWMWindowTypeDnd])
+    {
+    }
     else if (wtype == netatom[NetWMWindowTypeNormal])
     {
     }
@@ -2830,7 +2779,7 @@ winsetstate(Window win, long state)
 {
     long data[] = { state, None };
 
-    XChangeProperty(dpy, win, wmatom[WMState], wmatom[WMState], 32,
+    XChangeProperty(dpy, win, netatom[WMState], netatom[WMState], 32,
                     PropModeReplace, (unsigned char*)data, 2);
 }
 

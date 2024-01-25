@@ -10,6 +10,7 @@
  * XCursor:  https://man.archlinux.org/man/Xcursor.3
  * EWMH:     https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html
  * XEvent:   https://tronche.com/gui/x/xlib/events/structures.html
+ * Document: https://www.x.org/releases/X11R7.5/doc/x11proto/proto.pdf
  */
 
 /* window */
@@ -20,8 +21,10 @@
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+#define CFG_STORE_PID           1           /* 1 store pid in client; 0 to disable, effects below               */
 #define CFG_ALLOW_PID_KILL      1           /* Allow PID to be grabbed to Terminate a window ONLY on failure    */
 /* status bar */
+#define CFG_BAR_HEIGHT          0           /* 1 enable specific bar height; 0 use default height               */
 #define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
 #define CFG_ACTIVE_MON          1           /* Show seletected even if no clients in monitor; 0 to disable      */
