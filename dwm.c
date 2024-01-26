@@ -1760,8 +1760,7 @@ resizerequest(XEvent *e)
     XResizeRequestEvent *ev = &e->xresizerequest;
     c = wintoclient(ev->window);
     if(c) 
-    {   
-        resize(c, c->x, c->y, ev->width, ev->height, 1);
+    {   resize(c, c->x, c->y, ev->width, ev->height, 1);
     }
     else  XResizeWindow(dpy, ev->window, ev->width, ev->height);
 }
@@ -2009,24 +2008,7 @@ setsticky(Client *c, int sticky)
     }
     else
     {
-        if(c->mon->sel && c->mon->sel != c) 
-        {   c->tags = c->mon->sel->tags;
-        }
-        else 
-        {
-            tmp = c->mon->clients;
-            c->tags = 0;
-            for(; tmp; tmp = nextvisible(tmp->next))
-            {
-                if(tmp != c) 
-                {
-                    c->tags = tmp->tags; 
-                    break;
-                }
-            }
-            /* assume only client and just warp to first tag */
-            if(!c->tags) c->tags = 1;
-        }
+        c->tags = c->mon->tagset[c->mon->seltags];
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace, (unsigned char *)0, 0);
     }
 }
@@ -2766,7 +2748,7 @@ updatewindowstate(Client *c, Atom state, int data)
     else if (state == netatom[NetWMSticky])
     {
         if(toggle)                  /* tagmask is LENGTH - 1 so all tags selected would simply be LENGTH */
-        { setsticky(c, c->tags != (1 << LENGTH(tags)));
+        {   setsticky(c, c->tags != (1 << LENGTH(tags)));
         }
         else 
         {   setsticky(c, data);
