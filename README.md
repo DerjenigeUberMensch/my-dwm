@@ -22,6 +22,7 @@
 - **rainbowtags**
 - **updatemotifhints**
 - **ewmhtags**
+- **sticky**
 
 ## Preview:
 

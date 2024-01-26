@@ -60,7 +60,7 @@ static const Key keys[] =
     { KeyPress,         CTRL|ALT,                   XK_q,	    TerminateWindow,    {0} },
     { KeyPress,         SUPER,                      XK_w,       MaximizeWindow,     {0} },
     { KeyRelease,       SUPER|SHIFT,                XK_p,       Quit,               {0} },
-    { KeyPress,         SUPER|CTRL,                 XK_p,       Restart,            {0} }, /* UNSAFE sscanf() */
+    { KeyPress,         SUPER|CTRL,                 XK_p,       Restart,            {0} },  /* UNSAFE sscanf() */
     { KeyPress,         SUPER,                      XK_z,       SetWindowLayout,    {Tiled} },
     { KeyPress,         SUPER,                      XK_x,       SetWindowLayout,    {Floating} },
     { KeyPress,         SUPER,                      XK_c,       SetWindowLayout,    {Monocle} },

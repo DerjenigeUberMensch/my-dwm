@@ -43,7 +43,7 @@ CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L -DVERSION=\
 cFLAGS   = -std=c99 ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${X64SUPPORT} ${STATICLINK} -flto
 # -flto saves a couple instructions in certain functions; 
 RELEASEFLAGS = ${cFLAGS} ${STRIPFLAGS}
-DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O0
+DEBUG 	= ${cFLAGS} ${DEBUGFLAGS} -O2
 SIZE  	= ${RELEASEFLAGS} -Os
 # This rarely saves a substantial amount of instructions
 SIZEONLY= ${RELEASEFLAGS} -Oz
@@ -57,7 +57,7 @@ RELEASES= ${RELEASEFLAGS} -O3
 BUILDSELF = ${RELEASEFLAGS} ${SELFFLAGS} ${DYNAMICLINK} -O3
 
 # Set your options or presets (see above) ex: ${PRESETNAME}
-CFLAGS = ${RELEASES}
+CFLAGS = ${DEBUG}
 
 # Solaris
 #CFLAGS  = -fast ${INCS} -DVERSION=\"${VERSION}\"

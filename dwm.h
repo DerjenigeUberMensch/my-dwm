@@ -197,11 +197,17 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 Monitor *dirtomon(int dir);
-int  docked(Client *c);
+int docked(Client *c);
+int dockedvert(Client *c);
+int dockedhorz(Client *c);
 void drawalttab(int first, Monitor *m);
 void drawbar(Monitor *m);
+int  drawbarname(Monitor *m);
 void drawbars(void);
-void drawbartabs(Monitor *m, int x, int y, int maxw, int height);
+int  drawbarstatus(Monitor *m, int x);
+int  drawbarsym(Monitor *m, int x);
+int  drawbartabs(Monitor *m, int x, int maxw);
+int  drawbartags(Monitor *m, int x);
 void enternotify(XEvent *e);
 void expose(XEvent *e);
 void focus(Client *c);
@@ -254,7 +260,9 @@ void setfocus(Client *c);
 void setfullscreen(Client *c, int fullscreen);
 void setmonitorlayout(Monitor *m, int layout);
 void setshowbar(Monitor *m, int show);
+void setsticky(Client *c, int sticky);
 void setup(void);
+void setupatom(void);
 void setupcur(void);
 void setuppool(void);
 void setuptags(void);
@@ -297,12 +305,13 @@ int  xerrordummy(Display *dpy, XErrorEvent *ee);
 int  xerrorstart(Display *dpy, XErrorEvent *ee);
 
 /* variables */
+Client *lastfocused = NULL;
 Pool *pl = NULL;
-char stext[256];   /* status WM_NAME text */
+char stext[256];     /* status WM_NAME text */
 int screen;
-int sw, sh;                 /* X display screen geometry width, height */
-int bh;            /* bar height */
-int lrpad;         /* sum of left and right padding for text */
+int sw, sh;          /* X display screen geometry width, height */
+int bh;              /* bar height */
+int lrpad;           /* sum of left and right padding for text */
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
 void (*handler[LASTEvent]) (XEvent *) =
@@ -329,8 +338,7 @@ void (*handler[LASTEvent]) (XEvent *) =
     [MappingNotify] = mappingnotify,
     [UnmapNotify] = unmapnotify
 };
-Atom netatom[NetLast];
-Atom motifatom;
+Atom netatom[NetLast], motifatom;
 int running = 1;
 int RESTART = 0;
 Cur *cursor[CurLast];
@@ -339,7 +347,6 @@ Clr **tagscheme;
 Display *dpy;
 Drw *drw;
 Monitor *mons, *selmon;
-Client *lastfocused;
 Window root, wmcheckwin;
 /* ACC */
 unsigned int accnum; /* Active client counter Number */

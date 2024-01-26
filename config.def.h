@@ -29,10 +29,11 @@
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
 #define CFG_ACTIVE_MON          1           /* Show seletected even if no clients in monitor; 0 to disable      */
 #define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
-#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per window); 0 to disable      */
+#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per window); 0 to disable    */
 #define CFG_ICON_SIZE           16          /* icon size                                                        */
 #define CFG_ICON_SPACE          2           /* space between icon and title                                     */
 #define CFG_SHOW_WM_NAME        0           /* 1 Show window manager name at end of status bar; 0 to disable    */
+#define CFG_SEL_TAG_INDICATOR   1           /* 1 show selected tag even if there are no clients; 0 to disable   */
 /* alt-tab configuration */
 /* to get keycode you can do xev and press a key */
 #define CFG_ALT_TAB_SWITCH_KEY      64      /* Hold this key to keep alt-tab active                             */

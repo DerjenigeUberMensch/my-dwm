@@ -120,6 +120,8 @@ DragWindow(const Arg *arg) /* movemouse */
             break;
         }
     } while (ev.type != ButtonRelease);
+    /* prevent restacking moving the window back */
+    if(!docked(c)) setfloating(c, 1);
     XUngrabPointer(dpy, CurrentTime);
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) 
     {
@@ -311,48 +313,52 @@ MaximizeWindow(const Arg *arg)
             resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
         }
         else
-        {   maximize(c);
+        {   
+            setfloating(c, 0);
+            maximize(c);
         }
-        restack(selmon);
     }
+    arrange(selmon);
 }
 
 void
 MaximizeWindowVertical(const Arg *arg) 
 {
     Client *c = selmon->sel;
-    static int maxvert = 0;
     if(c && !c->isfixed) 
     {
-        if(maxvert)
+        if(dockedvert(c))
         {   
             if(!c->isfloating) setfloating(c, 1);
             resize(c, c->w, c->y, c->oldw, c->h, 1);
         }
         else
-        {   maximizevert(c);
+        {   
+            setfloating(c, 0);
+            maximizevert(c);
         }
-        arrange(selmon);
     }
+    arrange(selmon);
 }
 
 void
 MaximizeWindowHorizontal(const Arg *arg) 
 {
     Client *c = selmon->sel;
-    static int maxhorz = 0;
     if(c && !c->isfixed)
     {
-        if(maxhorz)
+        if(dockedhorz(c))
         {   
             if(!c->isfloating) setfloating(c, 1);
             resize(c, c->x, c->oldy, c->w, c->oldh, 1);
         }
         else
-        {   maximizehorz(c);
+        {   
+            setfloating(c, 0);
+            maximizehorz(c);
         } 
-        arrange(selmon);
     }
+    arrange(selmon);
 }
 
 void
