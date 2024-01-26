@@ -35,6 +35,9 @@
 void
 UserStats(const Arg *arg)
 {
+    static int somenum = 1;
+    setsticky(selmon->sel, somenum);
+    somenum ^= 1;
 }
 
 void
