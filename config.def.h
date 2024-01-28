@@ -146,3 +146,31 @@ static const Layout layouts[] =
 
 
 /* Any version past v3.0.0 IS BLOATWARE USER DISCRETION IS ADVICED */ 
+/* DEBUGGING
+ * Stuff you need gdb xephyr
+ * sudo pacman -S gdb xorg-server-xephyr
+ *
+ *
+ * first make sure its compiled in DEBUG using config.mk
+ *
+ * run this command: Xephyr :1 -ac -screen 680x480 &
+ * set the display to the one you did for Xephyr in this case we did 1 so
+ * run this command: export DISPLAY=:1
+ * now you are mostly done
+ * run this command: gdb dwm
+ * you get menu
+ * run this command: lay split
+ * you get layout and stuff
+ * 
+ * now basic gdb stuff
+ * break somefunction # this sets a break point for whatever function AKA stop the code from running till we say so
+ * next or n # this moves to the next line of logic code (logic code is current code line)
+ * step or s # this moves to the next line of code (code being actual code so functions no longer exist instead we just go there)
+ * ctrl-l # this resets the window thing which can break sometimes (not sure why it hasnt been fixed but ok)
+ * skip somefunction # this tries to skip a function if it can but ussualy is worthless (AKA I dont know how to use it)(skip being not show to you but it does run in the code)
+ *
+ * after your done
+ * run this command: exit
+ * you have succesfully used gdb wow
+ * 
+ */

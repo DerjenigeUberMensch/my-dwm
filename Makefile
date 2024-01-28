@@ -1,4 +1,3 @@
-# dwm - dynamic window manager
 # See LICENSE file for copyright and license details.
 
 include config.mk
@@ -7,8 +6,8 @@ SRC = drw.c dwm.c util.c pool.c winutil.c
 SRCH= drw.h dwm.h util.h pool.h winutil.h
 CONF= config.def.h keybinds.def.h
 OBJ = ${SRC:.c=.o}
+VERSION = XXX
 EXE = dwm
-REBUILD = rm -f *.o
 all: options default
 
 options:
@@ -17,34 +16,26 @@ options:
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
 	@echo "rebuild  = ${REBUILD}"
+
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
 default: ${OBJ}
 	${CC} -o ${EXE} ${OBJ} ${LDFLAGS}
-	${REBUILD}
+	rm -f -- *.o
 
 release:
-	rm -rf -f -- dwm-${VERSION}
-	rm -f -- dwm-${VERSION}
-	mkdir -p dwm-${VERSION}
-	cp -R LICENSE Makefile README.md ${CONF} config.mk\
-		${SRCH} ${SRC} toggle.c toggle.h dwm-${VERSION}
-	tar -cf dwm-${VERSION}.tar dwm-${VERSION}
-	gzip dwm-${VERSION}.tar
-	rm -rf -f -- dwm-${VERSION}
-	rm -f *.o *~ 
+	rm -rf -f -- ${EXE}-${VERSION}
+	cp -R . ${EXE}-${VERSION}
+#	tar -cf ${EXE}-${VERSION}.tar ${EXE}-${VERSION}
+#	gzip ${EXE}-${VERSION}.tar
 
 install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp -f dwm ${DESTDIR}${PREFIX}/bin
-	chmod 755 ${DESTDIR}${PREFIX}/bin/dwm
-#	mkdir -p ${DESTDIR}${MANPREFIX}/man1
-#	sed "s/VERSION/${VERSION}/g" < dwm.1 > ${DESTDIR}${MANPREFIX}/man1/dwm.1
-#	chmod 644 ${DESTDIR}${MANPREFIX}/man1/dwm.1
+	cp -f ${EXE} ${DESTDIR}${PREFIX}/bin
+	chmod 755 ${DESTDIR}${PREFIX}/bin/${EXE}
 
 uninstall:
-	rm -f ${DESTDIR}${PREFIX}/bin/dwm\
-		${DESTDIR}${MANPREFIX}/man1/dwm.1
+	rm -f ${DESTDIR}${PREFIX}/bin/${EXE}
 
-.PHONY: all options release dist install uninstall
+.PHONY: all options release dist install uninstall 
