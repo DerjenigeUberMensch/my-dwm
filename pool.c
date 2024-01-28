@@ -82,6 +82,7 @@ poolfree(Pool *pool, void *mem, int est)
             return;
         }
     }
+
     for(i = 0; i < plength; ++i)
     {
         if(memcmp(pool->mem[i]->mem, mem, pool->bsize) == 0)

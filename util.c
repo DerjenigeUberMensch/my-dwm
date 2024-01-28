@@ -66,6 +66,9 @@ smprintf(char *fmt, ...)
 void
 debug(char *fmt, ...)
 {
+    if(!ENABLE_DEBUGGING) 
+    {   return;
+    }
     char *txt;
     va_list args;
     va_start(args, fmt);
@@ -96,24 +99,7 @@ ui_unhash(unsigned int x)
     return x;
 }
 
-unsigned long
-ul_hash(unsigned long x)
-{
-    x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
-    x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
-    x = x ^ (x >> 31);
-    return x;
-}
-
-unsigned long
-ul_unhash(unsigned long x)
-{
-    x = (x ^ (x >> 31) ^ (x >> 62)) * UINT64_C(0x319642b2d24d8ec3);
-    x = (x ^ (x >> 27) ^ (x >> 54)) * UINT64_C(0x96de1b173f119089);
-    x = x ^ (x >> 30) ^ (x >> 60);
-    return x;
-}
-double functime(void (*_timefunction)())
+double functime(void (*_timefunction)(void))
 {
     clock_t start, end;
     start = clock();

@@ -1,11 +1,6 @@
 /* MIT/X Consortium License 
  * See LICENSE for non specific functions (everything else)
  *
- * XGetWindowName()
- *      2006-2014 Anselm R Garbe <anselm@garbe.us>
- *      2011 Connor Lane Smith <cls@lubutu.com>
- *
- *
  *  Permission is hereby granted, free of charge, to any person obtaining a
  *  copy of this software and associated documentation files (the "Software"),
  *  to deal in the Software without restriction, including without limitation
@@ -34,6 +29,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xproto.h>
 #include <X11/Xft/Xft.h>
+#include <pthread.h>
 
 #include "winutil.h"
 
@@ -61,32 +57,27 @@ XGetTextProp(Display *display, Window w, Atom atom, char *text, unsigned int siz
     return 1;
 }
 
+void
+XPingWindow(Display *display, Window win)
+{
+    /* doesnt work properly */
+    XEvent ev;
+    ev.xclient.type = ClientMessage;
+    ev.xclient.window = win;
+    ev.xclient.message_type = XInternAtom(display, "_NET_WM_PING", False);
+    ev.xclient.format = 32; // 32-bit values
+    ev.xclient.data.l[0] = XInternAtom(display, "_NET_WM_PING", False);
+    ev.xclient.data.l[1] = CurrentTime;
+    ev.xclient.data.l[2] = win;
+    ev.xclient.data.l[3] = 0;
+    ev.xclient.data.l[4] = 0;
+    XSendEvent(display, win, 1, ClientMessage, &ev);
+}
+
 char *
 XGetWindowName(Display *display, Window win)
 {
-    #define CHAR_BUFF (256)
-    static char buf[CHAR_BUFF];
-    char **list;
-    int n;
-    XTextProperty prop;
-     
-    if (!XGetTextProperty(display, win, &prop, XInternAtom(display, "_NET_WM_NAME", False)) || !prop.nitems) 
-    {
-        if (!XGetWMName(display, win, &prop) || !prop.nitems) return "";
-    }
-    if (!XmbTextPropertyToTextList(display, &prop, &list, &n) && n > 0) 
-    {
-        strncpy(buf, list[0], sizeof(buf));
-        XFreeStringList(list);
-    }
-    else 
-    {   strncpy(buf, (char *)prop.value, sizeof(buf));
-    }
-
-    XFree(prop.value);
-    buf[sizeof(buf) - 1] = '\0';
-
-    return buf;
+    return " ";
 }
 
 pid_t
@@ -109,8 +100,6 @@ XGetPid(Display *display, Window win)
 void
 XInitAtoms(Display *display)
 {
-
-
    /* wm */
     netatom[WMProtocols] = XInternAtom(display, "WM_PROTOCOLS", False);
     netatom[WMDelete] = XInternAtom(display, "WM_DELETE_WINDOW", False);
@@ -152,7 +141,7 @@ XInitAtoms(Display *display)
     netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
     netatom[NetWMBelow] = XInternAtom(display, "_NET_WM_STATE_BELOW", False);
     netatom[NetWMDemandAttention] = XInternAtom(display, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
-    netatom[NetWMMinize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
+    netatom[NetWMMinimize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
     netatom[NetWMSticky] = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
     netatom[NetWMHidden] = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
     netatom[NetWMModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);
@@ -179,7 +168,7 @@ XInitAtoms(Display *display)
     netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
     netatom[NetWMBelow] = XInternAtom(display, "_NET_WM_STATE_BELOW", False);
     netatom[NetWMDemandAttention] = XInternAtom(display, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
-    netatom[NetWMMinize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
+    netatom[NetWMMinimize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
     netatom[NetWMSticky] = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
     netatom[NetWMHidden] = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
     netatom[NetWMModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);

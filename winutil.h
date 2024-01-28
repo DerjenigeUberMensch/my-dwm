@@ -3,6 +3,7 @@
 
 char *XGetWindowName(Display *display, Window win);
 int XGetTextProp(Display *display, Window w, Atom atom, char *text, unsigned int size);
+void XPingWindow(Display *display, Window win);
 pid_t XGetPid(Display *display, Window win);
 void XInitAtoms(Display *display);
 
@@ -66,7 +67,7 @@ enum
     NetWMFullscreen, NetWMCheck,
     NetWMAlwaysOnTop, NetWMStayOnTop,
     /* action requests */
-    NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinize, NetWMActionMove,
+    NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinimize, NetWMActionMove,
     NetWMActionResize, NetWMActionMaximizeVert, NetWMActionMaximizeHorz,
     NetWMActionFullscreen, NetWMActionChangeDesktop, NetWMActionClose,
     NetWMActionAbove, NetWMActionMinimize, NetWMActionBelow,

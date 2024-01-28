@@ -263,7 +263,7 @@ SetWindowLayout(const Arg *arg)
     m = selmon;
 
     if(!m || m->isfullscreen) return;
-    setmonitorlayout(m, arg->i);
+    setmonlyt(m, arg->i);
     arrangemon(m);
     if(m->sel) 
     {       
@@ -302,7 +302,7 @@ void
 MaximizeWindow(const Arg *arg)
 {
     Client *c = selmon->sel;
-    if(c && !c->isfixed)
+    if(c && !c->isfixed && !c->mon->isfullscreen)
     {
         if(docked(c))
         {   
@@ -320,8 +320,8 @@ MaximizeWindow(const Arg *arg)
             setfloating(c, 0);
             maximize(c);
         }
+        arrange(selmon);
     }
-    arrange(selmon);
 }
 
 void
@@ -340,8 +340,8 @@ MaximizeWindowVertical(const Arg *arg)
             setfloating(c, 0);
             maximizevert(c);
         }
+        arrange(selmon);
     }
-    arrange(selmon);
 }
 
 void
@@ -360,8 +360,8 @@ MaximizeWindowHorizontal(const Arg *arg)
             setfloating(c, 0);
             maximizehorz(c);
         } 
+        arrange(selmon);
     }
-    arrange(selmon);
 }
 
 void
@@ -375,7 +375,7 @@ AltTab(const Arg *arg)
     m = selmon;
     grabbed = 0;
 
-    if(!m->sel) for(m->sel = m->clients; m->sel && !ISVISIBLE(m->sel); m->sel = m->sel->next);
+    if(!m->sel) focus(NULL);
     if(!m->sel) return;
     if(!m->isfullscreen) drawalttab(1, m);
     tabnext = alttab(1);
@@ -383,11 +383,22 @@ AltTab(const Arg *arg)
 
     /* grab keyboard (input) grab mouse (prevent detaching of over clients) */
     if(XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
-        grabbed = 1;
-    else { alttabend(tabnext); return; }
+    {   grabbed = 1;
+    }
+    else 
+    { 
+        alttabend(tabnext); 
+        return; 
+    }
+
     if(XGrabPointer(dpy, root, True, ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
-                GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
-        { XUngrabKeyboard(dpy, CurrentTime); alttabend(tabnext); return; }
+                GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) == GrabSuccess) {/**/}
+    else
+    {
+        XUngrabKeyboard(dpy, CurrentTime); 
+        alttabend(tabnext); 
+        return; 
+    }
 
     while (grabbed && running)
     {
@@ -484,8 +495,8 @@ ToggleFullscreen(const Arg *arg)
         if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop) continue;
         setfullscreen(c, m->isfullscreen);
     }
-    if(m->isfullscreen)  setmonitorlayout(m, Monocle);
-    else setmonitorlayout(m, m->olyt);
+    if(m->isfullscreen)  setmonlyt(m, Monocle);
+    else setmonlyt(m, m->olyt);
     ToggleStatusBar(NULL);
     arrange(m);
 }
