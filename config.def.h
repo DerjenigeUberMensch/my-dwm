@@ -67,7 +67,7 @@
 /* dmenu colours */
 #define CFG_DMENU_COL_NORM_BACKGROUND       "#000000" /* dmenu background colour for NON selected items */
 #define CFG_DMENU_COL_NORM_FOREGROUND       "#ffffff" /* dmenu text colour for NON selected items       */
-#define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */
+#define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */ 
 #define CFG_DMENU_COL_SEL_FOREGROUND        "#ffffff" /* dmenu text colour for SELECTED items           */
 
 /* NOT FULLY IMPLEMENTED (DONT REMOVE) */
@@ -153,7 +153,7 @@ static const Layout layouts[] =
  *
  * first make sure its compiled in DEBUG using config.mk
  *
- * run this command: Xephyr :1 -ac -screen 680x480 &
+ * run this command: Xephyr :1 -ac -resizeable -screen 680x480 &
  * set the display to the one you did for Xephyr in this case we did 1 so
  * run this command: export DISPLAY=:1
  * now you are mostly done

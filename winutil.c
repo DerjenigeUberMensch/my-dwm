@@ -100,54 +100,31 @@ XGetPid(Display *display, Window win)
 void
 XInitAtoms(Display *display)
 {
-   /* wm */
-    netatom[WMProtocols] = XInternAtom(display, "WM_PROTOCOLS", False);
-    netatom[WMDelete] = XInternAtom(display, "WM_DELETE_WINDOW", False);
-    netatom[WMState] = XInternAtom(display, "WM_STATE", False);
-    netatom[WMTakeFocus] = XInternAtom(display, "WM_TAKE_FOCUS", False);
-    /* ewmh */
-    netatom[NetActiveWindow] = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
-    netatom[NetWMName] = XInternAtom(display, "_NET_WM_NAME", False);
-    netatom[NetWMIcon] = XInternAtom(display, "_NET_WM_ICON", False);
-    netatom[NetCloseWindow] = XInternAtom(display, "_NET_CLOSE_WINDOW", False);
-    netatom[NetWMCheck] = XInternAtom(display, "_NET_SUPPORTING_WM_CHECK", False);
-    netatom[NetWMWindowType] = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
-    netatom[NetWMWindowTypeDialog] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    netatom[NetClientList] = XInternAtom(display, "_NET_CLIENT_LIST", False);
-    netatom[NetDesktopViewport] = XInternAtom(display, "_NET_DESKTOP_VIEWPORT", False);
-    netatom[NetNumberOfDesktops] = XInternAtom(display, "_NET_NUMBER_OF_DESKTOPS", False);
-    netatom[NetCurrentDesktop] = XInternAtom(display, "_NET_CURRENT_DESKTOP", False);
-    netatom[NetDesktopNames] = XInternAtom(display, "_NET_DESKTOP_NAMES", False);
-    netatom[NetWMWindowsOpacity] = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
-
-    netatom[NetMoveResizeWindow] = XInternAtom(display, "_NET_MOVERESIZE_WINDOW", False);
-
-    /* window types */
-    netatom[NetWMWindowTypeDesktop] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
-    netatom[NetWMWindowTypeDock] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
-    netatom[NetWMWindowTypeToolbar] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
-    netatom[NetWMWindowTypeMenu] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_MENU", False);
-    netatom[NetWMWindowTypeUtility] = XInternAtom(display, "_NET_WMWINDOW_TYPE_UTILITY", False);
-    netatom[NetWMWindowTypeSplash] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_SPLASH", False);
-    netatom[NetWMWindowTypeDialog] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DIALOG", False);
-    netatom[NetWMWindowTypeNormal] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_NORMAL", False);
+    /* prob should have made a int f = False;
+     * or use 0; but they could change false or whatever
+     */
+     /* wm */
+    wmatom[WMProtocols] = XInternAtom(display, "WM_PROTOCOLS", False);
+    wmatom[WMDelete] = XInternAtom(display, "WM_DELETE_WINDOW", False);
+    wmatom[WMState] = XInternAtom(display, "WM_STATE", False);
+    wmatom[WMTakeFocus] = XInternAtom(display, "WM_TAKE_FOCUS", False);
     /* wm state */
     netatom[NetWMState] = XInternAtom(display, "_NET_WM_STATE", False);
-    netatom[NetWMStayOnTop] = XInternAtom(display, "_NET_WM_STATE_STAYS_ON_TOP", False); /* either I have dementia or does this not exists? */
-    netatom[NetWMFullscreen] = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
-    netatom[NetWMAlwaysOnTop] = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-    netatom[NetWMMaximizedVert] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-    netatom[NetWMMaximizedHorz] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-    netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-    netatom[NetWMBelow] = XInternAtom(display, "_NET_WM_STATE_BELOW", False);
-    netatom[NetWMDemandAttention] = XInternAtom(display, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
-    netatom[NetWMMinimize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
-    netatom[NetWMSticky] = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
-    netatom[NetWMHidden] = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
-    netatom[NetWMModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);
-    /* tracking */
-    netatom[NetWMUserTime] = XInternAtom(display, "_NET_WM_USER_TIME", False);
-    netatom[NetWMPing] = XInternAtom(display, "_NET_WM_PING", False);
+    netatom[NetWMStateModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);
+    netatom[NetWMStateSticky] = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
+    netatom[NetWMStateMaximizedVert] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    netatom[NetWMStateMaximizedHorz] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+    netatom[NetWMStateShaded] = XInternAtom(display, "_NET_WM_STATE_SHADED", False);
+    netatom[NetWMStateSkipTaskbar] = XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", False);
+    netatom[NetWMStateSkipPager] = XInternAtom(display, "_NET_WM_STATE_SKIP_PAGER", False);
+    netatom[NetWMStateHidden] = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
+    netatom[NetWMStateFullscreen] = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
+    netatom[NetWMStateAlwaysOnTop] = netatom[NetWMStateAbove] = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+    netatom[NetWMStateBelow] = XInternAtom(display, "_NET_WM_STATE_BELOW", False);
+    netatom[NetWMStateDemandAttention] = XInternAtom(display, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
+    netatom[NetWMStateFocused] = XInternAtom(display, "_NET_WM_STATE_FOCUSED", False);
+    netatom[NetWMStateStayOnTop] = XInternAtom(display, "_NET_WM_STATE_STAYS_ON_TOP", False); /* either I have dementia or does this not exists? -dusk */
+
     /* actions suppoorted */
     netatom[NetWMActionMove] = XInternAtom(display, "_NET_WM_ACTION_MOVE", False);
     netatom[NetWMActionResize] = XInternAtom(display, "_NET_WM_ACTION_RESIZE", False);
@@ -160,19 +137,6 @@ XInitAtoms(Display *display)
     netatom[NetWMActionAbove] = XInternAtom(display, "_NET_WM_ACTION_ABOVE", False);
     netatom[NetWMActionBelow] = XInternAtom(display, "_NET_WM_ACTION_BELOW", False);
 
-    netatom[NetSupported] = XInternAtom(display, "_NET_SUPPORTED", False);
-    /* wm state */
-    netatom[NetWMFullscreen] = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
-    netatom[NetWMMaximizedVert] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
-    netatom[NetWMMaximizedHorz] = XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-    netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-    netatom[NetWMBelow] = XInternAtom(display, "_NET_WM_STATE_BELOW", False);
-    netatom[NetWMDemandAttention] = XInternAtom(display, "_NET_WM_STATE_DEMANDS_ATTENTION", False);
-    netatom[NetWMMinimize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
-    netatom[NetWMSticky] = XInternAtom(display, "_NET_WM_STATE_STICKY", False);
-    netatom[NetWMHidden] = XInternAtom(display, "_NET_WM_STATE_HIDDEN", False);
-    netatom[NetWMModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);
-
     /* Root window properties */
     netatom[NetSupported] = XInternAtom(display, "_NET_SUPPORTED", False);
     netatom[NetClientList] = XInternAtom(display, "_NET_CLIENT_LIST", False);
@@ -181,7 +145,6 @@ XInitAtoms(Display *display)
     netatom[NetDesktopViewport] = XInternAtom(display, "_NET_DESKTOP_VIEWPORT", False);
     netatom[NetCurrentDesktop] = XInternAtom(display, "_NET_CURRENT_DESKTOP", False);
     netatom[NetDesktopNames] = XInternAtom(display, "_NET_DESKTOP_NAMES", False);
-    netatom[NetActiveWindow] = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
     netatom[NetWorkarea] = XInternAtom(display, "_NET_WORKAREA", False);
     netatom[NetSupportingWMCheck] = XInternAtom(display, "_NET_SUPPORTING_WM_CHECK", False);
     netatom[NetVirtualRoots] = XInternAtom(display, "_NET_VIRTUAL_ROOTS", False);
@@ -193,13 +156,13 @@ XInitAtoms(Display *display)
     netatom[NetMoveResize] = XInternAtom(display, "_NET_WM_MOVERESIZE", False);
     netatom[NetRestackWindow] = XInternAtom(display, "_NET_RESTACK_WINDOW", False);
     netatom[NetRequestFrameExtents] = XInternAtom(display, "_NET_REQUEST_FRAME_EXTENTS", False);
+    netatom[NetActiveWindow] = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
     /* application win properties */
     netatom[NetWMName] = XInternAtom(display, "_NET_WM_NAME", False);
     netatom[NetWMVisibleName] = XInternAtom(display, "_NET_WM_VISIBLE_NAME", False);
     netatom[NetWMIconName] = XInternAtom(display, "_NET_WM_ICON_NAME", False);
     netatom[NetWMVisibleIconName] = XInternAtom(display, "_NET_WM_VISIBLE_ICON_NAME", False);
     netatom[NetWMDesktop] = XInternAtom(display, "_NET_WM_DESKTOP", False);
-    netatom[NetWMState] = XInternAtom(display, "_NET_WM_STATE", False);
     netatom[NetWMAllowedActions] = XInternAtom(display, "_NET_WM_ALLOWED_ACTIONS", False);
     netatom[NetWMStrut] = XInternAtom(display, "_NET_WM_STRUT", False);
     netatom[NetWMStrutPartial] = XInternAtom(display, "_NET_WM_STRUT_PARTIAL", False);
@@ -207,24 +170,10 @@ XInitAtoms(Display *display)
     netatom[NetWMIcon] = XInternAtom(display, "_NET_WM_ICON", False);
     netatom[NetWMPid] = XInternAtom(display, "_NET_WM_PID", False);
     netatom[NetWMHandledIcons] = XInternAtom(display, "_NET_WM_HANDLED_ICONS", False);
-    netatom[NetWMUserTime] = XInternAtom(display, "_NET_WM_USER_TIME", False);
-    netatom[NetWMUserTimeWindow] = XInternAtom(display, "_NET_WM_USER_TIME_WINDOW", False);
     netatom[NetWMFrameExtents] = XInternAtom(display, "_NET_FRAME_EXTENTS", False);
     netatom[NetWMOpaqueRegion] = XInternAtom(display, "_NET_WM_OPAQUE_REGION", False);
     netatom[NetWMBypassCompositor] = XInternAtom(display, "_NET_WM_BYPASS_COMPOSITOR", False);
-
-    /* net actions */
-    netatom[NetWMActionMove] = XInternAtom(display, "_NET_WM_ACTION_MOVE", False);
-    netatom[NetWMActionResize] = XInternAtom(display, "_NET_WM_ACTION_RESIZE", False);
-    netatom[NetWMActionMinimize] = XInternAtom(display, "_NET_WM_ACTION_MINIMIZE", False);
-    netatom[NetWMActionMaximizeHorz] = XInternAtom(display, "_NET_WM_ACTION_MAXIMIZE_HORZ", False);
-    netatom[NetWMActionMaximizeVert] = XInternAtom(display, "_NET_WM_ACTION_MAXIMIZE_VERT", False);
-    netatom[NetWMActionFullscreen] = XInternAtom(display, "_NET_WM_ACTION_FULLSCREEN", False);
-    netatom[NetWMActionChangeDesktop] = XInternAtom(display, "_NET_WM_ACTION_CHANGE_DESKTOP", False);
-    netatom[NetWMActionClose] = XInternAtom(display, "_NET_WM_ACTION_CLOSE", False);
-    netatom[NetWMActionAbove] = XInternAtom(display, "_NET_WM_ACTION_ABOVE", False);
-    netatom[NetWMActionBelow] = XInternAtom(display, "_NET_WM_ACTION_BELOW", False);
-
+    //netatom[NetWMMinimize] = XInternAtom(display, "_NET_WM_MINIMIZE", False);
     /* window types */
     netatom[NetWMWindowType] = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
     netatom[NetWMWindowTypeDesktop] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DESKTOP", False);
@@ -234,16 +183,24 @@ XInitAtoms(Display *display)
     netatom[NetWMWindowTypeUtility] = XInternAtom(display, "_NET_WMWINDOW_TYPE_UTILITY", False);
     netatom[NetWMWindowTypeSplash] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_SPLASH", False);
     netatom[NetWMWindowTypeDialog] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DIALOG", False);
+    netatom[NetWMWindowTypeDropdownMenu] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU", False);
+    netatom[NetWMWindowTypePopupMenu] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_POPUP_MENU", False);
+    netatom[NetWMWindowTypeTooltip] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_TOOLTIP", False);
+    netatom[NetWMWindowTypeNotification] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
+    netatom[NetWMWindowTypeCombo] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_COMBO", False);
+    netatom[NetWMWindowTypeDnd] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DND", False);
     netatom[NetWMWindowTypeNormal] = XInternAtom(display, "_NET_WM_WINDOW_TYPE_NORMAL", False);
     /* Window manager protocols */
     netatom[NetWMPing] = XInternAtom(display, "_NET_WM_PING", False);
     netatom[NetWMSyncRequest] = XInternAtom(display, "_NET_WM_SYNC_REQUEST", False);
     netatom[NetWMFullscreenMonitors] = XInternAtom(display, "_NET_WM_FULLSCREEN_MONITORS", False);
+    netatom[NetWMUserTime] = XInternAtom(display, "_NET_WM_USER_TIME", False);
+    netatom[NetWMUserTimeWindow] = XInternAtom(display, "_NET_WM_USER_TIME_WINDOW", False);
 
     /* stuff */
     netatom[NetWMCheck] = XInternAtom(display, "_NET_WM_CHECK", False);
     netatom[NetWMFullscreen] = XInternAtom(display, "_NET_WM_FULLSCREEN", False);
-    netatom[NetWMAlwaysOnTop] = XInternAtom(display, "_NET_WM_ABOVE", False);
+    netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_ABOVE", False);
 
     /* other */
     netatom[NetWMFullPlacement] = XInternAtom(display, "_NET_WM_FULL_PLACEMENT", False);

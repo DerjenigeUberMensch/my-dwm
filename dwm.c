@@ -536,12 +536,14 @@ clientmessage(XEvent *e)
     else if (msg == netatom[NetMoveResizeWindow]) 
     {   resize(c, data1, data2, data3, data4, 1);
     }
+    /*
     else if (msg == netatom[NetWMMinimize])
     {
-        /* IDK */
+        //IDK
         XLowerWindow(dpy, c->win);
         alttab(0);
     }
+    */
 }
 
 void
@@ -592,6 +594,9 @@ configurenotify(XEvent *e)
     }
 }
 
+/* picture in picture stuff uses this
+ * check the if statment if (ISVISIBLE(c)
+ */
 void
 configurerequest(XEvent *e)
 {
@@ -602,11 +607,12 @@ configurerequest(XEvent *e)
 
     if ((c = wintoclient(ev->window)))
     {
+        m = c->mon;
         if (ev->value_mask & CWBorderWidth)
-            c->bw = ev->border_width;
+        {   c->bw = ev->border_width;
+        }
         else if (c->isfloating || !selmon->lt[selmon->sellt]->arrange)
         {
-            m = c->mon;
             if (ev->value_mask & CWX)
             {
                 c->oldx = c->x;
@@ -637,7 +643,8 @@ configurerequest(XEvent *e)
             {   configure(c);
             }
             if (ISVISIBLE(c))
-            {   XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
+            {   
+                XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
             }
         }
         else
@@ -1193,7 +1200,7 @@ getstate(Window w)
     unsigned long n, extra;
     Atom real;
 
-    if (XGetWindowProperty(dpy, w, netatom[WMState], 0L, 2L, False, netatom[WMState],
+    if (XGetWindowProperty(dpy, w, wmatom[WMState], 0L, 2L, False, wmatom[WMState],
                            &real, &format, &n, &extra, (unsigned char **)&p) != Success)
         return -1;
     if (n != 0)
@@ -1441,6 +1448,9 @@ manage(Window w, XWindowAttributes *wa)
         c->isfloating = c->wasfloating = trans != None || c->isfixed;
     /* set floating if always on top */
     c->isfloating = c->isfloating || c->alwaysontop;
+    if(c->isfloating)
+    {   XRaiseWindow(dpy, c->win);
+    }
 
     attach(c);
     attachstack(c);
@@ -1805,7 +1815,6 @@ void
 resizeclient(Client *c, int x, int y, int w, int h)
 {
     XWindowChanges wc;
-
     c->oldx = c->x;
     c->oldy = c->y;
     c->oldw = c->w;
@@ -1829,6 +1838,9 @@ resizerequest(XEvent *e)
     c = wintoclient(ev->window);
     if(c) 
     {   resize(c, c->x, c->y, ev->width, ev->height, 1);
+        if(!docked(c)) 
+        {   setfloating(c, 1);
+        }
     }
     else  XResizeWindow(dpy, ev->window, ev->width, ev->height);
 }
@@ -1851,7 +1863,7 @@ restack(Monitor *m)
             wc.sibling = c->win;
         }
         if(getmonlyt(m) == &layouts[Floating] || getmonlyt(m) == &layouts[Monocle])
-        {   setfloating(c, !docked(c));
+        {   //setfloating(c, !docked(c));
         }
     }
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
@@ -1986,7 +1998,7 @@ setclientstate(Client *c, long state)
 {
     long data[] = { state, None };
 
-    XChangeProperty(dpy, c->win, netatom[WMState], netatom[WMState], 32,
+    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
                     PropModeReplace, (unsigned char *)data, 2);
 }
 
@@ -2008,7 +2020,7 @@ sendevent(Client *c, Atom proto)
     {
         ev.type = ClientMessage;
         ev.xclient.window = c->win;
-        ev.xclient.message_type = netatom[WMProtocols];
+        ev.xclient.message_type = wmatom[WMProtocols];
         ev.xclient.format = 32;
         ev.xclient.data.l[0] = proto;
         ev.xclient.data.l[1] = CurrentTime;
@@ -2049,7 +2061,7 @@ setfocus(Client *c)
                         XA_WINDOW, 32, PropModeReplace,
                         (unsigned char *) &(c->win), 1);
     }
-    sendevent(c, netatom[WMTakeFocus]);
+    sendevent(c, wmatom[WMTakeFocus]);
 }
 
 void
@@ -2064,7 +2076,7 @@ setfullscreen(Client *c, int fullscreen)
 {
     if (fullscreen && !c->isfullscreen)
     {
-        XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace, (unsigned char*)&netatom[NetWMFullscreen], 1);
+        XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32, PropModeReplace, (unsigned char*)&netatom[NetWMStateFullscreen], 1);
         c->isfullscreen = 1;
         c->oldbw = c->bw;
         c->bw = 0;
@@ -2105,7 +2117,7 @@ setsticky(Client *c, int sticky)
     if(sticky) 
     {
         XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
-                PropModeReplace, (unsigned char *) &netatom[NetWMSticky], 1);
+                PropModeReplace, (unsigned char *) &netatom[NetWMStateSticky], 1);
         /* make client tags divisible by 2^x (AKA shown on all tags) */
         c->tags = TAGMASK;
         return;
@@ -2287,7 +2299,7 @@ killclient(Client *c, int type)
 {
     const int probablynotsystempid = 100;
     if(!c) return;
-    if(!sendevent(c, netatom[WMDelete]))
+    if(!sendevent(c, wmatom[WMDelete]))
     {
         XGrabServer(dpy);
         XSetErrorHandler(xerrordummy);
@@ -2797,7 +2809,7 @@ updatewindowstate(Client *c, Atom state, int data)
     int toggle = (data == 2);
     Client *temp;
     data = !!data;
-    if (state == netatom[NetWMModal])
+    if (state == netatom[NetWMStateModal])
     {
         if(toggle)
         {   setfloating(c, !c->isfloating);
@@ -2808,7 +2820,7 @@ updatewindowstate(Client *c, Atom state, int data)
             c->isurgent = data;
         }
     }
-    else if (state == netatom[NetWMAlwaysOnTop])
+    else if (state == netatom[NetWMStateAlwaysOnTop])
     {
         if(toggle)
         {   setfloating(c, !c->isfloating);
@@ -2819,7 +2831,7 @@ updatewindowstate(Client *c, Atom state, int data)
             c->alwaysontop = data;
         }
     }
-    else if (state == netatom[NetWMStayOnTop])
+    else if (state == netatom[NetWMStateStayOnTop])
     {
         if(toggle)
         {   setfloating(c, !c->isfloating);
@@ -2830,7 +2842,7 @@ updatewindowstate(Client *c, Atom state, int data)
             c->stayontop = data;
         }
     }
-    else if (state == netatom[NetWMDemandAttention])
+    else if (state == netatom[NetWMStateDemandAttention])
     {
         if(toggle)
         {   c->isurgent = !c->isurgent;
@@ -2839,7 +2851,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   c->isurgent = data;
         }
     }
-    else if (state == netatom[NetWMFullscreen])
+    else if (state == netatom[NetWMStateFullscreen])
     {
         if(toggle)
         {   ToggleFullscreen(NULL);
@@ -2857,7 +2869,7 @@ updatewindowstate(Client *c, Atom state, int data)
             }
         }
     }
-    else if (state == netatom[NetWMMaximizedHorz])
+    else if (state == netatom[NetWMStateMaximizedHorz])
     {
         if(toggle)
         {
@@ -2873,7 +2885,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
         }
     }
-    else if (state == netatom[NetWMMaximizedVert])
+    else if (state == netatom[NetWMStateMaximizedVert])
     {
         if(toggle)
         {   
@@ -2890,7 +2902,7 @@ updatewindowstate(Client *c, Atom state, int data)
         }
     }
     /*  else if (state == netatom[NetWMAbove])          {REPLACED BY NetWMAlwaysOnTop}      */
-    else if (state == netatom[NetWMSticky])
+    else if (state == netatom[NetWMStateSticky])
     {
         if(toggle)
         {   setsticky(c, c->tags != TAGMASK);
@@ -2899,7 +2911,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   setsticky(c, data);
         }
     }
-    else if (state == netatom[NetWMBelow])
+    else if (state == netatom[NetWMStateBelow])
     {
         /* idk how to handle this */
         if(toggle)
@@ -2909,7 +2921,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   XLowerWindow(dpy, c->win);
         }
     }
-    else if (state == netatom[NetWMFocused])
+    else if (state == netatom[NetWMStateFocused])
     {
     }
     arrange(c->mon);
@@ -3010,7 +3022,7 @@ winsetstate(Window win, long state)
 {
     long data[] = { state, None };
 
-    XChangeProperty(dpy, win, netatom[WMState], netatom[WMState], 32,
+    XChangeProperty(dpy, win, wmatom[WMState], wmatom[WMState], 32,
                     PropModeReplace, (unsigned char*)data, 2);
 }
 
