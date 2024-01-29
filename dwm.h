@@ -343,7 +343,8 @@ void (*handler[LASTEvent]) (XEvent *) =
     [MappingNotify] = mappingnotify,
     [UnmapNotify] = unmapnotify
 };
-Atom netatom[NetLast], motifatom;
+Atom wmatom[WMLast], motifatom;
+Atom netatom[NetLast];
 int running = 1;
 int RESTART = 0;
 Cur *cursor[CurLast];

@@ -9,36 +9,6 @@ void XInitAtoms(Display *display);
 
 
 /* typedef unsigned long Atom; */
-/*
-    NetSupported, NetWMName, NetWMIcon, NetWMState, NetCloseWindow, NetWMCheck,
-    NetWMFullscreen, NetWMAlwaysOnTop, NetWMStayOnTop, NetActiveWindow,
-    NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
-
-    NetWMActionMove, NetWMActionResize, NetWMActionMinimize, NetWMActionMaximizeHorz,
-    NetWMActionMaximizeVert, NetWMActionFullscreen, NetWMActionChangeDesktop, NetWMActionClose, 
-    NetWMActionAbove, NetWMActionBelow,
-
-    NetMoveResizeWindow, NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinize,
-    NetWMAbove, NetWMBelow, NetWMDemandAttention, NetWMFocused, NetWMSticky,
-    NetWMModal, NetWMHidden, 
-    
-
-    NetWMWindowTypeDesktop, NetWMWindowTypeDock,
-    NetWMWindowTypeToolbar, NetWMWindowTypeMenu, 
-    NetWMWindowTypeUtility, NetWMWindowTypeSplash, 
-    NetWMWindowTypeDropdownMenu, NetWMWindowTypePopupMenu,
-    NetWMWindowTypeTooltip, NetWMWindowTypeNotification,
-    NetWMWindowTypeCombo, NetWMWindowTypeDnd,
-
-    NetWMWindowTypeNormal,
-
-    NetWMUserTime, NetWMPing,
-
-    NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop,
-
-    NetWMWindowsOpacity,
-    NetLast,
-*/
 enum 
 {
     /* Root window properties */
@@ -64,16 +34,20 @@ enum
     NetWMPid, NetWMHandledIcons, 
     NetWMUserTime, NetWMUserTimeWindow,
     NetWMFrameExtents, NetWMOpaqueRegion,
-    NetWMFullscreen, NetWMCheck,
-    NetWMAlwaysOnTop, NetWMStayOnTop,
+    NetWMStateFullscreen, NetWMCheck,
+    NetWMStateAlwaysOnTop, NetWMStateStayOnTop,
+    NetWMStateMaximizedVert, NetWMStateMaximizedHorz, NetWMStateMinimize, 
+    NetWMStateAbove, NetWMStateBelow, NetWMStateDemandAttention,  NetWMStateSticky,
+    NetWMStateShaded, NetWMStateSkipTaskbar, NetWMStateSkipPager,
+    NetWMStateModal, NetWMStateHidden, NetWMStateFocused,
     /* action requests */
-    NetWMMaximizedVert, NetWMMaximizedHorz, NetWMMinimize, NetWMActionMove,
+    NetWMActionMove,
     NetWMActionResize, NetWMActionMaximizeVert, NetWMActionMaximizeHorz,
     NetWMActionFullscreen, NetWMActionChangeDesktop, NetWMActionClose,
     NetWMActionAbove, NetWMActionMinimize, NetWMActionBelow,
     /* actions msg */
-    NetWMAbove, NetWMBelow, NetWMDemandAttention, NetWMFocused, NetWMSticky,
-    NetWMModal, NetWMHidden, 
+    NetWMAbove, NetWMBelow, NetWMDemandAttention, NetWMFocused, 
+    NetWMFullscreen,
     
     /* window types */
     NetWMWindowTypeDesktop, NetWMWindowTypeDock,
@@ -85,7 +59,6 @@ enum
     NetWMWindowTypeDialog, NetWMWindowTypeNormal,
 
     /* wm protocols */
-    WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast,
     NetWMPing, NetWMSyncRequest,
     NetWMFullscreenMonitors,
     /* other */
@@ -95,7 +68,10 @@ enum
     /* last */
     NetLast,
 };
+/* default atoms */
+enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
 
 extern Atom netatom[NetLast];
+extern Atom wmatom[WMLast];
 
 #endif
