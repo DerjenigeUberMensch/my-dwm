@@ -85,7 +85,7 @@ alttab(int ended)
     if(!c) c = nextvisible(m->clients);
 
     /* get the next visible window */
-    c = nextvisible(c->next);
+    c = nextvisible(c ? c->next : NULL);
     if(!c) c = nextvisible(m->clients);
     focus(c);
     if(&layouts[Monocle] == getmonlyt(m) || &layouts[Floating] == getmonlyt(m))
@@ -604,7 +604,15 @@ configurerequest(XEvent *e)
     Monitor *m;
     XConfigureRequestEvent *ev = &e->xconfigurerequest;
     XWindowChanges wc;
-
+    if(ev->window == root)
+    {
+        if(ev->value_mask & CWWidth)
+        {   sw = ev->width;
+        }
+        if(ev->value_mask & CWHeight)
+        {   sh = ev->height;
+        }
+    }
     if ((c = wintoclient(ev->window)))
     {
         m = c->mon;
@@ -781,6 +789,9 @@ drawalttab(int first, Monitor *m)
         if(!ISVISIBLE(c)) continue;
         maxwNeeded = MAX((TEXTW(c->name) - lrpad), maxwNeeded);
         ++nwins;
+    }
+    if(!nwins)
+    {   return;
     }
 
     maxwNeeded = MIN(maxwNeeded + CFG_ALT_TAB_MIN_WIDTH, CFG_ALT_TAB_MAX_WIDTH);
