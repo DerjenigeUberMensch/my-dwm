@@ -1,6 +1,8 @@
 #ifndef WINTUTIL_H_
 #define WINTUTIL_H_
 
+#include <X11/Xlib.h>
+
 char *XGetWindowName(Display *display, Window win);
 int XGetTextProp(Display *display, Window w, Atom atom, char *text, unsigned int size);
 void XPingWindow(Display *display, Window win);
@@ -9,7 +11,7 @@ void XInitAtoms(Display *display);
 
 
 /* typedef unsigned long Atom; */
-enum 
+enum NETWMPROTOCOLS
 {
     /* Root window properties */
     NetSupported, NetClientList, 
@@ -69,7 +71,7 @@ enum
     NetLast,
 };
 /* default atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
+enum WMPROTOCOLS { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
 
 extern Atom netatom[NetLast];
 extern Atom wmatom[WMLast];
