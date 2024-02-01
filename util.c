@@ -76,7 +76,7 @@ debug(char *fmt, ...)
     va_end(args);
 
     perror(txt);
-    fprintf(stdout, "%s", txt);
+    fprintf(stdout, "%s\n", txt);
 
     free(txt);
 }

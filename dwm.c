@@ -377,6 +377,52 @@ cleanuptabwin(Monitor *m)
     XDestroyWindow(dpy, m->tabwin);
 }
 
+void
+configure(Client *c)
+{
+    XConfigureEvent ce;
+
+    ce.type = ConfigureNotify;
+    ce.display = dpy;
+    ce.event = c->win;
+    ce.window = c->win;
+    ce.x = c->x;
+    ce.y = c->y;
+    ce.width = c->w;
+    ce.height = c->h;
+    ce.border_width = c->bw;
+    ce.above = None;
+    ce.override_redirect = False;
+    XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
+}
+
+Monitor *
+createmon(void)
+{
+    Monitor *m;
+
+    m = ecalloc(1, sizeof(Monitor));
+    m->tagset[0]= m->tagset[1] = 1;
+    m->mfact    = CFG_MONITOR_FACT;
+    m->nmaster  = CFG_MASTER_COUNT;
+    m->showbar  = CFG_SHOW_BAR;
+    m->oshowbar = !CFG_SHOW_BAR;
+    m->topbar   = CFG_TOP_BAR;
+    m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
+    m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
+    m->tagmap   = ecalloc(LENGTH(tags), sizeof(Pixmap));
+    m->isfullscreen = 0;
+    /* prevent garbage values (undefined behaviour) */
+    m->clients  = NULL;
+    m->stack    = NULL;
+    m->next     = NULL;
+    m->clast    = NULL;
+    m->slast    = NULL;
+    m->sel      = NULL;
+    strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
+    return m;
+}
+
 int
 docked(Client *c)
 {
@@ -397,7 +443,7 @@ dockedhorz(Client *c)
 }
 
 void
-drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
+drw_pic(Drw *drwstruct, int x, int y, unsigned int w, unsigned int h, Picture pic)
 {
     if (!drw)
         return;
@@ -405,7 +451,7 @@ drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
 }
 
 Picture
-drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
+drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
     Pixmap pm;
     Picture pic;
     GC gc;
@@ -471,52 +517,6 @@ drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int 
     pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
     XFreePixmap(drw->dpy, pm);
     return pic;
-}
-
-void
-configure(Client *c)
-{
-    XConfigureEvent ce;
-
-    ce.type = ConfigureNotify;
-    ce.display = dpy;
-    ce.event = c->win;
-    ce.window = c->win;
-    ce.x = c->x;
-    ce.y = c->y;
-    ce.width = c->w;
-    ce.height = c->h;
-    ce.border_width = c->bw;
-    ce.above = None;
-    ce.override_redirect = False;
-    XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
-}
-
-Monitor *
-createmon(void)
-{
-    Monitor *m;
-
-    m = ecalloc(1, sizeof(Monitor));
-    m->tagset[0]= m->tagset[1] = 1;
-    m->mfact    = CFG_MONITOR_FACT;
-    m->nmaster  = CFG_MASTER_COUNT;
-    m->showbar  = CFG_SHOW_BAR;
-    m->oshowbar = !CFG_SHOW_BAR;
-    m->topbar   = CFG_TOP_BAR;
-    m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
-    m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
-    m->tagmap   = ecalloc(LENGTH(tags), sizeof(Pixmap));
-    m->isfullscreen = 0;
-    /* prevent garbage values (undefined behaviour) */
-    m->clients  = NULL;
-    m->stack    = NULL;
-    m->next     = NULL;
-    m->clast    = NULL;
-    m->slast    = NULL;
-    m->sel      = NULL;
-    strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
-    return m;
 }
 
 void
@@ -803,7 +803,6 @@ drawbartags(Monitor *m, int x)
     }
     return x;
 }
-
 
 void
 focus(Client *c)
@@ -1758,7 +1757,7 @@ setup(void)
     RESTART = 0;
     lastfocused = NULL;
     pl = NULL;
-
+    XSetIOErrorHandler(xexithandler);
     /* init screen */
     XSetWindowAttributes wa;
     /* clean up any zombies immediately */
@@ -2688,25 +2687,163 @@ winunmap(Window win, Window winroot, int iconify)
  * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
  * default error handler, which may call exit. */
 int
-xerror(Display *dpy, XErrorEvent *ee)
+xerror(Display *display, XErrorEvent *ee)
 {
-    if (ee->error_code == BadWindow
-            || (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
-            || (ee->request_code == X_PolyText8 && ee->error_code == BadDrawable)
-            || (ee->request_code == X_PolyFillRectangle && ee->error_code == BadDrawable)
-            || (ee->request_code == X_PolySegment && ee->error_code == BadDrawable)
-            || (ee->request_code == X_ConfigureWindow && ee->error_code == BadMatch)
-            || (ee->request_code == X_GrabButton && ee->error_code == BadAccess)
-            || (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
-            || (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
-        return 0;
-    fprintf(stderr, "fatal error: request code=%d, error code=%d\n",
-            ee->request_code, ee->error_code);
+    if(CFG_VERBOSE_ERRORS)
+    {
+    switch(ee->error_code)
+    {
+        case Success: debug("WARNING: XERROR_TRIGGER_ON_SUCCESS"); break;
+        case BadWindow: debug("WARNING: X_ERROR_BAD_WINDOW"); break;
+        case BadAccess: debug("WARNING: X_ERROR_BAD_ACCESS"); break;
+        case BadAlloc: debug("WARNING: X_ERROR_BAD_ALLOC"); break;
+        case BadAtom: debug("WARNING: X_ERROR_BAD_ATOM"); break;
+        case BadColor: debug("WARNING: X_ERROR_BAD_COLOR"); break;
+        case BadCursor: debug("WARNING: X_ERROR_BAD_CURSOR"); break;
+        case BadDrawable: debug("WARNING: X_ERROR_BAD_DRAWABLE"); break;
+        case BadFont: debug("WARNING: X_ERROR_BAD_FONT"); break;
+        case BadGC: debug("WARNING: X_ERROR_BAD_GC"); break;
+        case BadIDChoice: debug("WARNING: X_ERROR_BAD_ID_CHOICE"); break;
+        case BadImplementation: debug("WARNING: X_ERROR_BAD_IMPLEMENTATION"); break;
+        case BadLength: debug("WARNING: X_ERROR_BAD_LENGTH"); break;
+        case BadMatch: debug("WARNING: X_ERROR_BAD_MATCH"); break;
+        case BadName: debug("WARNING: X_ERROR_BAD_NAME"); break;
+        case BadPixmap: debug("WARNING: X_ERROR_BAD_PIXMAP"); break;
+        case BadRequest: debug("WARNING: X_ERROR_BAD_REQUEST"); break;
+        case BadValue: debug("WARNING: X_ERROR_BAD_VALUE"); break;
+        default: debug("WARNING: UNKNOWN ERROR CODE: %d", ee->error_code);
+    }
+    switch(ee->request_code)
+    {   
+        case X_CreateWindow: debug("X_REQUEST_CREATE_WINDOW"); break;
+        case X_ChangeWindowAttributes: debug("X_REQUEST_CHANGE_WINDOW_ATTRIBUTES"); break;
+        case X_GetWindowAttributes: debug("X_REQUEST_GET_WINDOW_ATTRIBUTES"); break;
+        case X_DestroyWindow: debug("X_REQUEST_DESTROY_WINDOW"); break;
+        case X_DestroySubwindows: debug("X_REQUEST_DESTROY_SUBWINDOWS"); break;
+        case X_ChangeSaveSet: debug("X_REQUEST_CHANGE_SAVE_SET"); break;
+        case X_ReparentWindow: debug("X_REQUEST_REPARENT_WINDOW"); break;
+        case X_MapWindow: debug("X_REQUEST_MAP_WINDOW"); break;
+        case X_MapSubwindows: debug("X_REQUEST_MAP_SUBWINDOWS"); break;
+        case X_UnmapWindow: debug("X_REQUEST_UNMAP_WINDOW"); break;
+        case X_UnmapSubwindows: debug("X_REQUEST_UNMAP_SUBWINDOWS"); break;
+        case X_ConfigureWindow: debug("X_REQUEST_CONFIGURE_WINDOW"); break;
+        case X_CirculateWindow: debug("X_REQUEST_CIRCULATE_WINDOW"); break;
+        case X_GetGeometry: debug("X_REQUEST_GET_GEOMETRY"); break;
+        case X_QueryTree: debug("X_REQUEST_QUERY_TREE"); break;
+        case X_InternAtom: debug("X_REQUEST_INTERN_ATOM"); break;
+        case X_GetAtomName: debug("X_REQUEST_GET_ATOM_NAME"); break;
+        case X_ChangeProperty: debug("X_REQUEST_CHANGE_PROPERTY"); break;
+        case X_DeleteProperty: debug("X_REQUEST_DELETE_PROPERTY"); break;
+        case X_GetProperty: debug("X_REQUEST_GET_PROPERTY"); break;
+        case X_ListProperties: debug("X_REQUEST_LIST_PROPERTIES"); break;
+        case X_SetSelectionOwner: debug("X_REQUEST_SET_SELECTION_OWNER"); break;
+        case X_GetSelectionOwner: debug("X_REQUEST_GET_SELECTION_OWNER"); break;
+        case X_ConvertSelection: debug("X_REQUEST_CONVERT_SELECTION"); break;
+        case X_SendEvent: debug("X_REQUEST_SEND_EVENT"); break;
+        case X_GrabPointer: debug("X_REQUEST_GRAB_POINTER"); break;
+        case X_UngrabPointer: debug("X_REQUEST_UNGRAB_POINTER"); break;
+        case X_GrabButton: debug("X_REQUEST_GRAB_BUTTON"); break;
+        case X_UngrabButton: debug("X_REQUEST_UNGRAB_BUTTON"); break;
+        case X_ChangeActivePointerGrab: debug("X_REQUEST_CHANGE_ACTIVE_POINTER_GRAB"); break;
+        case X_GrabKeyboard: debug("X_REQUEST_GRAB_KEYBOARD"); break;
+        case X_UngrabKeyboard: debug("X_REQUEST_UNGRAB_KEYBOARD"); break;
+        case X_GrabKey: debug("X_REQUEST_GRAB_KEY"); break;
+        case X_UngrabKey: debug("X_REQUEST_UNGRAB_KEY"); break;
+        case X_AllowEvents: debug("X_REQUEST_ALLOW_EVENTS"); break;
+        case X_GrabServer: debug("X_REQUEST_GRAB_SERVER"); break;
+        case X_UngrabServer: debug("X_REQUEST_UNGRAB_SERVER"); break;
+        case X_QueryPointer: debug("X_REQUEST_QUERY_POINTER"); break;
+        case X_GetMotionEvents: debug("X_REQUEST_GET_MOTION_EVENTS"); break;
+        case X_TranslateCoords: debug("X_REQUEST_TRANSLATE_COORDS"); break;
+        case X_WarpPointer: debug("X_REQUEST_WARP_POINTER"); break;
+        case X_SetInputFocus: debug("X_REQUEST_SET_INPUT_FOCUS"); break;
+        case X_GetInputFocus: debug("X_REQUEST_GET_INPUT_FOCUS"); break;
+        case X_QueryKeymap: debug("X_REQUEST_QUERY_KEYMAP"); break;
+        case X_OpenFont: debug("X_REQUEST_OPEN_FONT"); break;
+        case X_CloseFont: debug("X_REQUEST_CLOSE_FONT"); break;
+        case X_QueryFont: debug("X_REQUEST_QUERY_FONT"); break;
+        case X_QueryTextExtents: debug("X_REQUEST_QUERY_TEXT_EXTENTS"); break;
+        case X_ListFonts: debug("X_REQUEST_LIST_FONTS"); break;
+        case X_ListFontsWithInfo: debug("X_REQUEST_LIST_FONTS_WITH_INFO"); break;
+        case X_SetFontPath: debug("X_REQUEST_SET_FONT_PATH"); break;
+        case X_GetFontPath: debug("X_REQUEST_GET_FONT_PATH"); break;
+        case X_CreatePixmap: debug("X_REQUEST_CREATE_PIXMAP"); break;
+        case X_FreePixmap: debug("X_REQUEST_FREE_PIXMAP"); break;
+        case X_CreateGC: debug("X_REQUEST_CREATE_GC"); break;
+        case X_ChangeGC: debug("X_REQUEST_CHANGE_GC"); break;
+        case X_CopyGC: debug("X_REQUEST_COPY_GC"); break;
+        case X_SetDashes: debug("X_REQUEST_SET_DASHES"); break;
+        case X_SetClipRectangles: debug("X_REQUEST_SET_CLIP_RECTANGLES"); break;
+        case X_FreeGC: debug("X_REQUEST_FREE_GC"); break;
+        case X_ClearArea: debug("X_REQUEST_CLEAR_AREA"); break;
+        case X_CopyArea: debug("X_REQUEST_COPY_AREA"); break;
+        case X_CopyPlane: debug("X_REQUEST_COPY_PLANE"); break;
+        case X_PolyPoint: debug("X_REQUEST_POLY_POINT"); break;
+        case X_PolyLine: debug("X_REQUEST_POLY_LINE"); break;
+        case X_PolySegment: debug("X_REQUEST_POLY_SEGMENT"); break;
+        case X_PolyRectangle: debug("X_REQUEST_POLY_RECTANGLE"); break;
+        case X_PolyArc: debug("X_REQUEST_POLY_ARC"); break;
+        case X_FillPoly: debug("X_REQUEST_FILL_POLY"); break;
+        case X_PolyFillRectangle: debug("X_REQUEST_POLY_FILL_RECTANGLE"); break;
+        case X_PolyFillArc: debug("X_REQUEST_POLY_FILL_ARC"); break;
+        case X_PutImage: debug("X_REQUEST_PUT_IMAGE"); break;
+        case X_GetImage: debug("X_REQUEST_GET_IMAGE"); break;
+        case X_PolyText8: debug("X_REQUEST_POLY_TEXT_8"); break;
+        case X_PolyText16: debug("X_REQUEST_POLY_TEXT_16"); break;
+        case X_ImageText8: debug("X_REQUEST_IMAGE_TEXT_8"); break;
+        case X_ImageText16: debug("X_REQUEST_IMAGE_TEXT_16"); break;
+        case X_CreateColormap: debug("X_REQUEST_CREATE_COLORMAP"); break;
+        case X_FreeColormap: debug("X_REQUEST_FREE_COLORMAP"); break;
+        case X_CopyColormapAndFree: debug("X_REQUEST_COPY_COLORMAP_AND_FREE"); break;
+        case X_InstallColormap: debug("X_REQUEST_INSTALL_COLORMAP"); break;
+        case X_UninstallColormap: debug("X_REQUEST_UNINSTALL_COLORMAP"); break;
+        case X_ListInstalledColormaps: debug("X_REQUEST_LIST_INSTALLED_COLORMAPS"); break;
+        case X_AllocColor: debug("X_REQUEST_ALLOC_COLOR"); break;
+        case X_AllocNamedColor: debug("X_REQUEST_ALLOC_NAMED_COLOR"); break;
+        case X_AllocColorCells: debug("X_REQUEST_ALLOC_COLOR_CELLS"); break;
+        case X_AllocColorPlanes: debug("X_REQUEST_ALLOC_COLOR_PLANES"); break;
+        case X_FreeColors: debug("X_REQUEST_FREE_COLORS"); break;
+        case X_StoreColors: debug("X_REQUEST_STORE_COLORS"); break;
+        case X_StoreNamedColor: debug("X_REQUEST_STORE_NAMED_COLOR"); break;
+        case X_QueryColors: debug("X_REQUEST_QUERY_COLORS"); break;
+        case X_LookupColor: debug("X_REQUEST_LOOKUP_COLOR"); break;
+        case X_CreateCursor: debug("X_REQUEST_CREATE_CURSOR"); break;
+        case X_CreateGlyphCursor: debug("X_REQUEST_CREATE_GLYPH_CURSOR"); break;
+        case X_FreeCursor: debug("X_REQUEST_FREE_CURSOR"); break;
+        case X_RecolorCursor: debug("X_REQUEST_RECOLOR_CURSOR"); break;
+        case X_QueryBestSize: debug("X_REQUEST_QUERY_BEST_SIZE"); break;
+        case X_QueryExtension: debug("X_REQUEST_QUERY_EXTENSION"); break;
+        case X_ListExtensions: debug("X_REQUEST_LIST_EXTENSIONS"); break;
+        case X_ChangeKeyboardMapping: debug("X_REQUEST_CHANGE_KEYBOARD_MAPPING"); break;
+        case X_GetKeyboardMapping: debug("X_REQUEST_GET_KEYBOARD_MAPPING"); break;
+        case X_ChangeKeyboardControl: debug("X_REQUEST_CHANGE_KEYBOARD_CONTROL"); break;
+        case X_GetKeyboardControl: debug("X_REQUEST_GET_KEYBOARD_CONTROL"); break;
+        case X_Bell: debug("X_REQUEST_BELL"); break;
+        case X_ChangePointerControl: debug("X_REQUEST_CHANGE_POINTER_CONTROL"); break;
+        case X_GetPointerControl: debug("X_REQUEST_GET_POINTER_CONTROL"); break;
+        case X_SetScreenSaver: debug("X_REQUEST_SET_SCREEN_SAVER"); break;
+        case X_GetScreenSaver: debug("X_REQUEST_GET_SCREEN_SAVER"); break;
+        case X_ChangeHosts: debug("X_REQUEST_CHANGE_HOSTS"); break;
+        case X_ListHosts: debug("X_REQUEST_LIST_HOSTS"); break;
+        case X_SetAccessControl: debug("X_REQUEST_SET_ACCESS_CONTROL"); break;
+        case X_SetCloseDownMode: debug("X_REQUEST_SET_CLOSE_DOWN_MODE"); break;
+        case X_KillClient: debug("X_REQUEST_KILL_CLIENT"); break;
+        case X_RotateProperties: debug("X_REQUEST_ROTATE_PROPERTIES"); break;
+        case X_ForceScreenSaver: debug("X_REQUEST_FORCE_SCREEN_SAVER"); break;
+        case X_SetPointerMapping: debug("X_REQUEST_SET_POINTER_MAPPING"); break;
+        case X_GetPointerMapping: debug("X_REQUEST_GET_POINTER_MAPPING"); break;
+        case X_SetModifierMapping: debug("X_REQUEST_SET_MODIFIER_MAPPING"); break;
+        case X_GetModifierMapping: debug("X_REQUEST_GET_MODIFIER_MAPPING"); break;
+        case X_NoOperation: debug("X_REQUEST_NO_OPERATION"); break;
+        default: debug("X_REQUEST_UNKNOWN %d", ee->request_code);
+    }
+    }
+    debug("error code: request code = %d, error code = %d, minor code = %d", ee->request_code, ee->error_code, ee->minor_code);
     return xerrorxlib(dpy, ee); /* may call exit */
 }
 
 int
-xerrordummy(Display *dpy, XErrorEvent *ee)
+xerrordummy(Display *display, XErrorEvent *ee)
 {
     return 0;
 }
@@ -2714,10 +2851,16 @@ xerrordummy(Display *dpy, XErrorEvent *ee)
 /* Startup Error handler to check if another window manager
  * is already running. */
 int
-xerrorstart(Display *dpy, XErrorEvent *ee)
+xerrorstart(Display *display, XErrorEvent *ee)
 {
     die("WARN: another window manager is already running");
     return -1;
+}
+
+int
+xexithandler(Display *display)
+{
+    return 0;
 }
 
 int

@@ -65,6 +65,7 @@
 #define CFG_DEFAULT_TAG_NUM         1       /* Tag number when starting dwm (1-9); 0 for default tag            */
 #define CFG_TAG_PREVIEW_SCALE       4       /* Tag preview scaling (display w + display h) / SCALE              */
 #define CFG_TAG_PREVIEW_BAR         1       /* 1 show bar in preview; 0 to disable                              */
+#define CFG_VERBOSE_ERRORS          0       /* Show verbose errors at the cost of size when xorg exits          */
 #define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this)     */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
@@ -83,6 +84,7 @@
  * CFG_MAX_CLIENT_COUNT may limit your client count lower than usual when using a compositor.
  * FAST_INPUT feels janky
  */
+/* make vars static to avoid linker errs cause these are consts and we need sizeof()*/
 static const char *fonts[]      =   {"monospace:size=12" };
 static const char dmenufont[]   =   {"monospace:size=12"};
 

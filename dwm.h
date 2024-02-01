@@ -327,9 +327,10 @@ extern Client  *wintoclient(Window w);
 extern Monitor *wintomon(Window w);
 
 /* yes these shadow dpy; no dont change them */
-extern int  xerror(Display *dpy, XErrorEvent *ee);
-extern int  xerrordummy(Display *dpy, XErrorEvent *ee);
-extern int  xerrorstart(Display *dpy, XErrorEvent *ee);
+extern int  xerror(Display *display, XErrorEvent *ee);
+extern int  xerrordummy(Display *display, XErrorEvent *ee);
+extern int  xerrorstart(Display *display, XErrorEvent *ee);
+extern int  xexithandler(Display *display);
 
 /* variables */
 extern char stext[256];     /* status WM_NAME text */
