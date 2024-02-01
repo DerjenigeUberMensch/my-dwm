@@ -1,26 +1,11 @@
 #include <stdlib.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdio.h>
 
 #include "util.h"
+#include "pool.h"
 
-typedef struct Block Block;
-typedef struct Pool Pool;
-
-struct Pool
-{
-    size_t bsize;
-    size_t size;
-    Block **mem;
-};
-
-struct Block
-{
-    void *mem;
-    int free;
-};
 
 Pool *
 poolcreate(size_t count, size_t blocksize)

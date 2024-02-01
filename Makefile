@@ -2,9 +2,9 @@
 
 include config.mk
 
-SRC = drw.c dwm.c util.c pool.c winutil.c
-SRCH= drw.h dwm.h util.h pool.h winutil.h
-CONF= config.def.h keybinds.def.h
+SRC = drw.c dwm.c util.c toggle.c events.c          pool.c winutil.c 
+SRCH= drw.h dwm.h util.h toggle.h events.h config.h pool.h winutil.h 
+CONF= keybinds.def.h
 OBJ = ${SRC:.c=.o}
 VERSION = XXX
 EXE = dwm

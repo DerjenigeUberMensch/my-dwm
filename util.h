@@ -30,11 +30,7 @@ double functime(void (*_timefunction)(void));
 
 
 
-
-#define ASSUME(cond) do {      \
-    if (!(cond))               \
-      __builtin_unreachable(); \
-  } while (0)
+#define ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
 
 
 

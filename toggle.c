@@ -1,36 +1,33 @@
-/* user functions */
-/*
-#include <errno.h>
+
 #include <locale.h>
-#include <signal.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
-#include <stdint.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <X11/cursorfont.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/keysym.h>
+#include <X11/XF86keysym.h> //config.h multimedia keys
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #include <Imlib2.h>
-#include <X11/Xft/Xft.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xproto.h>
+#include <X11/Xatom.h>
 
 #include "drw.h"
 #include "util.h"
-#include "pool.h"
+#include "winutil.h"
 #include "dwm.h"
-#include "config.def.h"
+#include "config.h"
 #include "toggle.h"
-*/
-
-#include "toggle.h"
+#include "events.h"
 
 void
 UserStats(const Arg *arg)
