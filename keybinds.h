@@ -50,7 +50,6 @@ static const char *next_vol[] = { "playerctl", "next"};
 static const char *prev_vol[] = { "playerctl", "previous"};
 static const char *brighter[] = { "brightnessctl", "set", "1%+", NULL };
 static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
-
 /* commands */
 static char dmenumon[2] = "0"; 
 static const char *dmenucmd[] = 

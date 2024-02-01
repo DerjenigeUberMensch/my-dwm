@@ -14,11 +14,6 @@
  * Document: https://www.x.org/releases/X11R7.5/doc/x11proto/proto.pdf
  */
 
-/* NOTE
- * !
- * !!!!!!!!!j
- *
- */
 /* window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
 #define CFG_SNAP                15          /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
@@ -171,7 +166,7 @@ static const Layout layouts[] =
  * you get layout and stuff
  * 
  * now basic gdb stuff
- * break somefunction # this sets a break point for whatever function AKA stop the code from running till we say so
+ * break or b somefunction # this sets a break point for whatever function AKA stop the code from running till we say so
  * next or n # this moves to the next line of logic code (logic code is current code line)
  * step or s # this moves to the next line of code (code being actual code so functions no longer exist instead we just go there)
  * ctrl-l # this resets the window thing which can break sometimes (not sure why it hasnt been fixed but ok)

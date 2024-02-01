@@ -78,7 +78,7 @@ KillWindow(const Arg *arg)
     killclient(selmon->sel, Graceful);
 }
 
-/* Attempts to kill the current window directly instead of just seding a signal and waiting for the window to respond */
+/* Attempts to kill the current window directly instead of just sending a signal and waiting for the window to respond */
 void
 TerminateWindow(const Arg *arg)
 {
