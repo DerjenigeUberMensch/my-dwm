@@ -51,7 +51,7 @@ RELEASEFLAGS = ${CCFLAGS}
 
 DEBUG 	= ${CCFLAGS} ${DEBUGFLAGS} -O0
 # uncomment for debugging
-#LINKERFLAGS = ${DYNAMICLINK} -Wl,--gc-sections
+LINKERFLAGS = ${DYNAMICLINK} -Wl,--gc-sections
 
 SIZE  	= ${RELEASEFLAGS} -Os
 # This rarely saves a substantial amount of instructions
@@ -66,7 +66,7 @@ RELEASES= ${RELEASEFLAGS} -O3
 BUILDSELF = ${RELEASEFLAGS} ${XNATIVE} -O3
 
 # Set your options or presets (see above) ex: ${PRESETNAME} (Compiler used is on top)
-CFLAGS = ${RELEASES}
+CFLAGS = ${DEBUG}
 # Linker flags
 LDFLAGS =  ${LIBS} ${LINKERFLAGS} ${BINARY} 
 # Solaris

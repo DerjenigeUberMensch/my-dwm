@@ -2689,8 +2689,6 @@ winunmap(Window win, Window winroot, int iconify)
 int
 xerror(Display *display, XErrorEvent *ee)
 {
-    if(CFG_VERBOSE_ERRORS)
-    {
     switch(ee->error_code)
     {
         case Success: debug("WARNING: XERROR_TRIGGER_ON_SUCCESS"); break;
@@ -2835,9 +2833,10 @@ xerror(Display *display, XErrorEvent *ee)
         case X_SetModifierMapping: debug("X_REQUEST_SET_MODIFIER_MAPPING"); break;
         case X_GetModifierMapping: debug("X_REQUEST_GET_MODIFIER_MAPPING"); break;
         case X_NoOperation: debug("X_REQUEST_NO_OPERATION"); break;
-        default: debug("X_REQUEST_UNKNOWN %d", ee->request_code);
+        default: goto ret; 
     }
-    }
+    return 0;
+ret:
     debug("error code: request code = %d, error code = %d, minor code = %d", ee->request_code, ee->error_code, ee->minor_code);
     return xerrorxlib(dpy, ee); /* may call exit */
 }
