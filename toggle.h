@@ -1,5 +1,6 @@
 #ifndef TOGGLE_H_
 #define TOGGLE_H_
+
 void FocusMonitor(const Arg *arg);
 void FocusNextWindow(const Arg *arg);
 void ChangeMasterWindow(const Arg *arg);

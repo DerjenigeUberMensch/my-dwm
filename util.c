@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <time.h>
 
@@ -65,6 +66,9 @@ smprintf(char *fmt, ...)
 void
 debug(char *fmt, ...)
 {
+    if(!ENABLE_DEBUGGING) 
+    {   return;
+    }
     char *txt;
     va_list args;
     va_start(args, fmt);
@@ -95,7 +99,7 @@ ui_unhash(unsigned int x)
     return x;
 }
 
-double functime(void (*_timefunction)())
+double functime(void (*_timefunction)(void))
 {
     clock_t start, end;
     start = clock();

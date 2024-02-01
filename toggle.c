@@ -29,8 +29,15 @@
 #include "config.def.h"
 #include "toggle.h"
 */
-void tester(const Arg *arg)
+
+#include "toggle.h"
+
+void
+UserStats(const Arg *arg)
 {
+    static int somenum = 1;
+    setsticky(selmon->sel, somenum);
+    somenum ^= 1;
 }
 
 void
@@ -46,33 +53,6 @@ FocusMonitor(const Arg *arg)
 }
 
 void
-FocusNextWindow(const Arg *arg) /* Non functional focusstack */
-{
-    Monitor *m;
-    Client *c = NULL;
-    Client *i = NULL;
-    m = selmon;
-
-    if (!m->sel || (CFG_LOCK_FULLSCREEN && m->sel->isfullscreen)) return;
-
-    if (arg->i > 0)
-    {
-        for (c = m->sel->next; c && !ISVISIBLE(c); c = c->next);
-        if(!c) for (c = m->clients; c && !ISVISIBLE(c); c = c->next);
-    }
-    else
-    {
-        for (i = m->clients; i != m->sel; i = i->next) if(ISVISIBLE(i)) c = i;
-        if(!c) for(; i; i = i->next) if(ISVISIBLE(i)) c = i;
-    }
-    if(c)
-    {
-        focus(c);
-        restack(m);
-    }
-}
-
-void
 ChangeMasterWindow(const Arg *arg)
 {
     selmon->nmaster = MAX(selmon->nmaster + arg->i, 0);
@@ -82,12 +62,12 @@ ChangeMasterWindow(const Arg *arg)
 void
 KillWindow(const Arg *arg)
 {
-    killclient(selmon->sel, GRACEFUL);
+    killclient(selmon->sel, Graceful);
 }
 void
 TerminateWindow(const Arg *arg)
 {
-    killclient(selmon->sel, DESTROY);
+    killclient(selmon->sel, Destroy);
 }
 void
 DragWindow(const Arg *arg) /* movemouse */
@@ -143,17 +123,11 @@ DragWindow(const Arg *arg) /* movemouse */
             break;
         }
     } while (ev.type != ButtonRelease);
-    if(clientdocked(c))
-    {
-        /* maxmize stuff */
-        c->ismax = 1;
-        c->isfloating = 0;
-        c->oldx += CFG_SNAP;
-        c->oldy += CFG_SNAP;
-    }
-    else c->ismax = 0;
+    /* prevent restacking moving the window back */
+    if(!docked(c)) setfloating(c, 1);
     XUngrabPointer(dpy, CurrentTime);
-    if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+    if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) 
+    {
         sendmon(c, m);
         selmon = m;
         focus(NULL);
@@ -208,7 +182,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     c = selmon->sel;
 
     /* client checks */
-    if (!c || c->isfullscreen) return;/* no support resizing fullscreen windows by mouse */
+    if (!c || c->isfullscreen || c->isfixed) return;
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     horiz = nx < c->w >> 1 ? -1 : 1;
     vert  = ny < c->h >> 1 ? -1 : 1;
@@ -232,8 +206,8 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     ocy = c->y;
     incw = c->incw;
     inch = c->inch;
-    basew = MAX(c->minw, CFG_RESIZE_BASE_WIDTH);
-    baseh = MAX(c->minh, CFG_RESIZE_BASE_HEIGHT);
+    basew = MAX(c->minw ? c->minw : c->basew, CFG_RESIZE_BASE_WIDTH);
+    baseh = MAX(c->minh ? c->minh : c->baseh, CFG_RESIZE_BASE_HEIGHT);
     do
     {
         XMaskEvent(dpy, MOUSEMASK|ExposureMask|SubstructureRedirectMask, &ev);
@@ -268,18 +242,9 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     } while (ev.type != ButtonRelease);
     /* add if w + x > monx || w + x < 0 resize */
     if(WIDTH(c) > c->mon->ww)
-        MaximizeWindowHorizontal(NULL);
+        maximizehorz(c);
     if(HEIGHT(c) + bh * c->mon->showbar >= c->mon->wh)
-        MaximizeWindowVertical(NULL);
-    if(clientdocked(c))
-    {
-        /* maxmize stuff */
-        c->ismax = 1;
-        c->oldx += CFG_SNAP;
-        c->oldy += CFG_SNAP;
-        c->isfloating = 0;
-    }
-    else c->ismax = 0;
+        maximizevert(c);
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
@@ -294,12 +259,18 @@ void
 SetWindowLayout(const Arg *arg)
 {
     Monitor *m;
+    Client *mnext;
     m = selmon;
 
     if(!m || m->isfullscreen) return;
-    setclientlayout(m, arg->i);
+    setmonlyt(m, arg->i);
     arrangemon(m);
-    if(m->sel) arrange(m);
+    if(m->sel) 
+    {       
+        mnext = nextvisible(m->clients);
+        if(m->sel != mnext) { detach(m->sel); attach(m->sel); }
+        arrange(m);
+    }
     else drawbar(m);
 }
 
@@ -330,81 +301,140 @@ SpawnWindow(const Arg *arg)
 void
 MaximizeWindow(const Arg *arg)
 {
-    maximize(selmon->wx, selmon->wy, selmon->ww - 2 * CFG_BORDER_PX, selmon->wh - 2 * CFG_BORDER_PX);
+    Client *c = selmon->sel;
+    if(c && !c->isfixed && !c->mon->isfullscreen)
+    {
+        if(docked(c))
+        {   
+            setfloating(c, 1);
+            /* assume client has never been moved */
+            if(c->x == c->oldx && c->y == c->oldy && c->oldw == c->w && c->oldh == c->h)
+            {
+                c->oldx += CFG_SNAP;
+                c->oldy += CFG_SNAP;
+            }
+            resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+        }
+        else
+        {   
+            setfloating(c, 0);
+            maximize(c);
+        }
+        arrange(selmon);
+    }
 }
 
 void
-MaximizeWindowVertical(const Arg *arg) {
-    maximize(selmon->sel->x, selmon->wy, selmon->sel->w, selmon->wh - 2 * CFG_BORDER_PX);
-    selmon->sel->ismax = 0; /* no such thing as vertmax being fully maxed */
+MaximizeWindowVertical(const Arg *arg) 
+{
+    Client *c = selmon->sel;
+    if(c && !c->isfixed) 
+    {
+        if(dockedvert(c))
+        {   
+            if(!c->isfloating) setfloating(c, 1);
+            resize(c, c->w, c->y, c->oldw, c->h, 1);
+        }
+        else
+        {   
+            setfloating(c, 0);
+            maximizevert(c);
+        }
+        arrange(selmon);
+    }
 }
 
 void
-MaximizeWindowHorizontal(const Arg *arg) {
-    maximize(selmon->wx, selmon->sel->y, selmon->ww - 2 * CFG_BORDER_PX, selmon->sel->h);
-    selmon->sel->ismax = 0; /* no such thing as horzmax being fully maxed */
+MaximizeWindowHorizontal(const Arg *arg) 
+{
+    Client *c = selmon->sel;
+    if(c && !c->isfixed)
+    {
+        if(dockedhorz(c))
+        {   
+            if(!c->isfloating) setfloating(c, 1);
+            resize(c, c->x, c->oldy, c->w, c->oldh, 1);
+        }
+        else
+        {   
+            setfloating(c, 0);
+            maximizehorz(c);
+        } 
+        arrange(selmon);
+    }
 }
 
 void
 AltTab(const Arg *arg)
 {
     int grabbed;
-    int listindex;
     Monitor *m;
-    Client *c;
+    Client *tabnext;
     XEvent event;
 
     m = selmon;
-    m->altsnext = NULL;
-    m->altTabN  = 0;
-    m->nTabs    = 0;
-    grabbed     = 0;
-    listindex   = 0;
-    for(c = m->clients; c; c = c->next) m->nTabs += !!ISVISIBLE(c);
-    if(!(m->nTabs > 0)) return;
+    grabbed = 0;
 
-    m->altsnext = (Client **) malloc(m->nTabs * sizeof(Client *));
-    /* add clients to list */
-    for(c = m->stack; c; c = c->snext) !!ISVISIBLE(c) ? m->altsnext[listindex++] = c : NULL;
-    if(!m->isfullscreen) drawalttab(m->nTabs, 1, m);
-    alttab();
-    if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
-        grabbed = 1;
-    else return;
+    if(!m->sel) focus(NULL);
+    if(!m->sel) return;
+    if(!m->isfullscreen) drawalttab(1, m);
+    tabnext = alttab(1);
+    drawalttab(0, m);
 
-    /* prevent cursor from doing other stuff that could break this */
-    if(XGrabPointer(dpy, m->altsnext[m->altTabN]->win, True,
-                    ButtonPressMask|ButtonReleaseMask|PointerMotionMask,
-                    GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) != GrabSuccess)
-        return;
+    /* grab keyboard (input) grab mouse (prevent detaching of over clients) */
+    if(XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync, GrabModeAsync, CurrentTime) == GrabSuccess)
+    {   grabbed = 1;
+    }
+    else 
+    { 
+        alttabend(tabnext); 
+        return; 
+    }
 
-    while (grabbed)
+    if(XGrabPointer(dpy, root, True, ButtonPressMask|ButtonReleaseMask|PointerMotionMask, 
+                GrabModeAsync, GrabModeAsync, None, cursor[CurNormal]->cursor, CurrentTime) == GrabSuccess) {/**/}
+    else
+    {
+        XUngrabKeyboard(dpy, CurrentTime); 
+        alttabend(tabnext); 
+        return; 
+    }
+
+    while (grabbed && running)
     {
         XNextEvent(dpy, &event);
         switch(event.type)
         {
         case KeyPress:
-            if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) alttab();
+            if(event.xkey.keycode == CFG_ALT_TAB_CYCLE_KEY) 
+            {
+                tabnext = alttab(0);
+                if(!m->isfullscreen) drawalttab(0, m);
+            }
             break;
         case KeyRelease:
-            if(event.xkey.keycode == CFG_ALT_TAB_SWITCH_KEY)grabbed = 0;
+            grabbed = event.xkey.keycode != CFG_ALT_TAB_SWITCH_KEY;
             break;
+        case PropertyNotify:
+            /* update window if changes */
+            if(event.xproperty.window == selmon->tabwin)
+            {
+                if(event.xproperty.atom == XA_WM_NAME || event.xproperty.atom == netatom[NetWMName])
+                {
+                    XUnmapWindow(dpy, selmon->tabwin);
+                    XDestroyWindow(dpy, selmon->tabwin);
+                    drawalttab(1, selmon);
+                }
+            }
+            handler[event.type](&event);
+        default: /* still handle events */
+            if (handler[event.type]) handler[event.type](&event);
         }
     }
 
-    alttabend(); /* end the alt-tab functionality */
+    alttabend(tabnext); /* end the alt-tab functionality */
     XUngrabKeyboard(dpy, CurrentTime);
     XUngrabPointer(dpy, CurrentTime);
-}
-
-void
-PreviewTag(const Arg *arg)
-{
-    if (selmon->showpreview != (arg->ui + 1))
-        selmon->showpreview = arg->ui + 1;
-    else
-        selmon->showpreview = 0;
-    showtagpreview(arg->ui);
 }
 
 void
@@ -447,7 +477,7 @@ ToggleFloating(const Arg *arg)
     togglefloat = !selmon->sel->isfloating || selmon->sel->isfixed;
     if(togglefloat)
     {
-        c->isfloating = togglefloat;
+        setfloating(c, togglefloat);
         resize(c, c->x, c->y, c->w, c->h, 0);
     }
     arrange(selmon);
@@ -460,13 +490,13 @@ ToggleFullscreen(const Arg *arg)
     Monitor *m;
     m = selmon;
     m->isfullscreen = !m->isfullscreen;
-    for (c = m->clients; c; c = c->snext) 
+    for (c = m->clients; c; c = c->next) 
     {
-        if(!ISVISIBLE(c) || c->alwaysontop) continue;
+        if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop) continue;
         setfullscreen(c, m->isfullscreen);
     }
-    if(m->isfullscreen)  setclientlayout(m, MONOCLE);
-    else setclientlayout(m, m->olyt);
+    if(m->isfullscreen)  setmonlyt(m, Monocle);
+    else setmonlyt(m, m->olyt);
     ToggleStatusBar(NULL);
     arrange(m);
 }
@@ -494,7 +524,6 @@ ToggleView(const Arg *arg)
 
     if (newtagset)
     {
-        takepreview();
         selmon->tagset[selmon->seltags] = newtagset;
         focus(NULL);
         arrange(selmon);
@@ -505,7 +534,6 @@ void
 View(const Arg *arg)
 {
     if ((arg->ui & TAGMASK) == selmon->tagset[selmon->seltags]) return;
-    takepreview();
     selmon->seltags ^= 1; /* toggle sel tagset */
     if (arg->ui & TAGMASK) selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
     focus(NULL);

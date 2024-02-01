@@ -248,95 +248,30 @@ drw_setscheme(Drw *drw, Clr *scm)
     if (drw)
         drw->scheme = scm;
 }
-Picture
-drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
-    Pixmap pm;
-    Picture pic;
-    GC gc;
-
-    if (srcw <= (dstw << 1u) && srch <= (dsth << 1u))
-    {
-        XImage img =
-        {
-            srcw, srch, 0, ZPixmap, src,
-            ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
-            32, 0, 32,
-            0, 0, 0,
-        };
-        XInitImage(&img);
-
-        pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
-        gc = XCreateGC(drw->dpy, pm, 0, NULL);
-        XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
-        XFreeGC(drw->dpy, gc);
-
-        pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
-        XFreePixmap(drw->dpy, pm);
-
-        XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
-        XTransform xf;
-        xf.matrix[0][0] = (srcw << 16u) / dstw;
-        xf.matrix[0][1] = 0;
-        xf.matrix[1][0] = 0;
-        xf.matrix[1][1] = (srch << 16u) / dsth;
-        xf.matrix[1][2] = 0;
-        xf.matrix[0][2] = 0;
-        xf.matrix[2][0] = 0;
-        xf.matrix[2][1] = 0;
-        xf.matrix[2][2] = 65536;
-        XRenderSetPictureTransform(drw->dpy, pic, &xf);
-    }
-    else
-    {
-        Imlib_Image origin = imlib_create_image_using_data(srcw, srch, (DATA32 *)src);
-        if (!origin) return None;
-        imlib_context_set_image(origin);
-        imlib_image_set_has_alpha(1);
-        Imlib_Image scaled = imlib_create_cropped_scaled_image(0, 0, srcw, srch, dstw, dsth);
-        imlib_free_image_and_decache();
-        if (!scaled) return None;
-        imlib_context_set_image(scaled);
-        imlib_image_set_has_alpha(1);
-
-        XImage img = {
-            dstw, dsth, 0, ZPixmap, (char *)imlib_image_get_data_for_reading_only(),
-            ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
-            32, 0, 32,
-            0, 0, 0,
-        };
-        XInitImage(&img);
-
-        pm = XCreatePixmap(drw->dpy, drw->root, dstw, dsth, 32);
-        gc = XCreateGC(drw->dpy, pm, 0, NULL);
-        XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, dstw, dsth);
-        imlib_free_image_and_decache();
-        XFreeGC(drw->dpy, gc);
-
-        pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
-        XFreePixmap(drw->dpy, pm);
-    }
-
-    return pic;
-}
 
 void
 drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert)
 {
-    if (!drw || !drw->scheme)
-        return;
+    if (!drw || !drw->scheme) return;
     XSetForeground(drw->dpy, drw->gc, invert ? drw->scheme[ColBg].pixel : drw->scheme[ColFg].pixel);
     if (filled)
         XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
     else
         XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
 }
+
 void
-drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
+drw_line(Drw *drw, int x1, int x2, int y1, int y2)
 {
-    if (!drw)
-        return;
-    XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
+    XDrawLine(drw->dpy, drw->drawable, drw->gc, x1, x2, y1, y2);
 }
+
+void
+drw_arc(Drw *drw, int x, int y, int w, int h, int angle1, int angle2)
+{
+    XDrawArc(drw->dpy, drw->drawable, drw->gc, x, y, w, h, angle1, angle2);
+}
+
 int
 drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert)
 {
@@ -352,7 +287,6 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
     FcPattern *match;
     XftResult result;
     int charexists = 0, overflow = 0;
-
     /* keep track of a couple codepoints for which we have no match. */
     enum { nomatches_len = 64 };
     static struct {
@@ -362,7 +296,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
     static unsigned int ellipsis_width = 0;
 
     if (!drw || (render && (!drw->scheme || !w)) || !text || !drw->fonts) return 0;
-    if (!render)  w = invert ? invert : ~invert;
+    if (!render) w = invert ? invert : ~invert;
     else
     {
         XSetForeground(drw->dpy, drw->gc, drw->scheme[invert ? ColFg : ColBg].pixel);
@@ -370,16 +304,12 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
         d = XftDrawCreate(drw->dpy, drw->drawable,
                           DefaultVisual(drw->dpy, drw->screen),
                           DefaultColormap(drw->dpy, drw->screen));
-        /*
-        d = XftDrawCreate(drw->dpy, drw->drawable, drw->visual, drw->cmap);
-        */
         x += lpad;
         w -= lpad;
     }
 
     usedfont = drw->fonts;
-    if (!ellipsis_width && render)
-        ellipsis_width = drw_fontset_getwidth(drw, "...");
+    if (!ellipsis_width && render) ellipsis_width = drw_fontset_getwidth(drw, "...");
     while (1)
     {
         ew = ellipsis_len = utf8strlen = 0;
@@ -408,10 +338,8 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
                         /* called from drw_fontset_getwidth_clamp():
                          * it wants the width AFTER the overflow
                          */
-                        if (!render)
-                            x += tmpw;
-                        else
-                            utf8strlen = ellipsis_len;
+                        if (!render) x += tmpw;
+                        else utf8strlen = ellipsis_len;
                     }
                     else if (curfont == usedfont)
                     {
@@ -423,6 +351,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
                     break;
                 }
             }
+
             if (overflow || !charexists || nextfont) break;
             else charexists = 0;
         }
@@ -438,8 +367,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
             x += ew;
             w -= ew;
         }
-        if (render && overflow)
-            drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
+        if (render && overflow) drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
 
         if (!*text || overflow) break;
         else if (nextfont)
@@ -456,18 +384,15 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
             for (i = 0; i < nomatches_len; ++i)
             {
                 /* avoid calling XftFontMatch if we know we won't find a match */
-                if (utf8codepoint == nomatches.codepoint[i])
-                    goto no_match;
+                if (utf8codepoint == nomatches.codepoint[i]) goto no_match;
             }
 
             fccharset = FcCharSetCreate();
             FcCharSetAddChar(fccharset, utf8codepoint);
 
             if (!drw->fonts->pattern)
-            {
                 /* Refer to the comment in xfont_create for more information. */
                 die("the first font in the cache must be loaded from a font string.");
-            }
 
             fcpattern = FcPatternDuplicate(drw->fonts->pattern);
             FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
@@ -485,8 +410,7 @@ drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lp
                 usedfont = xfont_create(drw, NULL, match);
                 if (usedfont && XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint))
                 {
-                    for (curfont = drw->fonts; curfont->next; curfont = curfont->next)
-                        ; /* NOP */
+                    for (curfont = drw->fonts; curfont->next; curfont = curfont->next); /* NOP */
                     curfont->next = usedfont;
                 }
                 else
@@ -499,8 +423,7 @@ no_match:
             }
         }
     }
-    if (d)
-        XftDrawDestroy(d);
+    if (d) XftDrawDestroy(d);
 
     return x + (render ? w : 0);
 }

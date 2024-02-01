@@ -8,6 +8,9 @@
  * For a quick peak at commonly used functions visit https://tronche.com/gui/x/xlib/
  * Cursors : https://tronche.com/gui/x/xlib/appendix/b/
  * XCursor:  https://man.archlinux.org/man/Xcursor.3
+ * EWMH:     https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html
+ * XEvent:   https://tronche.com/gui/x/xlib/events/structures.html
+ * Document: https://www.x.org/releases/X11R7.5/doc/x11proto/proto.pdf
  */
 
 /* window */
@@ -18,15 +21,19 @@
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+#define CFG_STORE_PID           1           /* 1 store pid in client; 0 to disable, effects below               */
+#define CFG_ALLOW_PID_KILL      1           /* Allow PID to be grabbed to Terminate a window ONLY on failure    */
 /* status bar */
+#define CFG_BAR_HEIGHT          0           /* 1 enable specific bar height; 0 use default height               */
 #define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
 #define CFG_ACTIVE_MON          1           /* Show seletected even if no clients in monitor; 0 to disable      */
 #define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
-#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per icon); 0 to disable      */
+#define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per window); 0 to disable    */
 #define CFG_ICON_SIZE           16          /* icon size                                                        */
 #define CFG_ICON_SPACE          2           /* space between icon and title                                     */
 #define CFG_SHOW_WM_NAME        0           /* 1 Show window manager name at end of status bar; 0 to disable    */
+#define CFG_SEL_TAG_INDICATOR   1           /* 1 show selected tag even if there are no clients; 0 to disable   */
 /* alt-tab configuration */
 /* to get keycode you can do xev and press a key */
 #define CFG_ALT_TAB_SWITCH_KEY      64      /* Hold this key to keep alt-tab active                             */
@@ -39,16 +46,16 @@
 #define CFG_ALT_TAB_MIN_WIDTH       0       /* Add padding if text length is shorter; 0 to disable              */
 #define CFG_ALT_TAB_MAP_WINDOWS     1       /* 1 compositor fadding when switching tabs; 0 to disable           */
 #define CFG_ALT_TAB_SHOW_PREVIEW    1       /* shows window preview when alt tabbing                            */
-#define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab only changes focused window; 0 to disable               */
+#define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab moves down client list instead; 0 to disable            */
 /* Misc */
 #define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
-#define CFG_MAX_CLIENT_COUNT        250     /* max number of clients assuming you can handle this many          */
+#define CFG_MAX_CLIENT_COUNT        256     /* max number of clients (XOrg Default is 256)                      */
 #define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
 #define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
-#define CFG_DEFAULT_LAYOUT          MONOCLE /* Default window layout GRID,TILED,MONOCLE,FLOATING;               */
-#define CFG_DEFAULT_PREV_LAYOUT     TILED   /* See above; Sets previous layout when starting dwm                */
+#define CFG_DEFAULT_LAYOUT          Monocle /* Default window layout Grid,Tiled,Monocle,Floating;               */
+#define CFG_DEFAULT_PREV_LAYOUT     Tiled   /* See above; Sets previous layout when starting dwm                */
 #define CFG_DEFAULT_TAG_NUM         1       /* Tag number when starting dwm (1-9); 0 for default tag            */
 #define CFG_TAG_PREVIEW_SCALE       4       /* Tag preview scaling (display w + display h) / SCALE              */
 #define CFG_TAG_PREVIEW_BAR         1       /* 1 show bar in preview; 0 to disable                              */
@@ -60,8 +67,12 @@
 /* dmenu colours */
 #define CFG_DMENU_COL_NORM_BACKGROUND       "#000000" /* dmenu background colour for NON selected items */
 #define CFG_DMENU_COL_NORM_FOREGROUND       "#ffffff" /* dmenu text colour for NON selected items       */
-#define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */
+#define CFG_DMENU_COL_SEL_BACKGROUND        "#000000" /* dmenu background colour for SELECTED items     */ 
 #define CFG_DMENU_COL_SEL_FOREGROUND        "#ffffff" /* dmenu text colour for SELECTED items           */
+
+/* NOT FULLY IMPLEMENTED (DONT REMOVE) */
+#define CFG_AUTO_TIME_ZONE          1       /* Get System time instead of time set below                        */
+#define CFG_TIME_ZONE               "Country/City" /* see https://wiki.archlinux.org/title/System_time          */
 /* caveats
  * CFG_MAX_CLIENT_COUNT may limit your client count lower than usual when using a compositor.
  * FAST_INPUT feels janky
@@ -125,10 +136,41 @@ static const Rule rules[] =
 static const Layout layouts[] =
 {
     /* symbol     arrange function */
-    [TILED]     = { "[T]",      tile            },
-    [FLOATING]  = { "[F]",      NULL            },
-    [MONOCLE]   = { "[M]",      monocle         },
-    [GRID]      = { "[G]",      grid            },
+    [Tiled]     = { "[T]",      tile            },
+    [Floating]  = { "[F]",      NULL            },
+    [Monocle]   = { "[M]",      monocle         },
+    [Grid]      = { "[G]",      grid            },
 };
 
 #endif
+
+
+/* Any version past v3.0.0 IS BLOATWARE USER DISCRETION IS ADVICED */ 
+/* DEBUGGING
+ * Stuff you need gdb xephyr
+ * sudo pacman -S gdb xorg-server-xephyr
+ *
+ *
+ * first make sure its compiled in DEBUG using config.mk
+ *
+ * run this command: Xephyr :1 -ac -resizeable -screen 680x480 &
+ * set the display to the one you did for Xephyr in this case we did 1 so
+ * run this command: export DISPLAY=:1
+ * now you are mostly done
+ * run this command: gdb dwm
+ * you get menu
+ * run this command: lay split
+ * you get layout and stuff
+ * 
+ * now basic gdb stuff
+ * break somefunction # this sets a break point for whatever function AKA stop the code from running till we say so
+ * next or n # this moves to the next line of logic code (logic code is current code line)
+ * step or s # this moves to the next line of code (code being actual code so functions no longer exist instead we just go there)
+ * ctrl-l # this resets the window thing which can break sometimes (not sure why it hasnt been fixed but ok)
+ * skip somefunction # this tries to skip a function if it can but ussualy is worthless (AKA I dont know how to use it)(skip being not show to you but it does run in the code)
+ *
+ * after your done
+ * run this command: exit
+ * you have succesfully used gdb wow
+ * 
+ */

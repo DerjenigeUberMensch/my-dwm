@@ -43,43 +43,23 @@ enum
     SchemeTagActive,                            /*  tags   */
 };
 
-/* EWMH atoms */
-/* when adding new properties make sure NetLast is indeed last to allocate enough memory to store all Nets in an array */
-enum
-{
-    NetSupported, NetWMName, NetWMIcon, NetWMState, NetWMCheck,
-    NetWMFullscreen, NetWMAlwaysOnTop,NetActiveWindow,
-    NetWMWindowType, NetWMWindowTypeDialog, NetClientList,
-    NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, /* EMWH */
-    NetWMWindowsOpacity, /* unset */
-    NetLast,
-};
-
-/* default atoms */
-enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast, };
-
 /* clicks */
 enum
 {
     ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
     ClkClientWin, ClkRootWin, ClkLast,
 };
-/* stack shifting */
-enum
-{
-    BEFORE, PREVSEL, NEXT,
-    FIRST, SECOND, THIRD, LAST,
-};
+
 /* layouts */
 enum
 {
-    TILED, FLOATING, MONOCLE, GRID,
+    Tiled, Floating, Monocle, Grid
 };
 
 /* kill client */
 enum
 {
-    GRACEFUL, SAFEDESTROY, DESTROY,
+    Graceful, Safedestroy, Destroy,
 };
 
 typedef union  Arg Arg;
@@ -124,16 +104,17 @@ struct Client
     int bw, oldbw; /* border width */
 
     unsigned int tags;
-    unsigned int alwaysontop     : 1;
-    unsigned int hintsvalid      : 1;
-    unsigned int ismax           : 1;
-    unsigned int wasfloating     : 1;
-    unsigned int isfixed         : 1;
-    unsigned int isfloating      : 1;
-    unsigned int isurgent        : 1;
-    unsigned int neverfocus      : 1;
-    unsigned int isfullscreen    : 1;
+    unsigned int alwaysontop;
+    unsigned int stayontop;
+    unsigned int hintsvalid;
+    unsigned int wasfloating;
+    unsigned int isfixed;
+    unsigned int isfloating;
+    unsigned int isurgent;
+    unsigned int neverfocus;
+    unsigned int isfullscreen;
     unsigned int num;
+    pid_t pid;
     /* icon */
     unsigned int icw;
     unsigned int ich;
@@ -159,13 +140,10 @@ struct Monitor
     int by;               /* bar geometry */
     int mx, my, mw, mh;   /* screen size  */
     int wx, wy, ww, wh;   /* window area  */
-    int altTabN;		  /* move that many clients forward */
-    int nTabs;			  /* number of active clients in tag */
-    unsigned int isfullscreen   : 1;     /* toggle fullscr vs reg fullscr */
-    unsigned int showbar        : 1;
-    unsigned int oshowbar       : 1;
-    unsigned int topbar         : 1;
-    unsigned int showpreview    : 1;
+    unsigned int isfullscreen;     /* toggle fullscr vs reg fullscr */
+    unsigned int showbar;
+    unsigned int oshowbar;
+    unsigned int topbar;
 
     unsigned int lyt;   /*    layout    */
     unsigned int olyt;  /*  old layout  */
@@ -176,7 +154,7 @@ struct Monitor
     Client *clients, *clast;
     Client *stack, *slast;
     Client *sel;
-    Client **altsnext; /* array of all clients in the tag */
+    Client *tabnext;    /* alt tab next client */
     Monitor *next;
     Pixmap *tagmap;
     Window barwin;      /* ulong */
@@ -196,11 +174,12 @@ struct Rule
 };
 
 /* function declarations */
-void alttab(void);
-void alttabend(void);
+Client *alttab(int ended);
+void alttabend(Client *tabnext);
 void applyrules(Client *c);
 int  applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact);
 void arrange(Monitor *m);
+void arrangeall(void);
 void arrangemon(Monitor *m);
 void attach(Client *c);
 void attachstack(Client *c);
@@ -209,8 +188,7 @@ void checkotherwm(void);
 void cleanup(void);
 void cleanupmon(Monitor *mon);
 void cleanupsbar(Monitor *m);
-void cleanuptagpreview(Monitor *m);
-int  clientdocked(Client *c);
+void cleanuptabwin(Monitor *m);
 void clientmessage(XEvent *e);
 void configure(Client *c);
 void configurenotify(XEvent *e);
@@ -220,19 +198,25 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 Monitor *dirtomon(int dir);
-void drawalttab(int nwins, int first, Monitor *m);
+int docked(Client *c);
+int dockedvert(Client *c);
+int dockedhorz(Client *c);
+void drawalttab(int first, Monitor *m);
 void drawbar(Monitor *m);
+int  drawbarname(Monitor *m);
 void drawbars(void);
-void drawbartabs(Monitor *m, int x, int y, int maxw, int height);
+int  drawbarstatus(Monitor *m, int x);
+int  drawbarsym(Monitor *m, int x);
+int  drawbartabs(Monitor *m, int x, int maxw);
+int  drawbartags(Monitor *m, int x);
 void enternotify(XEvent *e);
 void expose(XEvent *e);
 void focus(Client *c);
 void focusin(XEvent *e);
-void focusstack(int SHIFT_TYPE);
 void freeicon(Client *c);
 Atom getatomprop(Client *c, Atom prop);
-int  getwinpid(Window window);
-uint32_t prealpha(uint32_t p);
+const Layout *getmonlyt(Monitor *m);
+pid_t getwinpid(Window window);
 Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
 int  getrootptr(int *x, int *y);
 long getstate(Window w);
@@ -246,15 +230,19 @@ void killclient(Client *c, int type);
 void manage(Window w, XWindowAttributes *wa);
 void mappingnotify(XEvent *e);
 void maprequest(XEvent *e);
-void maximize(int x, int y, int w, int h);
+void maximize(Client *c);
+void maximizevert(Client *c);
+void maximizehorz(Client *c);
 void monocle(Monitor *m);
 void motionnotify(XEvent *e);
-void movstack(Client *c, int SHIFT_TYPE);
 Client *nexttiled(Client *c);
+Client *nextvisible(Client *c);
+uint32_t prealpha(uint32_t p);
 void pop(Client *c);
 void propertynotify(XEvent *e);
 void quit(void);
 void restoresession(void);
+void restoremonsession(Monitor *m);
 Monitor *recttomon(int x, int y, int w, int h);
 void resize(Client *c, int x, int y, int w, int h, int interact);
 void resizeclient(Client *c, int x, int y, int w, int h);
@@ -263,31 +251,34 @@ void restack(Monitor *m);
 void restart(void);
 void run(void);
 void savesession(void);
+void savemonsession(Monitor *m);
 void scan(void);
 int  sendevent(Client *c, Atom proto);
 void sendmon(Client *c, Monitor *m);
 void setclientstate(Client *c, long state);
-void setclientlayout(Monitor *m, int layout);
 void setdesktop(void);
 void setdesktopnames(void);
 void setdesktopnum(void);
+void setfloating(Client *c, int isfloating);
 void setfocus(Client *c);
 void setfullscreen(Client *c, int fullscreen);
+void setmonlyt(Monitor *m, int layout);
 void setshowbar(Monitor *m, int show);
+void setsticky(Client *c, int sticky);
 void setup(void);
 void setupatom(void);
 void setupcur(void);
 void setuppool(void);
 void setuptags(void);
+void setuptimezone(void);
 void seturgent(Client *c, int urg);
 void setviewport(void);
 void showhide(Client *c);
-void showtagpreview(unsigned int i);
-void sigchld();
-void sighup();
-void sigterm();
-int  stackpos(int SHIFT_TYPE);
-void takepreview(void);
+void showhidemap(Client *c);
+void sigchld(int signo);
+void sighandler(void);
+void sighup(int signo); 
+void sigterm(int signo); 
 void tile(Monitor *m);
 void unfocus(Client *c, int setfocus);
 void unmanage(Client *c, int destroyed);
@@ -303,6 +294,7 @@ void updatesizehints(Client *c);
 void updatestatus(void);
 void updatetitle(Client *c);
 void updateicon(Client *c);
+void updatewindowstate(Client *c, Atom state, int data);
 void updatewindowtype(Client *c);
 void updatewmhints(Client *c);
 void visiblitynotify(XEvent *e);
@@ -327,7 +319,6 @@ int bh;              /* bar height */
 int lrpad;           /* sum of left and right padding for text */
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
-int tagsel;
 void (*handler[LASTEvent]) (XEvent *) =
 {
     /* Input */
@@ -352,7 +343,8 @@ void (*handler[LASTEvent]) (XEvent *) =
     [MappingNotify] = mappingnotify,
     [UnmapNotify] = unmapnotify
 };
-Atom wmatom[WMLast], netatom[NetLast], motifatom;
+Atom wmatom[WMLast], motifatom;
+Atom netatom[NetLast];
 int running = 1;
 int RESTART = 0;
 Cur *cursor[CurLast];
