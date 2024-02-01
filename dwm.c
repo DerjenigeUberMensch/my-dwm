@@ -1168,6 +1168,7 @@ manage(Window w, XWindowAttributes *wa)
     updatesizehints(c);
     updatewmhints(c);
     updatemotifhints(c);
+    /* events handled by dwm https://tronche.com/gui/x/xlib/events/processing-overview.html#KeymapStateMask */
     XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
     grabbuttons(c, 0);
     c->wasfloating = 0;
@@ -1800,7 +1801,7 @@ setup(void)
     /* select events */
     wa.cursor = cursor[CurNormal]->cursor;
     wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask
-                    |ButtonPressMask|PointerMotionMask|EnterWindowMask
+                    |ButtonPressMask|ButtonReleaseMask|PointerMotionMask|EnterWindowMask
                     |LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
     XChangeWindowAttributes(dpy, root, CWEventMask|CWCursor, &wa);
     XSelectInput(dpy, root, wa.event_mask);
@@ -2116,7 +2117,7 @@ updatebars(void)
     {
         .override_redirect = True, /*patch */
         .background_pixmap = ParentRelative,
-        .event_mask = ButtonPressMask|ExposureMask|PointerMotionMask
+        .event_mask = ButtonPressMask|ButtonReleaseMask|ExposureMask|PointerMotionMask
     };
 
     XClassHint ch = {WM_NAME, WM_NAME};

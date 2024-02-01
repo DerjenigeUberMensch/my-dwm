@@ -29,6 +29,19 @@
 #include "toggle.h"
 #include "events.h"
 
+
+/*
+ * Making your own stuff with Arg
+ * Get your Function if it doesnt require an Arg simply pass NULL:
+ * Example: ResizeWindow(NULL);
+ * However if it does then pass Arg and its data type see dwm.h
+ * Example:
+ * Arg arg;
+ * arg.i = 10;
+ * SomeToggleFunction(&arg);
+ */
+
+/* Mostly a testing function */
 void
 UserStats(const Arg *arg)
 {
@@ -37,6 +50,7 @@ UserStats(const Arg *arg)
     somenum ^= 1;
 }
 
+/* Switch to a monitor based on the argument i */
 void
 FocusMonitor(const Arg *arg)
 {
@@ -49,6 +63,7 @@ FocusMonitor(const Arg *arg)
     focus(NULL);
 }
 
+/* Changes the max number of master windows possible */
 void
 ChangeMasterWindow(const Arg *arg)
 {
@@ -56,16 +71,21 @@ ChangeMasterWindow(const Arg *arg)
     arrange(selmon);
 }
 
+/* Kills the current window */
 void
 KillWindow(const Arg *arg)
 {
     killclient(selmon->sel, Graceful);
 }
+
+/* Attempts to kill the current window directly instead of just seding a signal and waiting for the window to respond */
 void
 TerminateWindow(const Arg *arg)
 {
     killclient(selmon->sel, Destroy);
 }
+
+/* keybind to move the current window where the mouse cursor is */
 void
 DragWindow(const Arg *arg) /* movemouse */
 {
@@ -107,6 +127,7 @@ DragWindow(const Arg *arg) /* movemouse */
             }
             nx = ocx + (ev.xmotion.x - x);
             ny = ocy + (ev.xmotion.y - y);
+            /* snap to window area */
             if (abs(selmon->wx - nx) < CFG_SNAP)
                 nx = selmon->wx;
             else if (abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < CFG_SNAP)
@@ -132,12 +153,15 @@ DragWindow(const Arg *arg) /* movemouse */
     restack(selmon);
 }
 
+/* restarts dwm */
 void
 Restart(const Arg *arg)
 {
     savesession();
     restart();
 }
+
+/* quits dwm */
 void
 Quit(const Arg *arg)
 {
@@ -145,6 +169,7 @@ Quit(const Arg *arg)
     quit();
 }
 
+/* resizes the current window based on mouse position */
 void
 ResizeWindow(const Arg *arg) /* resizemouse */
 {
@@ -237,14 +262,14 @@ ResizeWindow(const Arg *arg) /* resizemouse */
             break;
         }
     } while (ev.type != ButtonRelease);
-    /* add if w + x > monx || w + x < 0 resize */
     if(WIDTH(c) > c->mon->ww)
         maximizehorz(c);
     if(HEIGHT(c) + bh * c->mon->showbar >= c->mon->wh)
         maximizevert(c);
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
-    if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+    if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) 
+    {
         sendmon(c, m);
         selmon = m;
         focus(NULL);
@@ -252,6 +277,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     restack(selmon);
 }
 
+/* sets the window layout based on a enum in dwm.h -> Grid, Floating, Monocle, Tiled */
 void
 SetWindowLayout(const Arg *arg)
 {
@@ -268,10 +294,14 @@ SetWindowLayout(const Arg *arg)
         if(m->sel != mnext) { detach(m->sel); attach(m->sel); }
         arrange(m);
     }
-    else drawbar(m);
+    else 
+    {   /* update the way the bar looks to show "responsiveness" */
+        drawbar(m);
+    }
 }
 
-/* arg > 1.0 will set mfact absolutely */
+/* Sets the size of the master window 0.0 -> 1.0 for the Tiled Layout
+ * where 1 is just monocle with extra steps */
 void
 SetMonitorFact(const Arg *arg)
 {
@@ -284,6 +314,20 @@ SetMonitorFact(const Arg *arg)
     arrange(selmon);
 }
 
+/* Creates a window Usage:
+ * char *variablename[] = {"executablename", NULL}
+ * if you want to add arguments to the executable you do so after so like this:
+ * char *variablename[] = {"executablename", "argument1", NULL}
+ * there is no limit to the amount of args that you can use BUT you must end it with NULL
+ *
+ * { KeyPress,         SUPER,                      XK_n,       UserStats,       {variablename} },
+ * After that if you in keybinds simply pass it in the Argument brackets:       ^^^^^^^^^^^^^ 
+ *
+ * if you are making you want to use it in code then make a Arg
+ * Arg arg;
+ * arg.v = variablename;
+ * SpawnWindow(&arg);
+ */
 void
 SpawnWindow(const Arg *arg)
 {
@@ -295,6 +339,12 @@ SpawnWindow(const Arg *arg)
         die("FATAL ERROR: EXECVP '%s' FAILED:", ((char **)arg->v)[0]);
     }
 }
+
+/* 
+ * Maximizes the currently selected window 
+ * if the window isnt maximized then make it floating 
+ * if it was never floating add CFG_SNAP as some base number to oldx/oldy
+ */
 void
 MaximizeWindow(const Arg *arg)
 {
@@ -321,6 +371,7 @@ MaximizeWindow(const Arg *arg)
     }
 }
 
+/* see MaximizeWindow but with the vertical axis */
 void
 MaximizeWindowVertical(const Arg *arg) 
 {
@@ -341,6 +392,7 @@ MaximizeWindowVertical(const Arg *arg)
     }
 }
 
+/* see MaximizeWindow but with the horizontal axis */
 void
 MaximizeWindowHorizontal(const Arg *arg) 
 {
@@ -361,6 +413,10 @@ MaximizeWindowHorizontal(const Arg *arg)
     }
 }
 
+/* Switches to the next window visible
+ * then makes it so that both windows are next to each other 
+ * producing a somewhat simple (in theory) alttab function
+ */
 void
 AltTab(const Arg *arg)
 {
@@ -434,6 +490,7 @@ AltTab(const Arg *arg)
     XUngrabPointer(dpy, CurrentTime);
 }
 
+/* Tags a window AKA makes it visible in another desktop thing or "tag" */
 void
 TagWindow(const Arg *arg)
 {
@@ -445,6 +502,7 @@ TagWindow(const Arg *arg)
     }
 }
 
+/* see above but with a monitor */
 void
 TagMonitor(const Arg *arg)
 {
@@ -452,6 +510,7 @@ TagMonitor(const Arg *arg)
     sendmon(selmon->sel, dirtomon(arg->i));
 }
 
+/* Toggles if we show the Status bar or not */
 void
 ToggleStatusBar(const Arg *arg)
 {
@@ -461,6 +520,7 @@ ToggleStatusBar(const Arg *arg)
     arrange(selmon);
 }
 
+/* This toggles the floating layout */
 void
 ToggleFloating(const Arg *arg)
 {
@@ -480,6 +540,7 @@ ToggleFloating(const Arg *arg)
     arrange(selmon);
 }
 
+/* Toggles fullscreen mode for all windows in current tag */
 void
 ToggleFullscreen(const Arg *arg)
 {
@@ -498,6 +559,7 @@ ToggleFullscreen(const Arg *arg)
     arrange(m);
 }
 
+/* Probably toggles the tag selected IDK */
 void
 ToggleTag(const Arg *arg)
 {
@@ -514,6 +576,11 @@ ToggleTag(const Arg *arg)
     updatedesktop();
 }
 
+/* This is used in keybinds default SUPER + (1-9)
+ * And essential just changes the tag to the one specified in the number
+ * AKA 1 << TAG
+ * This is really only a "User function" see View for devs
+ */
 void
 ToggleView(const Arg *arg)
 {
@@ -524,9 +591,15 @@ ToggleView(const Arg *arg)
         selmon->tagset[selmon->seltags] = newtagset;
         focus(NULL);
         arrange(selmon);
+        updatedesktop();
     }
 }
 
+/* Switches to the tag number specified in base power of 2^x
+ * Example:
+ * tag1,tag2,tag3,tag4,tag5,tag6,tag7,tag8,tag9
+ * {1,  2,   4,   8,   16,  32,  64,  128, 256}
+ */
 void
 View(const Arg *arg)
 {
@@ -538,6 +611,7 @@ View(const Arg *arg)
     updatedesktop();
 }
 
+/* Idk what this does */
 void
 Zoom(const Arg *arg)
 {

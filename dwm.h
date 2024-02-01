@@ -99,6 +99,7 @@ struct Key
 };
 struct Button
 {
+    int type;
     unsigned int click;
     unsigned int mask;
     unsigned int button;

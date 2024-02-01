@@ -1,6 +1,4 @@
 
-
-
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include "dwm.h"
@@ -9,7 +7,8 @@
 
 #include "events.h"
     
-void (*handler[LASTEvent]) (XEvent *) = 
+void 
+(*handler[LASTEvent]) (XEvent *) = 
 {
     /* Keyboard */
     [KeyPress] = keypress,
@@ -56,17 +55,52 @@ void (*handler[LASTEvent]) (XEvent *) =
     [SelectionRequest] = selectionrequest,
 };
 
+static void 
+updateclicktype(XButtonEvent *e, unsigned int *click, Arg *arg)
+{
+    int i, x;
+    Client *c;
+    *click = ClkRootWin;
+    if(e->window == selmon->barwin)
+    {
+        i = x = 0;
+        do x += TEXTW(tags[i]);
+        while (e->x >= x && ++i < LENGTH(tags));
+        if (i < LENGTH(tags))
+        {
+            *click = ClkTagBar;
+            arg->ui = 1 << i;
+            /* hide preview if we click the bar */
+        }
+        else if (e->x < x + (int)TEXTW(selmon->ltsymbol))
+            *click = ClkLtSymbol;
+        else if (e->x > selmon->ww - (int)TEXTW(stext) * CFG_SHOW_WM_NAME)
+            *click = ClkStatusText;
+        else
+        {   *click = ClkWinTitle;
+        }
+    }
+    else if ((c = wintoclient(e->window)))
+    {
+        detach(c);
+        attach(c);
+        focus(c);
+        if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
+        XAllowEvents(dpy, ReplayPointer, CurrentTime);
+        *click = ClkClientWin;
+    }
+}
+
 void
 buttonpress(XEvent *e)
 {
     unsigned int i, click;
-    int x;
     Arg arg = {0};
     Client *c;
     Monitor *m;
     XButtonPressedEvent *ev = &e->xbutton;
+    const int cleanev = CLEANMASK(ev->state);
 
-    click = ClkRootWin;
     /* focus monitor if necessary */
     if ((m = wintomon(ev->window)) && m != selmon)
     {
@@ -74,48 +108,75 @@ buttonpress(XEvent *e)
         selmon = m;
         focus(NULL);
     }
-    if (ev->window == selmon->barwin)
+    updateclicktype(ev, &click, &arg);
+    switch(click)
     {
-        i = x = 0;
-        do x += TEXTW(tags[i]);
-        while (ev->x >= x && ++i < LENGTH(tags));
-        if (i < LENGTH(tags))
-        {
-            click = ClkTagBar;
-            arg.ui = 1 << i;
-            /* hide preview if we click the bar */
-        }
-        else if (ev->x < x + (int)TEXTW(selmon->ltsymbol))
-            click = ClkLtSymbol;
-        else if (ev->x > selmon->ww - (int)TEXTW(stext) * CFG_SHOW_WM_NAME)
-            click = ClkStatusText;
-        else
-        {
-            click = ClkWinTitle;
-        }
+        case ClkTagBar: break;
+        case ClkLtSymbol: break;
+        case ClkStatusText: break;
+        case ClkWinTitle: break;
+        case ClkClientWin: 
+            c = wintoclient(ev->window);
+            if(m->sel != c)
+            {
+                detach(c);
+                attach(c);
+                focus(c);
+                if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
+                XAllowEvents(dpy, ReplayPointer, CurrentTime);
+            }
+            break;
     }
-    else if ((c = wintoclient(ev->window)))
-    {
-        detach(c);
-        attach(c);
-        focus(c);
-        if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
-        XAllowEvents(dpy, ReplayPointer, CurrentTime);
-        click = ClkClientWin;
-    }
+
     for (i = 0; i < LENGTH(buttons); i++)
+    {
         if (click == buttons[i].click &&
+                buttons[i].type == ButtonPress && 
                 buttons[i].func &&
                 buttons[i].button == ev->button &&
-                CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
-        {
-            buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+                CLEANMASK(buttons[i].mask) == cleanev)
+        {   buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+            break;
         }
+    }
 }
 
 void
 buttonrelease(XEvent *e)
 {
+    unsigned int i, click;
+    Arg arg = {0};
+    Monitor *m;
+    XButtonReleasedEvent *ev = &e->xbutton;
+    const int cleanev = CLEANMASK(ev->state);
+
+    /* focus monitor if necessary */
+    if ((m = wintomon(ev->window)) && m != selmon)
+    {
+        unfocus(selmon->sel, 1);
+        selmon = m;
+        focus(NULL);
+    }
+    updateclicktype(ev, &click, &arg);
+    switch(click)
+    {
+        case ClkTagBar: break;
+        case ClkLtSymbol: break;
+        case ClkStatusText: break;
+        case ClkWinTitle: break;
+        case ClkClientWin: break;
+    }
+
+    for (i = 0; i < LENGTH(buttons); i++)
+    {
+        if (click == buttons[i].click &&
+                buttons[i].func &&
+                buttons[i].button == ev->button &&
+                CLEANMASK(buttons[i].mask) == cleanev)
+        {   buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+            break;
+        }
+    }
 }
 
 void
@@ -159,14 +220,6 @@ clientmessage(XEvent *e)
     else if (msg == netatom[NetMoveResizeWindow]) 
     {   resize(c, data1, data2, data3, data4, 1);
     }
-    /*
-    else if (msg == netatom[NetWMMinimize])
-    {
-        //IDK
-        XLowerWindow(dpy, c->win);
-        alttab(0);
-    }
-    */
 }
 
 void
@@ -363,8 +416,9 @@ keypress(XEvent *e)
         case KeyPress:
             if (keysym == keys[i].keysym
                     && CLEANMASK(keys[i].mod) == cleanstate
-                    && keys[i].func) {
-                keys[i].func(&(keys[i].arg));
+                    && keys[i].func) 
+            {   keys[i].func(&(keys[i].arg));
+                return;
             }
             break;
         }
@@ -389,8 +443,9 @@ keyrelease(XEvent *e)
         case KeyRelease:
             if (keysym == keys[i].keysym
                     && CLEANMASK(keys[i].mod) == cleanstate
-                    && keys[i].func) {
-                keys[i].func(&(keys[i].arg));
+                    && keys[i].func) 
+            {   keys[i].func(&(keys[i].arg));
+                return;
             }
             break;
         }
@@ -555,8 +610,8 @@ unmapnotify(XEvent *e)
 void
 visibilitynotify(XEvent *e)
 {
-    /* issues with implementation as barwin causes all windwos to be visible for some reason? */
     return;
+    /* issues with implementation as barwin causes all windwos to be visible for some reason? */
     /* to use set VisibilityChangeMask in bit mask manage() XSelectInput() */
     XVisibilityEvent *ev = &e->xvisibility;
     switch(ev->state)
