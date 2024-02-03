@@ -60,7 +60,7 @@
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window (Mostly Useless)     */
 #define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
-#define CFG_X_VERBOSE_ERRORS        1       /* Show verbose errors at the cost of binary size when xorg exits   */
+#define CFG_X_VERBOSE_ERRORS        0       /* Show verbose errors at the cost of binary size when xorg exits   */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
 #define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */

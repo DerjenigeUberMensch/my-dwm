@@ -99,7 +99,6 @@ struct NumTags
 Client *
 alttab(int ended)
 {
-    /* fixe later */
     Monitor *m = selmon;
     static Client *c = NULL, *tabnext = NULL;
     if(ended) tabnext = m->sel;
@@ -157,7 +156,6 @@ alttabend(Client *tabnext)
     XDestroyWindow(dpy, selmon->tabwin);
 }
 
-/* function implementations */
 void
 applyrules(Client *c)
 {
@@ -354,7 +352,6 @@ cleanupmon(Monitor *mon)
         for (m = mons; m && m->next != mon; m = m->next);
         m->next = mon->next;
     }
-    free(mon->tagmap);
     cleanupsbar(mon);
     cleanuptabwin(mon);
     free(mon);
@@ -407,7 +404,6 @@ createmon(void)
     m->topbar   = CFG_TOP_BAR;
     m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
     m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
-    m->tagmap   = ecalloc(LENGTH(tags), sizeof(Pixmap));
     m->isfullscreen = 0;
     /* prevent garbage values (undefined behaviour) */
     m->clients  = NULL;
@@ -417,6 +413,67 @@ createmon(void)
     m->slast    = NULL;
     m->sel      = NULL;
     strncpy(m->ltsymbol, layouts[0].symbol, sizeof m->ltsymbol);
+    return m;
+}
+
+void
+detach(Client *c)
+{
+    Monitor *m = c->mon;
+    Client **tc;
+    for (tc = &m->clients; *tc && *tc != c; tc = &(*tc)->next);
+    *tc = c->next;
+    if(!(*tc)) 
+    {
+        m->clast = c->prev;
+        return;
+    }
+    else if(c->next) 
+    {   c->next->prev = c->prev;
+    }
+    else if(c->prev) 
+    {
+        m->clast = c->prev;
+        c->prev->next = NULL;
+    }
+}
+
+void
+detachstack(Client *c)
+{
+    Monitor *m = c->mon;
+    Client **tc, *t;
+
+    for (tc = &m->stack; *tc && *tc != c; tc = &(*tc)->snext);
+    *tc = c->snext;
+    if(!(*tc)) m->slast = c->sprev;
+    else if(c->snext) c->snext->sprev = c->sprev;
+    else if(c->sprev)
+    {
+        m->slast = c->sprev;
+        c->sprev->snext = NULL;
+    }
+    if (c == m->sel)
+    {
+        for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
+        m->sel = t;
+    }
+}
+
+Monitor *
+dirtomon(int dir)
+{
+    Monitor *m = NULL;
+
+    if (dir > 0)
+    {   if (!(m = selmon->next)) m = mons;
+    }
+    else if (selmon == mons)
+    {   for (m = mons; m->next; m = m->next);
+    }
+    else 
+    {   for (m = mons; m->next != selmon; m = m->next);
+    }
     return m;
 }
 
@@ -439,7 +496,8 @@ dockedhorz(Client *c)
     return (c->mon->wx == c->x) & (c->mon->ww == WIDTH(c));
 }
 
-void
+/* Draws a specified Picture onto drw->picture */
+static void
 drw_pic(Drw *drwstruct, int x, int y, unsigned int w, unsigned int h, Picture pic)
 {
     if (!drw)
@@ -447,7 +505,8 @@ drw_pic(Drw *drwstruct, int x, int y, unsigned int w, unsigned int h, Picture pi
     XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
 }
 
-Picture
+/* Resizes a Picture using imlib2 if its too big */
+static Picture
 drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
     Pixmap pm;
     Picture pic;
@@ -514,67 +573,6 @@ drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigne
     pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
     XFreePixmap(drw->dpy, pm);
     return pic;
-}
-
-void
-detach(Client *c)
-{
-    Monitor *m = c->mon;
-    Client **tc;
-    for (tc = &m->clients; *tc && *tc != c; tc = &(*tc)->next);
-    *tc = c->next;
-    if(!(*tc)) 
-    {
-        m->clast = c->prev;
-        return;
-    }
-    else if(c->next) 
-    {   c->next->prev = c->prev;
-    }
-    else if(c->prev) 
-    {
-        m->clast = c->prev;
-        c->prev->next = NULL;
-    }
-}
-
-void
-detachstack(Client *c)
-{
-    Monitor *m = c->mon;
-    Client **tc, *t;
-
-    for (tc = &m->stack; *tc && *tc != c; tc = &(*tc)->snext);
-    *tc = c->snext;
-    if(!(*tc)) m->slast = c->sprev;
-    else if(c->snext) c->snext->sprev = c->sprev;
-    else if(c->sprev)
-    {
-        m->slast = c->sprev;
-        c->sprev->snext = NULL;
-    }
-    if (c == m->sel)
-    {
-        for (t = c->mon->stack; t && !ISVISIBLE(t); t = t->snext);
-        m->sel = t;
-    }
-}
-
-Monitor *
-dirtomon(int dir)
-{
-    Monitor *m = NULL;
-
-    if (dir > 0)
-    {   if (!(m = selmon->next)) m = mons;
-    }
-    else if (selmon == mons)
-    {   for (m = mons; m->next; m = m->next);
-    }
-    else 
-    {   for (m = mons; m->next != selmon; m = m->next);
-    }
-    return m;
 }
 
 void
@@ -757,7 +755,7 @@ drawbartabs(Monitor *m, int x, int maxw)
     return x + btpos + tabsz;
 }
 
-int /* returns the positon at which it ends */
+int
 drawbartags(Monitor *m, int x)
 {
     Client *c;
@@ -862,6 +860,16 @@ const Layout *
 getmonlyt(Monitor *m)
 {
     return m->lt[m->sellt];
+}
+
+/* applies prealpha to Picture image data point */
+static uint32_t
+prealpha(uint32_t p) 
+{
+    uint8_t a = p >> 24u;
+    uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
+    uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
+    return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
 }
 
 Picture
@@ -1071,6 +1079,7 @@ grabkeys(void)
         XFree(syms);
     }
 }
+
 void
 grid(Monitor *m) 
 {
@@ -1100,6 +1109,71 @@ grid(Monitor *m)
     }
 }
 
+void
+killclient(Client *c, int type)
+{
+    const int probablynotsystempid = 100;
+    if(!c) return;
+    if(!sendevent(c, wmatom[WMDelete]))
+    {
+        XGrabServer(dpy);
+        XSetErrorHandler(xerrordummy);
+        XSetCloseDownMode(dpy, DestroyAll);
+        switch(type)
+        {
+        case Graceful:
+            XKillClient(dpy, c->win);
+            break;
+        case Destroy:
+            XDestroyWindow(dpy, c->win);
+            XSync(dpy, False);
+            XSetErrorHandler(xerror);
+            XUngrabServer(dpy);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Destroy Killed: %d", c->pid);
+                    kill(SIGTERM, c->pid);
+                }
+            }
+            XSync(dpy, False);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Destroy sigkilled: %d", c->pid);
+                    kill(SIGKILL, c->pid);
+                }
+            }
+            break;
+        case Safedestroy:
+            XKillClient(dpy, c->win);
+            XSync(dpy, False);
+            XSetErrorHandler(xerror);
+            XUngrabServer(dpy);
+            if(c && c->win) 
+            {   XDestroyWindow(dpy, c->win);
+            }
+            XSync(dpy, False);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Safedestroy Killed: %d", c->pid);
+                    kill(SIGTERM, c->pid);
+                }
+            }
+            XSync(dpy, False);
+            return;
+        }
+        /* Make sure x receive the request */
+        XSync(dpy, False);
+        XSetErrorHandler(xerror);
+        XUngrabServer(dpy);
+    }
+}
+
 #ifdef XINERAMA
 static int
 isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
@@ -1112,7 +1186,6 @@ isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
 }
 #endif /* XINERAMA */
 
-/* handle new windows; Client * (Optional) */
 Client *
 manage(Window w, XWindowAttributes *wa)
 {
@@ -1202,6 +1275,44 @@ manage(Window w, XWindowAttributes *wa)
 }
 
 void
+maximize(Client *c)
+{
+    const int x = c->mon->wx;
+    const int y = c->mon->wy;
+    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
+    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
+    c->oldx = c->x;
+    c->oldy = c->y;
+    c->oldw = c->w;
+    c->oldh = c->h;
+    resize(c, x, y, w, h, 1);
+}
+
+void
+maximizevert(Client *c)
+{
+    const int x = c->x;
+    const int y = c->mon->wy;
+    const int w = c->w;
+    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
+    c->oldy = c->y;
+    c->oldh = c->h;
+    resize(c, x, y, w, h, 1);
+}
+
+void
+maximizehorz(Client *c)
+{
+    const int x = c->mon->wx;
+    const int y = c->y;
+    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
+    const int h = c->h;
+    c->oldx = c->x;
+    c->oldw = c->w;
+    resize(c, x, y, w, h, 1);
+}
+
+void
 monocle(Monitor *m)
 {
     int nx, ny;
@@ -1246,18 +1357,11 @@ pop(Client *c)
     arrange(c->mon);
 }
 
-uint32_t
-prealpha(uint32_t p) {
-    uint8_t a = p >> 24u;
-    uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
-    uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
-    return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
-}
-
 void
 restoresession(void)
 {
-    /* fix later */
+    /* TODO */
+
     restoremonsession(selmon);
 }
 void
@@ -1603,31 +1707,6 @@ scan(void)
     }
 }
 
-void
-sendmon(Client *c, Monitor *m)
-{
-    if (c->mon == m)
-        return;
-    unfocus(c, 1);
-    detach(c);
-    detachstack(c);
-    c->mon = m;
-    c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
-    attach(c);
-    attachstack(c);
-    focus(NULL);
-    arrangeall();
-}
-
-void
-setclientstate(Client *c, long state)
-{
-    long data[] = { state, None };
-
-    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
-                    PropModeReplace, (unsigned char *)data, 2);
-}
-
 int
 sendevent(Client *c, Atom proto)
 {
@@ -1653,6 +1732,31 @@ sendevent(Client *c, Atom proto)
         XSendEvent(dpy, c->win, False, NoEventMask, &ev);
     }
     return exists;
+}
+
+void
+sendmon(Client *c, Monitor *m)
+{
+    if (c->mon == m)
+        return;
+    unfocus(c, 1);
+    detach(c);
+    detachstack(c);
+    c->mon = m;
+    c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+    attach(c);
+    attachstack(c);
+    focus(NULL);
+    arrangeall();
+}
+
+void
+setclientstate(Client *c, long state)
+{
+    long data[] = { state, None };
+
+    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
+                    PropModeReplace, (unsigned char *)data, 2);
 }
 
 void
@@ -1726,8 +1830,8 @@ setfullscreen(Client *c, int fullscreen)
 void
 setmonlyt(Monitor *m, int layout)
 {
-    m->lt[!selmon->sellt] = m->lt[selmon->sellt];
-    m->lt[selmon->sellt] = (Layout *)&layouts[layout];
+    m->lt[!m->sellt] = m->lt[m->sellt];
+    m->lt[m->sellt] = (Layout *)&layouts[layout];
 }
 
 void
@@ -1922,109 +2026,6 @@ void
 sigterm(int signo)
 {
     quit();
-}
-
-void
-killclient(Client *c, int type)
-{
-    const int probablynotsystempid = 100;
-    if(!c) return;
-    if(!sendevent(c, wmatom[WMDelete]))
-    {
-        XGrabServer(dpy);
-        XSetErrorHandler(xerrordummy);
-        XSetCloseDownMode(dpy, DestroyAll);
-        switch(type)
-        {
-        case Graceful:
-            XKillClient(dpy, c->win);
-            break;
-        case Destroy:
-            XDestroyWindow(dpy, c->win);
-            XSync(dpy, False);
-            XSetErrorHandler(xerror);
-            XUngrabServer(dpy);
-            if(c && c->win)
-            {
-                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
-                {   
-                    debug("Destroy Killed: %d", c->pid);
-                    kill(SIGTERM, c->pid);
-                }
-            }
-            XSync(dpy, False);
-            if(c && c->win)
-            {
-                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
-                {   
-                    debug("Destroy sigkilled: %d", c->pid);
-                    kill(SIGKILL, c->pid);
-                }
-            }
-            break;
-        case Safedestroy:
-            XKillClient(dpy, c->win);
-            XSync(dpy, False);
-            XSetErrorHandler(xerror);
-            XUngrabServer(dpy);
-            if(c && c->win) 
-            {   XDestroyWindow(dpy, c->win);
-            }
-            XSync(dpy, False);
-            if(c && c->win)
-            {
-                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
-                {   
-                    debug("Safedestroy Killed: %d", c->pid);
-                    kill(SIGTERM, c->pid);
-                }
-            }
-            XSync(dpy, False);
-            return;
-        }
-        /* Make sure x receive the request */
-        XSync(dpy, False);
-        XSetErrorHandler(xerror);
-        XUngrabServer(dpy);
-    }
-}
-
-void
-maximize(Client *c)
-{
-    const int x = c->mon->wx;
-    const int y = c->mon->wy;
-    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
-    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
-    c->oldx = c->x;
-    c->oldy = c->y;
-    c->oldw = c->w;
-    c->oldh = c->h;
-    resize(c, x, y, w, h, 1);
-}
-
-void
-maximizevert(Client *c)
-{
-    const int x = c->x;
-    const int y = c->mon->wy;
-    const int w = c->w;
-    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
-    c->oldy = c->y;
-    c->oldh = c->h;
-    resize(c, x, y, w, h, 1);
-}
-
-void
-maximizehorz(Client *c)
-{
-    const int x = c->mon->wx;
-    const int y = c->y;
-    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
-    const int h = c->h;
-    c->oldx = c->x;
-    c->oldw = c->w;
-    resize(c, x, y, w, h, 1);
 }
 
 void
@@ -2718,8 +2719,11 @@ xerror(Display *display, XErrorEvent *ee)
         case BadPixmap: debug("WARNING: X_ERROR_BAD_PIXMAP"); break;
         case BadRequest: debug("WARNING: X_ERROR_BAD_REQUEST"); break;
         case BadValue: debug("WARNING: X_ERROR_BAD_VALUE"); break;
-        default: debug("WARNING: UNKNOWN ERROR CODE: %d", ee->error_code); goto ret; 
+        default: goto ret; 
     }
+    /* sometimes doesnt change binary size for some reason???
+     * But its not in the assembly so Idk
+     */
     if(CFG_X_VERBOSE_ERRORS)
     {
         switch(ee->request_code)
