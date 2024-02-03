@@ -126,7 +126,7 @@ struct Client
     unsigned int isurgent;
     unsigned int neverfocus;
     unsigned int isfullscreen;
-    unsigned int num;
+    int num;
     pid_t pid;
     /* icon */
     unsigned int icw;
@@ -172,7 +172,6 @@ struct Monitor
     Pixmap *tagmap;
     Window barwin;      /* ulong */
     Window tabwin;      /* ulong */
-    Window tagwin;
     const Layout *lt[2];
 };
 
@@ -248,7 +247,7 @@ extern void keyrelease(XEvent *e);
 extern void keymapnotify(XEvent *e);
 extern void killclient(Client *c, int type);
 extern void leavenotify(XEvent *e);
-extern void manage(Window w, XWindowAttributes *wa);
+extern Client *manage(Window w, XWindowAttributes *wa);
 extern void mappingnotify(XEvent *e);
 extern void maprequest(XEvent *e);
 extern void maximize(Client *c);

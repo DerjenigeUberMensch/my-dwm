@@ -7,6 +7,7 @@ char *XGetWindowName(Display *display, Window win);
 int XGetTextProp(Display *display, Window w, Atom atom, char *text, unsigned int size);
 void XPingWindow(Display *display, Window win);
 pid_t XGetPid(Display *display, Window win);
+int XChangeWMName(Display *display, char *name, size_t sizeofname);
 void XInitAtoms(Display *display);
 
 
