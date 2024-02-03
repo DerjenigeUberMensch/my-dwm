@@ -3,6 +3,7 @@
 
 #include <X11/Xlib.h>
 
+
 char *XGetWindowName(Display *display, Window win);
 int XGetTextProp(Display *display, Window w, Atom atom, char *text, unsigned int size);
 void XPingWindow(Display *display, Window win);

@@ -554,7 +554,13 @@ ToggleFullscreen(const Arg *arg)
         setfullscreen(c, m->isfullscreen);
     }
     if(m->isfullscreen)  setmonlyt(m, Monocle);
-    else setmonlyt(m, m->olyt);
+    else 
+    {
+        /* Manually set layout to previous */
+        const Layout *lyt = m->lt[!m->sellt];
+        m->lt[!m->sellt] = m->lt[m->sellt];
+        m->lt[m->sellt] = lyt;
+    }
     ToggleStatusBar(NULL);
     arrange(m);
 }
