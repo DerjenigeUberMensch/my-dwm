@@ -97,6 +97,13 @@ XGetPid(Display *display, Window win)
     return pid;
 }
 
+int
+XChangeWMName(Display *display, char *name, size_t sizeofname)
+{
+    return XChangeProperty(display, DefaultRootWindow(display), XInternAtom(display, "_NET_WM_NAME", False), 
+            XInternAtom(display, "UTF8_STRING", False), 8, PropModeReplace, (unsigned char *) name, sizeofname);
+}
+
 void
 XInitAtoms(Display *display)
 {
@@ -108,6 +115,7 @@ XInitAtoms(Display *display)
     wmatom[WMDelete] = XInternAtom(display, "WM_DELETE_WINDOW", False);
     wmatom[WMState] = XInternAtom(display, "WM_STATE", False);
     wmatom[WMTakeFocus] = XInternAtom(display, "WM_TAKE_FOCUS", False);
+
     /* wm state */
     netatom[NetWMState] = XInternAtom(display, "_NET_WM_STATE", False);
     netatom[NetWMStateModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);
@@ -198,7 +206,7 @@ XInitAtoms(Display *display)
     netatom[NetWMUserTimeWindow] = XInternAtom(display, "_NET_WM_USER_TIME_WINDOW", False);
 
     /* stuff */
-    netatom[NetWMCheck] = XInternAtom(display, "_NET_WM_CHECK", False);
+    /* netatom[NetWMCheck] = XInternAtom(display, "_NET_WM_CHECK", False); */ /* unknown */
     netatom[NetWMFullscreen] = XInternAtom(display, "_NET_WM_FULLSCREEN", False);
     netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_ABOVE", False);
 

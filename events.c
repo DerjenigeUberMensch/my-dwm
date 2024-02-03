@@ -7,6 +7,7 @@
 
 #include "events.h"
     
+
 void 
 (*handler[LASTEvent]) (XEvent *) = 
 {
@@ -45,6 +46,7 @@ void
     [MappingNotify] = mappingnotify,
     [UnmapNotify] = unmapnotify,
     [VisibilityNotify] = visibilitynotify,
+    [ReparentNotify] = reparentnotify,
     /* colour map state notify */
     [ColormapNotify] = colormapnotify,
     /* client communication */
@@ -234,6 +236,7 @@ configurenotify(XEvent *e)
     Client *c;
     XConfigureEvent *ev = &e->xconfigure;
     int dirty;
+    /* update screen geometry */
     if (ev->window == root)
     {
         dirty = (sw != ev->width || sh != ev->height);
@@ -329,7 +332,6 @@ configurerequest(XEvent *e)
 void
 createnotify(XEvent *e)
 {
-
 }
 
 void
@@ -337,6 +339,7 @@ destroynotify(XEvent *e)
 {
     Client *c;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
+    /* destroyed windows no longer need to be managed */
     if ((c = wintoclient(ev->window)))
     {   unmanage(c, 1);
     }
@@ -380,12 +383,14 @@ focusin(XEvent *e)
     XFocusChangeEvent *ev = &e->xfocus;
 
     if (selmon->sel && ev->window != selmon->sel->win)
-        setfocus(selmon->sel);
+    {   setfocus(selmon->sel);
+    }
 }
 
 void
 focusout(XEvent *e)
 {
+    XFocusChangeEvent *ev = &e->xfocus;
 }
 
 void
@@ -455,8 +460,17 @@ keyrelease(XEvent *e)
 void
 mapnotify(XEvent *e)
 {
-
+    static Window seen = 0;
+    XMapEvent *ev = &e->xmap;
+    Client *c;
+    /* check if window sucesfully mapped to apply compositor effects */
+    if(seen == ev->window || !(c = wintoclient(ev->window)))
+    {   return;
+    }
+    seen = ev->window;
+    return;
 }
+
 void
 mappingnotify(XEvent *e)
 {
@@ -473,7 +487,6 @@ maprequest(XEvent *e)
 {
     static XWindowAttributes wa;
     XMapRequestEvent *ev = &e->xmaprequest;
-
     if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
         return;
     if (!wintoclient(ev->window))
@@ -568,7 +581,10 @@ resizerequest(XEvent *e)
         {   setfloating(c, 1);
         }
     }
-    else  XResizeWindow(dpy, ev->window, ev->width, ev->height);
+    else
+    {   XResizeWindow(dpy, ev->window, ev->width, ev->height);
+    }
+    
 }
 
 void selectionclear(XEvent *e)
@@ -616,13 +632,18 @@ visibilitynotify(XEvent *e)
     XVisibilityEvent *ev = &e->xvisibility;
     switch(ev->state)
     {
-    case VisibilityPartiallyObscured:
-    case VisibilityUnobscured:
-        XMapWindow(dpy, ev->window);
-        break;
-    case VisibilityFullyObscured:
-        XUnmapWindow(dpy, ev->window);
-        break;
+        case VisibilityPartiallyObscured:
+        case VisibilityUnobscured:
+            XMapWindow(dpy, ev->window);
+            break;
+        case VisibilityFullyObscured:
+            XUnmapWindow(dpy, ev->window);
+            break;
     }
 }
 
+void
+reparentnotify(XEvent *e)
+{
+
+}

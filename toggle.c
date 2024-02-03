@@ -50,7 +50,7 @@ UserStats(const Arg *arg)
     somenum ^= 1;
 }
 
-/* Switch to a monitor based on the argument i */
+/* Switch to a monitor based on the argument int arg i */
 void
 FocusMonitor(const Arg *arg)
 {
@@ -328,6 +328,8 @@ SetMonitorFact(const Arg *arg)
  * arg.v = variablename;
  * SpawnWindow(&arg);
  */
+
+/* Spawns a window based on arguments provided */
 void
 SpawnWindow(const Arg *arg)
 {
@@ -340,11 +342,7 @@ SpawnWindow(const Arg *arg)
     }
 }
 
-/* 
- * Maximizes the currently selected window 
- * if the window isnt maximized then make it floating 
- * if it was never floating add CFG_SNAP as some base number to oldx/oldy
- */
+/* Maximizes the currently selected window */
 void
 MaximizeWindow(const Arg *arg)
 {
@@ -371,7 +369,7 @@ MaximizeWindow(const Arg *arg)
     }
 }
 
-/* see MaximizeWindow but with the vertical axis */
+/* Maximizes a window vertically */ 
 void
 MaximizeWindowVertical(const Arg *arg) 
 {
@@ -392,7 +390,7 @@ MaximizeWindowVertical(const Arg *arg)
     }
 }
 
-/* see MaximizeWindow but with the horizontal axis */
+/* Maximizes a window horizontally */
 void
 MaximizeWindowHorizontal(const Arg *arg) 
 {
@@ -417,6 +415,8 @@ MaximizeWindowHorizontal(const Arg *arg)
  * then makes it so that both windows are next to each other 
  * producing a somewhat simple (in theory) alttab function
  */
+
+/* Switches to the next visible window based on user input */
 void
 AltTab(const Arg *arg)
 {
@@ -502,7 +502,7 @@ TagWindow(const Arg *arg)
     }
 }
 
-/* see above but with a monitor */
+/* Tags a monitor */
 void
 TagMonitor(const Arg *arg)
 {
