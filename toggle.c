@@ -190,8 +190,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     int nx, ny;
     int horiz, vert;
     int basew, baseh;
-    int incw, inch;
-    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /*prevent 0 division errors */
+    const int frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /*prevent 0 division errors */
 
     unsigned int dui;
     Window dummy;
@@ -226,8 +225,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     och = c->h;
     ocx = c->x;
     ocy = c->y;
-    incw = c->incw;
-    inch = c->inch;
     basew = MAX(c->minw ? c->minw : c->basew, CFG_RESIZE_BASE_WIDTH);
     baseh = MAX(c->minh ? c->minh : c->baseh, CFG_RESIZE_BASE_HEIGHT);
     do
@@ -253,8 +250,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
             /* clamp */
             nw = MAX(nw, basew);
             nh = MAX(nh, baseh);
-            if(nw < incw) nw = ocw;
-            if(nh < inch) nh = ocw;
             /* flip sign if -1 else default to 0 */
             nx = ocx + !~horiz * (ocw - nw);
             ny = ocy + !~vert  * (och - nh);
@@ -264,7 +259,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     } while (ev.type != ButtonRelease);
     if(WIDTH(c) > c->mon->ww)
         maximizehorz(c);
-    if(HEIGHT(c) + bh * c->mon->showbar >= c->mon->wh)
+    if(HEIGHT(c) + bh * c->mon->showbar > c->mon->wh)
         maximizevert(c);
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));

@@ -19,10 +19,10 @@
 #define CFG_DEFAULT_LAYOUT      Monocle     /* Default window layout Grid,Tiled,Monocle,Floating;               */
 #define CFG_DEFAULT_PREV_LAYOUT Tiled       /* See above; Sets previous layout when starting dwm                */
 #define CFG_DEFAULT_TAG_NUM     1           /* Tag number when starting dwm (1-9); 0 for default tag            */
-
 /* Window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
-#define CFG_SNAP                15          /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
+#define CFG_GAP_PX              20          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
+#define CFG_SNAP                0           /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
 #define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
 #define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
@@ -60,7 +60,7 @@
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
 #define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window (Mostly Useless)     */
 #define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
-#define CFG_X_VERBOSE_ERRORS        0       /* Show verbose errors at the cost of binary size when xorg exits   */
+#define CFG_X_VERBOSE_ERRORS        1       /* Show verbose errors at the cost of binary size when xorg exits   */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
 #define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
