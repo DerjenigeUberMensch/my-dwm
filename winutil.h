@@ -3,12 +3,21 @@
 
 #include <X11/Xlib.h>
 
-
-char *XGetWindowName(Display *display, Window win);
+/* Gets the window name from specified window into a char *
+ * Recommend size 256
+ * Returns XStatus
+ * {Success, BadLength, BadName}
+ */
+int XGetWindowName(Display *display, Window win, char *name, size_t sizeofname);
+/* Gets specified text prop from window and specified Atom into char *text with known size */
 int XGetTextProp(Display *display, Window w, Atom atom, char *text, unsigned int size);
+/* Sends a ping to specified window */
 void XPingWindow(Display *display, Window win);
+/* Gets the Pid of a specified Window
+ * Returns -1 on failure
+ */
 pid_t XGetPid(Display *display, Window win);
-int XChangeWMName(Display *display, char *name, size_t sizeofname);
+/* Initiliazes All display Atoms */
 void XInitAtoms(Display *display);
 
 
@@ -38,7 +47,7 @@ enum NETWMPROTOCOLS
     NetWMPid, NetWMHandledIcons, 
     NetWMUserTime, NetWMUserTimeWindow,
     NetWMFrameExtents, NetWMOpaqueRegion,
-    NetWMStateFullscreen, NetWMCheck,
+    NetWMStateFullscreen, 
     NetWMStateAlwaysOnTop, NetWMStateStayOnTop,
     NetWMStateMaximizedVert, NetWMStateMaximizedHorz, NetWMStateMinimize, 
     NetWMStateAbove, NetWMStateBelow, NetWMStateDemandAttention,  NetWMStateSticky,

@@ -319,6 +319,10 @@ extern Atom getatomprop(Client *c, Atom prop);
  * getmonlyt(m) -> &layouts[LAYOUT_TYPE]
  */
 extern const Layout *getmonlyt(Monitor *m);
+/* returns the address of the previously selected monitor Layout;
+ * getmonlyt(m) -> &layouts[LAYOUT_TYPE]
+ */
+extern const Layout *getmonolyt(Monitor *m);
 /* Returns A Picture prop with specified w/h */
 extern Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
 /* Assigns specified *x, *y root pointer coordinates;

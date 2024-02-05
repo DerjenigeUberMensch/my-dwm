@@ -70,14 +70,14 @@
 /* extern var declarations */
 int running = 1;
 int RESTART = 0;
-char stext[256];        /* status WM_NAME text */
+char stext[256];       
 int screen = 0;
-int sw = 0, sh = 0;     /* X display screen geometry width, height */
-int bh = 0;             /* bar height */
-int lrpad = 0;          /* sum of left and right padding for text */
+int sw = 0, sh = 0;     
+int bh = 0;             
+int lrpad = 0;          
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
-unsigned int accnum = 0; /* client counter */
+unsigned int accnum = 0; 
 Atom wmatom[WMLast], motifatom;
 Atom netatom[NetLast];
 Cur *cursor[CurLast];
@@ -113,7 +113,7 @@ alttab(int ended)
     {
         if(CFG_ALT_TAB_MAP_WINDOWS)
         {
-            if(!c->isfloating && 0)
+            if(!c->isfloating)
             {
                 winunmap(c->win, root, 1);
                 winmap(c, 1);
@@ -122,6 +122,9 @@ alttab(int ended)
         if(CFG_ALT_TAB_SHOW_PREVIEW) 
         {   arrange(m);
         }
+    }
+    else
+    {   
     }
     return tabnext;
 }
@@ -856,10 +859,14 @@ getatomprop(Client *c, Atom prop)
     return atom;
 }
 
-const Layout *
+inline const Layout *
 getmonlyt(Monitor *m)
-{
-    return m->lt[m->sellt];
+{   return m->lt[m->sellt];
+}
+
+inline const Layout *
+getmonolyt(Monitor *m)
+{   return m->lt[!m->sellt];
 }
 
 /* applies prealpha to Picture image data point */
@@ -1084,10 +1091,14 @@ void
 grid(Monitor *m) 
 {
     unsigned int i, n, cx, cy, cw, ch, aw, ah, cols, rows;
+    int tmpcw;
+    int tmpch;
     Client *c;
     for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next))
         n++;
-
+    if(!n) 
+    {   return;
+    }
     /* grid dimensions */
     for(rows = 0; rows <= (n >> 1); ++rows)
         if(rows * rows >= n)
@@ -1104,7 +1115,17 @@ grid(Monitor *m)
         /* adjust height/width of last row/column's windows */
         ah = !!((i + 1) % rows) * (m->wh - ch * rows);
         aw = !!(i >= rows * (cols - 1)) * (m->ww - cw * cols);
-        resize(c, cx, cy, cw - (c->bw << 1) + aw, ch - (c->bw << 1) + ah, False);
+
+        /* CFG_GAP_PX without fucking everything else */
+        cx += !aw * CFG_GAP_PX >> 1;
+        cy += !ah * CFG_GAP_PX >> 1;
+        tmpcw = cw - (c->bw << 1) + aw;
+        tmpch = ch - (c->bw << 1) + ah;
+
+        tmpcw -= CFG_GAP_PX << 1;
+        tmpch -= CFG_GAP_PX << 1;
+
+        resize(c, cx, cy, tmpcw, tmpch, False);
         ++i;
     }
 }
@@ -1228,7 +1249,6 @@ manage(Window w, XWindowAttributes *wa)
     c->x = MAX(c->x, c->mon->wx);
     c->y = MAX(c->y, c->mon->wy);
     c->bw = CFG_BORDER_PX;
-
     wc.border_width = c->bw;
     XConfigureWindow(dpy, w, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
@@ -1585,8 +1605,9 @@ restack(Monitor *m)
             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
             wc.sibling = c->win;
         }
-        if(getmonlyt(m) == &layouts[Floating] || getmonlyt(m) == &layouts[Monocle])
-        {   //setfloating(c, !docked(c));
+
+        if(docked(c)) 
+        {   setfloating(c, 0);
         }
     }
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
@@ -1631,8 +1652,41 @@ run(void)
         if (handler[ev.type]) 
         {   handler[ev.type](&ev); /* call handler */
         }
-        else
-        {   debug("XEvent: %d", ev.type);
+        switch (ev.type) 
+        {
+            case KeyPress:            debug("KeyPress");         break;
+            case KeyRelease:          debug("KeyRelease");       break;
+            case ButtonPress:         debug("ButtonPress");      break;
+            case ButtonRelease:       debug("ButtonRelease");    break;
+            case MotionNotify:        debug("MotionNotify");     break;
+            case EnterNotify:         debug("EnterNotify");      break;
+            case LeaveNotify:         debug("LeaveNotify");      break;
+            case FocusIn:             debug("FocusIn");          break;
+            case FocusOut:            debug("FocusOut");         break;
+            case KeymapNotify:        debug("KeymapNotify");     break;
+            case Expose:              debug("Expose");           break;
+            case GraphicsExpose:      debug("GraphicsExpose");   break;
+            case NoExpose:            debug("NoExpose");         break;
+            case VisibilityNotify:    debug("VisibilityNotify"); break;
+            case CreateNotify:        debug("CreateNotify");     break;
+            case DestroyNotify:       debug("DestroyNotify");    break;
+            case UnmapNotify:         debug("UnmapNotify");      break;
+            case MapNotify:           debug("MapNotify");        break;
+            case MapRequest:          debug("MapRequest");       break;
+            case ReparentNotify:      debug("ReparentNotify");   break;
+            case ConfigureNotify:     debug("ConfigureNotify");  break;
+            case ConfigureRequest:    debug("ConfigureRequest"); break;
+            case GravityNotify:       debug("GravityNotify");    break;
+            case ResizeRequest:       debug("ResizeRequest");    break;
+            case CirculateNotify:     debug("CirculateNotify");  break;
+            case CirculateRequest:    debug("CirculateRequest"); break;
+            case PropertyNotify:      debug("PropertyNotify");   break;
+            case SelectionClear:      debug("SelectionClear");   break;
+            case SelectionRequest:    debug("SelectionRequest"); break;
+            case SelectionNotify:     debug("SelectionNotify");  break;
+            case ColormapNotify:      debug("ColormapNotify");   break;
+            case ClientMessage:       debug("ClientMessage");    break;
+            case MappingNotify:       debug("MappingNotify");    break;
         }
     }
 }
@@ -1877,21 +1931,23 @@ setup(void)
     bh = drw->fonts->h + 2;
     if(CFG_BAR_HEIGHT) bh = CFG_BAR_HEIGHT;
     updategeom();
+
     XInitAtoms(dpy);
     motifatom = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
+
     setupcur();
     setuptags();
     updatebars();
     updatestatus();
+    updatebars();
+    updatestatus();
     /* supporting window for NetWMCheck */
     wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
-    XChangeProperty(dpy, wmcheckwin, netatom[NetSupported], XA_WINDOW, 32,
-    //XChangeProperty(dpy, wmcheckwin, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
+    XChangeProperty(dpy, wmcheckwin, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], XInternAtom(dpy, "UTF8_STRING", False), 8,
                     PropModeReplace, (unsigned char *) WM_NAME, LENGTH(WM_NAME));
-    //XChangeProperty(dpy, root, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
-    XChangeProperty(dpy, root, netatom[NetSupported], XA_WINDOW, 32,
+    XChangeProperty(dpy, root, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     /* EWMH support per view */
     XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
@@ -2365,6 +2421,7 @@ updatesizehints(Client *c)
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
     }
     c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
+
 }
 
 void
@@ -2378,10 +2435,7 @@ updatestatus(void)
 void
 updatetitle(Client *c)
 {
-    if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
-        gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
-    if (c->name[0] == '\0') /* hack to mark broken clients */
-        strcpy(c->name, BROKEN);
+    XGetWindowName(dpy, c->win, c->name, sizeof(c->name));
 }
 
 void
