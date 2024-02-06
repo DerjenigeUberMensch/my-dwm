@@ -1125,7 +1125,7 @@ grid(Monitor *m)
         tmpcw -= CFG_GAP_PX << 1;
         tmpch -= CFG_GAP_PX << 1;
 
-        resize(c, cx, cy, tmpcw, tmpch, False);
+        resize(c, cx, cy, tmpcw, tmpch, 0);
         ++i;
     }
 }
@@ -1605,7 +1605,6 @@ restack(Monitor *m)
             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
             wc.sibling = c->win;
         }
-
         if(docked(c)) 
         {   setfloating(c, 0);
         }
@@ -1652,13 +1651,16 @@ run(void)
         if (handler[ev.type]) 
         {   handler[ev.type](&ev); /* call handler */
         }
+        if(!ENABLE_DEBUGGING)
+        {   continue;
+        }
         switch (ev.type) 
         {
             case KeyPress:            debug("KeyPress");         break;
             case KeyRelease:          debug("KeyRelease");       break;
             case ButtonPress:         debug("ButtonPress");      break;
             case ButtonRelease:       debug("ButtonRelease");    break;
-            case MotionNotify:        debug("MotionNotify");     break;
+            //case MotionNotify:        debug("MotionNotify");     break;
             case EnterNotify:         debug("EnterNotify");      break;
             case LeaveNotify:         debug("LeaveNotify");      break;
             case FocusIn:             debug("FocusIn");          break;
@@ -2548,7 +2550,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   maximizevert(c);
         }
         else
-        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 0);
         }
     }
     else if (state == netatom[NetWMStateMaximizedVert])
@@ -2564,7 +2566,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   maximizehorz(c);
         }
         else
-        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 0);
         }
     }
     /*  else if (state == netatom[NetWMAbove])          {REPLACED BY NetWMAlwaysOnTop}      */

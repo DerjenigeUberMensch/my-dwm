@@ -20,7 +20,7 @@
 #define CFG_DEFAULT_PREV_LAYOUT Tiled       /* See above; Sets previous layout when starting dwm                */
 #define CFG_DEFAULT_TAG_NUM     1           /* Tag number when starting dwm (1-9); 0 for default tag            */
 /* Window */
-#define CFG_BORDER_PX           0           /* border pixel of windows                                          */
+#define CFG_BORDER_PX           10           /* border pixel of windows                                          */
 #define CFG_GAP_PX              20          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
 #define CFG_SNAP                0           /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
 #define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */

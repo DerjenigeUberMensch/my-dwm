@@ -380,7 +380,12 @@ extern void restoresession(void);
 extern void restoremonsession(Monitor *m);
 /* Searches through every monitor for a possible big enough size to fit rectangle parametors specified */
 extern Monitor *recttomon(int x, int y, int w, int h);
-/* resize a client only if specified x/y/w/h is different */
+/* resize a client only if specified x/y/w/h is different 
+ * interact
+ * {1, 0}
+ * 1 -> dont confide resize to monitor dimentions 
+ * 0 -> confide resize within monitor dimentions
+ * */
 extern void resize(Client *c, int x, int y, int w, int h, int interact);
 /* resize a client given parametors without sizehints */
 extern void resizeclient(Client *c, int x, int y, int w, int h);
