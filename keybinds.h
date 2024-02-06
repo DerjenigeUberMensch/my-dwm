@@ -68,32 +68,59 @@ static const char *filemanager[]    = {"thunar", NULL };
 static const Key keys[] = 
 {
     /*Action            modifier                    key         function            argument */
+    /* Windowkey+n UserStats is a debug function                */
     { KeyPress,         SUPER,                      XK_n,       UserStats,          {0} },
+    /* Windowkey+d      This opens dmenu                        */
     { KeyPress,         SUPER,                      XK_d,       SpawnWindow,        {.v = dmenucmd } },
+    /* Windowkey+Enter  This opens a terminal                   */
     { KeyPress,         SUPER,                      XK_Return,  SpawnWindow,        {.v = termcmd } },
+    /* Windowkey+e      This Spawns the filemanager specified   */
     { KeyPress,         SUPER,                      XK_e,       SpawnWindow,        {.v = filemanager } },
+    /* Windowkey+b      This toggles on and off the status bar */
     { KeyPress,         SUPER,                      XK_b,       ToggleStatusBar,    {0} },
+    /* Windowkey+b      This toggles between prev and next tag */
     { KeyPress,         SUPER,                      XK_q,	    View,               {0} },
+    /* Windowkey+b      This kills the current window           */
     { KeyPress,         SUPER|SHIFT,                XK_q,       KillWindow,         {0} },
+    /* Windowkey+b      This kills the current window           */
     { KeyPress,         CTRL|ALT,                   XK_q,	    TerminateWindow,    {0} },
+    /* Windowkey+w      This maxizes the current window         */
     { KeyPress,         SUPER,                      XK_w,       MaximizeWindow,     {0} },
+    /* Windowkey+Shift+pThis Exist the current dwm session      */
     { KeyRelease,       SUPER|SHIFT,                XK_p,       Quit,               {0} },
+    /* Windowkey+Ctrl+p This Restarts the current dwm session   */
     { KeyPress,         SUPER|CTRL,                 XK_p,       Restart,            {0} },  /* UNSAFE sscanf() */
+    /* Windowkey+z      This sets the window layout to Tiled    */
     { KeyPress,         SUPER,                      XK_z,       SetWindowLayout,    {Tiled} },
+    /* Windowkey+x      This sets the window layout to Floating */
     { KeyPress,         SUPER,                      XK_x,       SetWindowLayout,    {Floating} },
+    /* Windowkey+c      This sets the window layout to Monocle  */
     { KeyPress,         SUPER,                      XK_c,       SetWindowLayout,    {Monocle} },
+    /* Windowkey+g      This sets the window layout to Grid     */
     { KeyPress,         SUPER,                      XK_g,       SetWindowLayout,    {Grid} },
+    /* F11              This toggles Fullscreen on a window     */
     { KeyPress,         0,                          XK_F11,     ToggleFullscreen,   {0} },
+    /* Alt+Tab          This switches the first and next window */
     { KeyPress,         ALT,                        TAB,        AltTab,	            {0} },
     /* multimedia keys */
+
+    /* AudioMute Button This mutes the volume                   */
     { KeyPress,         0, XF86XK_AudioMute,                    SpawnWindow,        {.v = mute_vol } },
+    /* AudioLowerVolume this decrease the current volume        */
     { KeyPress,         0, XF86XK_AudioLowerVolume,             SpawnWindow,        {.v = down_vol } },
+    /* AudioRaiseVolume this increases the current volume       */
     { KeyPress,         0, XF86XK_AudioRaiseVolume,             SpawnWindow,        {.v = up_vol } },
+    /* MonBrightnessDown this decreases the current brightness  */
     { KeyPress,         0, XF86XK_MonBrightnessDown,            SpawnWindow,        {.v = dimmer } },
+    /* MonBrightnessUp this increases the current brightness    */
     { KeyPress,         0, XF86XK_MonBrightnessUp,              SpawnWindow,        {.v = brighter } },
+    /* AudioPlay This pauses/unpauses the current audio played  */
     { KeyPress,         0, XF86XK_AudioPlay,                    SpawnWindow,        {.v = pause_vol } },
+    /* AudioPause This pauses/unpauses the current audio played */
     { KeyPress,         0, XF86XK_AudioPause,                   SpawnWindow,        {.v = pause_vol } },
+    /* AudioNext This goes to the next track                    */
     { KeyPress,         0, XF86XK_AudioNext,                    SpawnWindow,        {.v = next_vol } },
+    /* AudioNext This goes to the previous track                */
     { KeyPress,         0, XF86XK_AudioPrev,                    SpawnWindow,        {.v = prev_vol } },
 
     TAGKEYS(                        XK_1,                      0)
@@ -112,12 +139,19 @@ static const Key keys[] =
 static const Button buttons[] = 
 {
     /*type                  click                event mask      button             function            argument */
+    /* This sets the window layout                  */
     { ButtonPress,        ClkLtSymbol,          0,              LMB,              SetWindowLayout,    {.i = Tiled} },
+    /* This sets the window layout                  */
     { ButtonPress,        ClkLtSymbol,          0,              RMB,              SetWindowLayout,    {.i = Monocle} },
+    /* This moves a window based on the mouse pos   */
     { ButtonPress,        ClkClientWin,         SUPER,          LMB,              DragWindow,         {0} },
+    /* This resizes a window based on the mouse pos */
     { ButtonPress,        ClkClientWin,         SUPER,          RMB,              ResizeWindow,       {0} },
+    /* This toggles between the first and last tag  */
     { ButtonPress,        ClkTagBar,            0,              LMB,              View,               {0} },
+    /* This moves a window to the selected tag      */
     { ButtonPress,        ClkTagBar,            SUPER,          LMB,              TagWindow,          {0} },
+    /* This doesnt work                             */
     { ButtonPress,        ClkTagBar,            SUPER,          RMB,              ToggleTag,          {0} },
 };
 
