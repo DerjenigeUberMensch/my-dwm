@@ -88,7 +88,7 @@ updateclicktype(XButtonEvent *e, unsigned int *click, Arg *arg)
         detach(c);
         attach(c);
         focus(c);
-        if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
+        if(c->isfloating || c->alwaysontop || CFG_WIN10_FLOATING) XRaiseWindow(dpy, c->win);
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
         *click = ClkClientWin;
     }

@@ -780,10 +780,10 @@ drawbartags(Monitor *m, int x)
     for (i = 0; i < LENGTH(tags); ++i)
     {
         if(CFG_SEL_TAG_INDICATOR)   /* 2^x (including 2^0) so we compare our cur tag to the tag order */
-        {   tagselected = m == selmon && selmon->tagset[selmon->seltags] & 1 << i;
+        {   tagselected = m == selmon && selmon->tagset[selmon->seltags] & (1 << i);
         }
         else
-        {   tagselected = m == selmon && selmon->sel && selmon->sel->tags & 1 << i;
+        {   tagselected = m == selmon && selmon->sel && selmon->sel->tags & (1 << i);
         }
         w = TEXTW(tags[i]);
         drw_setscheme(drw, tagscheme[i]);
@@ -791,7 +791,7 @@ drawbartags(Monitor *m, int x)
         {   drw_setscheme(drw, scheme[SchemeTagActive]);
         }
         drw_text(drw, x, 0, w, bh, lrpad >> 1, tags[i], urg & 1 << i);
-        if (occ & 1 << i)
+        if (occ & (1 << i))
         {
             drw_rect(drw, x + boxw, MAX(bh - boxw, 0), w - ((boxw << 1) + 1), boxw,
                      m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
@@ -1614,10 +1614,13 @@ restack(Monitor *m)
         }
     }
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
-    for(c = m->slast; c; c = c->sprev) 
-    {   
-        if(c->isfloating && ISVISIBLE(c)) 
-        {   XRaiseWindow(dpy, c->win);
+    if(!CFG_WIN10_FLOATING)
+    {
+        for(c = m->slast; c; c = c->sprev) 
+        {   
+            if(c->isfloating && ISVISIBLE(c)) 
+            {   XRaiseWindow(dpy, c->win);
+            }
         }
     }
     for(c = m->slast; c; c = c->sprev) 

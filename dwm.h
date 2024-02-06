@@ -17,6 +17,7 @@
 #define WIDTH(X)                ((X)->w + ((X)->bw << 1))
 #define HEIGHT(X)               ((X)->h + ((X)->bw << 1))
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+#define TAGSHIFT(X)             (1 << (X - 1))
 #define TAGSLENGTH              (LENGTH(tags))
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define OPAQUE                  0xffU
@@ -324,12 +325,14 @@ extern const Layout *getmonlyt(Monitor *m);
  * getmonlyt(m) -> &layouts[LAYOUT_TYPE]
  */
 extern const Layout *getmonolyt(Monitor *m);
+
 /* Returns A Picture prop with specified w/h */
 extern Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
 /* Assigns specified *x, *y root pointer coordinates;
  * Returns XStatus
  */
 extern int  getrootptr(int *x, int *y);
+extern const unsigned int gettagshift(int tagnum);
 /* returns specified Window state; */
 extern long getstate(Window w);
 /* Assigns char *text with specified sizeof(text) from atom textprop;
