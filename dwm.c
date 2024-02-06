@@ -1154,16 +1154,21 @@ killclient(Client *c, int type)
             XSync(dpy, False);
             XSetErrorHandler(xerror);
             XUngrabServer(dpy);
-            XSync(dpy, False);
-            if(!c->pid)
-            {   c->pid = XGetPid(dpy, c->win);
-            }
             if(c && c->win)
             {
-                if(c->pid > probablynotsystempid)
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
                 {   
                     debug("Destroy Killed: %d", c->pid);
                     kill(SIGTERM, c->pid);
+                }
+            }
+            XSync(dpy, False);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Destroy sigkilled: %d", c->pid);
+                    kill(SIGKILL, c->pid);
                 }
             }
             break;
@@ -1172,17 +1177,13 @@ killclient(Client *c, int type)
             XSync(dpy, False);
             XSetErrorHandler(xerror);
             XUngrabServer(dpy);
-            XSync(dpy, False);
             if(c && c->win) 
             {   XDestroyWindow(dpy, c->win);
             }
             XSync(dpy, False);
             if(c && c->win)
             {
-                if(!c->pid)
-                {   c->pid = XGetPid(dpy, c->win);
-                }
-                if(c->pid > probablynotsystempid)
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
                 {   
                     debug("Safedestroy Killed: %d", c->pid);
                     kill(SIGTERM, c->pid);
