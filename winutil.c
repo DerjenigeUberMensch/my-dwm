@@ -180,8 +180,7 @@ XInitAtoms(Display *display)
     /* other root messages */
     netatom[NetCloseWindow] = XInternAtom(display, "_NET_CLOSE_WINDOW", False);
     netatom[NetMoveResizeWindow] = XInternAtom(display, "_NET_MOVERESIZE_WINDOW", False);
-    /* THIS THING CAUSES PROBLEMS WHEN RESIZING CAUSE ITS A CLIENT MESSAGE SEE ROOT MESSAGS IN WM-SPEC */
-    //netatom[NetMoveResize] = XInternAtom(display, "_NET_WM_MOVERESIZE", False);
+    netatom[NetMoveResize] = XInternAtom(display, "_NET_WM_MOVERESIZE", False);
     netatom[NetRestackWindow] = XInternAtom(display, "_NET_RESTACK_WINDOW", False);
     netatom[NetRequestFrameExtents] = XInternAtom(display, "_NET_REQUEST_FRAME_EXTENTS", False);
     netatom[NetActiveWindow] = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
