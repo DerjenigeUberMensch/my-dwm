@@ -13,23 +13,27 @@
  * XEvent:   https://tronche.com/gui/x/xlib/events/structures.html
  * Document: https://www.x.org/releases/X11R7.5/doc/x11proto/proto.pdf
  */
-
-/* NOTE
- * !
- * !!!!!!!!!j
- *
- */
-/* window */
+/* Monitor */
+#define CFG_MONITOR_FACT        0.55        /* factor of master area size [0.05..0.95]                          */
+#define CFG_MASTER_COUNT        1           /* number of clients in master area                                 */
+#define CFG_DEFAULT_LAYOUT      Monocle     /* Default window layout Grid,Tiled,Monocle,Floating;               */
+#define CFG_DEFAULT_PREV_LAYOUT Tiled       /* See above; Sets previous layout when starting dwm                */
+#define CFG_DEFAULT_TAG_NUM     1           /* Tag number when starting dwm (1-9); 0 for default tag            */
+/* Window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
-#define CFG_SNAP                15          /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
+#define CFG_GAP_PX              15          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
+#define CFG_SNAP                15           /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
 #define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
 #define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
-#define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+#define CFG_RESIZE_IGNORE_HINTS 0           /* 1 Ignore size hints use base(w/h) (NOT RECOMMENDED); 0 to disable*/
 #define CFG_STORE_PID           1           /* 1 store pid in client; 0 to disable, effects below               */
 #define CFG_ALLOW_PID_KILL      1           /* Allow PID to be grabbed to Terminate a window ONLY on failure    */
-/* status bar */
+#define CFG_RESIZE_THRESHOLD_PX 15          /* Threshold in pixels for when to detect resizing in corners       */
+/* Status Bar */
+#define WM_NAME                 "dwm.exe"   /* wm name displayed when using X (type neofetch to see this)       */
+#define CFG_SHOW_WM_NAME        0           /* 1 Show window manager name at end of status bar; 0 to disable    */
 #define CFG_BAR_HEIGHT          0           /* 1 enable specific bar height; 0 use default height               */
 #define CFG_TOP_BAR             0           /* 1 show bar on top; 0 for bottom bar                              */
 #define CFG_BAR_PADDING         0           /* padding in pixels (both sides)                                   */
@@ -38,15 +42,14 @@
 #define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per window); 0 to disable    */
 #define CFG_ICON_SIZE           16          /* icon size                                                        */
 #define CFG_ICON_SPACE          2           /* space between icon and title                                     */
-#define CFG_SHOW_WM_NAME        0           /* 1 Show window manager name at end of status bar; 0 to disable    */
 #define CFG_SEL_TAG_INDICATOR   1           /* 1 show selected tag even if there are no clients; 0 to disable   */
-/* alt-tab configuration */
-/* to get keycode you can do xev and press a key */
+/* AltTab */
+/* To get a KeyCode you can use xev and type a key */
 #define CFG_ALT_TAB_SWITCH_KEY      64      /* Hold this key to keep alt-tab active                             */
 #define CFG_ALT_TAB_CYCLE_KEY       23      /* Tap this key to focus next client                                */
 #define CFG_ALT_TAB_POS_X           1       /* tab position on X axis, 0 = left, 1 = center, 2 = right          */
 #define CFG_ALT_TAB_POS_Y           1       /* tab position on Y axis, 0 = bottom, 1 = center, 2 = top          */
-#define CFG_ALT_TAB_TEXT_POS_X      1       /* tab position on x axis, 0 = left , 1 = center, 2 = right         */
+#define CFG_ALT_TAB_TEXT_POS_X      1       /* txt position on x axis, 0 = left , 1 = center, 2 = right         */
 #define CFG_ALT_TAB_MAX_WIDTH       600     /* MAX tab menu width                                               */
 #define CFG_ALT_TAB_MAX_HEIGHT      200     /* MAX tab menu height                                              */
 #define CFG_ALT_TAB_MIN_WIDTH       0       /* Add padding if text length is shorter; 0 to disable              */
@@ -54,18 +57,11 @@
 #define CFG_ALT_TAB_SHOW_PREVIEW    1       /* shows window preview when alt tabbing                            */
 #define CFG_ALT_TAB_FIXED_TILE      0       /* 1 alttab moves down client list instead; 0 to disable            */
 /* Misc */
-#define CFG_MONITOR_FACT            0.55    /* factor of master area size [0.05..0.95]                          */
 #define CFG_MAX_CLIENT_COUNT        256     /* max number of clients (XOrg Default is 256)                      */
-#define CFG_MASTER_COUNT            1       /* number of clients in master area                                 */
 #define CFG_RESIZE_HINTS            1       /* 1 means respect size hints in tiled resizals                     */
-#define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window                      */
+#define CFG_LOCK_FULLSCREEN         1       /* 1 will force focus on the fullscreen window (Mostly Useless)     */
 #define CFG_DECOR_HINTS             1       /* 1 Dont ignore Decoration Hints made by windows; 0 to disable     */
-#define CFG_DEFAULT_LAYOUT          Monocle /* Default window layout Grid,Tiled,Monocle,Floating;               */
-#define CFG_DEFAULT_PREV_LAYOUT     Tiled   /* See above; Sets previous layout when starting dwm                */
-#define CFG_DEFAULT_TAG_NUM         1       /* Tag number when starting dwm (1-9); 0 for default tag            */
-#define CFG_TAG_PREVIEW_SCALE       4       /* Tag preview scaling (display w + display h) / SCALE              */
-#define CFG_TAG_PREVIEW_BAR         1       /* 1 show bar in preview; 0 to disable                              */
-#define WM_NAME                     "dwm.exe" /* wm name displayed when using X (type neofetch to see this)     */
+#define CFG_X_VERBOSE_ERRORS        1       /* Show verbose errors at the cost of binary size when xorg exits   */
 /* dmenu */
 #define CFG_DMENU_TOP_BAR           0       /* 1 show dmenu bar on top; 0 for bottom bar                        */
 #define CFG_DMENU_FAST_INPUT        0       /* 1 prioritize input over bar render; 0 to disable                 */
@@ -83,6 +79,7 @@
  * CFG_MAX_CLIENT_COUNT may limit your client count lower than usual when using a compositor.
  * FAST_INPUT feels janky
  */
+/* make vars static to avoid linker errs cause these are consts and we need sizeof()*/
 static const char *fonts[]      =   {"monospace:size=12" };
 static const char dmenufont[]   =   {"monospace:size=12"};
 
@@ -169,7 +166,7 @@ static const Layout layouts[] =
  * you get layout and stuff
  * 
  * now basic gdb stuff
- * break somefunction # this sets a break point for whatever function AKA stop the code from running till we say so
+ * break or b somefunction # this sets a break point for whatever function AKA stop the code from running till we say so
  * next or n # this moves to the next line of logic code (logic code is current code line)
  * step or s # this moves to the next line of code (code being actual code so functions no longer exist instead we just go there)
  * ctrl-l # this resets the window thing which can break sometimes (not sure why it hasnt been fixed but ok)

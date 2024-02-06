@@ -1,3 +1,9 @@
+/*
+ * Skip to 'HERE' if you dont know what your doing 
+ */
+
+
+
 
 #ifndef KEYBINDS_DEF_H_
 #define KEYBINDS_DEF_H_
@@ -13,15 +19,19 @@
 #define CTRL    ControlMask
 #define SHIFT   ShiftMask
 #define TAB     XK_Tab
-#define CAPSLOCK Lock
+#define CAPSLOCK LockMask
 /* Mouse definitions */
-#define LMB  Button1 /* left  mouse button */
-#define MMB  Button2 /* midde mouse button */
-#define RMB  Button3 /* Right mouse button */
+#define LMB  Button1    /* left  mouse button */
+#define MMB  Button2    /* midde mouse button */
+#define RMB  Button3    /* Right mouse button */
+/*
+#define Button4 Button4
+#define Button5 Button5
+#define Button6 Button6
+*/
 /* #define ISO_LEVEL5_SHIFT Mod3Mask
  * #define ISO_LEVEL3_SHIFT Mod5Mask */
 
-/* TAGGING IS NOT IMPLEMENT IN THIS BUILD OF DWM and is left for user discretion */
 #define TAGKEYS(KEY,TAG) \
 { KeyPress,                     SUPER,                       KEY,      View,            {.ui = 1 << TAG} }, \
 { KeyPress,                     SUPER|CTRL,                  KEY,      ToggleView,      {.ui = 1 << TAG} }, \
@@ -40,7 +50,6 @@ static const char *next_vol[] = { "playerctl", "next"};
 static const char *prev_vol[] = { "playerctl", "previous"};
 static const char *brighter[] = { "brightnessctl", "set", "1%+", NULL };
 static const char *dimmer[]   = { "brightnessctl", "set", "1%-", NULL };
-
 /* commands */
 static char dmenumon[2] = "0"; 
 static const char *dmenucmd[] = 
@@ -50,6 +59,10 @@ static const char *dmenucmd[] =
     "-sb", CFG_DMENU_COL_SEL_BACKGROUND, "-sf", CFG_DMENU_COL_SEL_FOREGROUND, 
     CFG_DMENU_TOP_BAR ? NULL : "-b", CFG_DMENU_FAST_INPUT ? "-f" : NULL ,CFG_DMENU_CASE_SENSITIVE ? "-i" : NULL, NULL
 }; /* flags -b == bottom bar; -f == getkeyboard input first then handle request; */
+/* HERE 
+ * Keybinds are as clear as possible so just go down and read them if you dont get it go to the function definitions
+ * and search up the function in toggle.c
+ */
 static const char *termcmd[]        = { "st", NULL };
 static const char *filemanager[]    = {"thunar", NULL };
 static const Key keys[] = 
@@ -72,6 +85,7 @@ static const Key keys[] =
     { KeyPress,         SUPER,                      XK_g,       SetWindowLayout,    {Grid} },
     { KeyPress,         0,                          XK_F11,     ToggleFullscreen,   {0} },
     { KeyPress,         ALT,                        TAB,        AltTab,	            {0} },
+    /* multimedia keys */
     { KeyPress,         0, XF86XK_AudioMute,                    SpawnWindow,        {.v = mute_vol } },
     { KeyPress,         0, XF86XK_AudioLowerVolume,             SpawnWindow,        {.v = down_vol } },
     { KeyPress,         0, XF86XK_AudioRaiseVolume,             SpawnWindow,        {.v = up_vol } },
@@ -97,14 +111,14 @@ static const Key keys[] =
 /* click can be ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle, ClkClientWin, or ClkRootWin */
 static const Button buttons[] = 
 {
-    /* click                event mask      button          function            argument */
-    { ClkLtSymbol,          0,              LMB,            SetWindowLayout,    {.i = Tiled} },
-    { ClkLtSymbol,          0,              RMB,            SetWindowLayout,    {.i = Monocle} },
-    { ClkClientWin,         SUPER,          LMB,            DragWindow,         {0} },
-    { ClkClientWin,         SUPER,          RMB,            ResizeWindow,       {0} },
-    { ClkTagBar,            0,              LMB,            View,               {0} },
-    { ClkTagBar,            SUPER,          LMB,            TagWindow,          {0} },
-    { ClkTagBar,            SUPER,          RMB,            ToggleTag,          {0} },
+    /*type                  click                event mask      button             function            argument */
+    { ButtonPress,        ClkLtSymbol,          0,              LMB,              SetWindowLayout,    {.i = Tiled} },
+    { ButtonPress,        ClkLtSymbol,          0,              RMB,              SetWindowLayout,    {.i = Monocle} },
+    { ButtonPress,        ClkClientWin,         SUPER,          LMB,              DragWindow,         {0} },
+    { ButtonPress,        ClkClientWin,         SUPER,          RMB,              ResizeWindow,       {0} },
+    { ButtonPress,        ClkTagBar,            0,              LMB,              View,               {0} },
+    { ButtonPress,        ClkTagBar,            SUPER,          LMB,              TagWindow,          {0} },
+    { ButtonPress,        ClkTagBar,            SUPER,          RMB,              ToggleTag,          {0} },
 };
 
 

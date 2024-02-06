@@ -68,30 +68,27 @@
 #include "keybinds.h"
 
 /* extern var declarations */
-int running;
-int RESTART;
-char stext[256];     /* status WM_NAME text */
-int screen;
-int sw, sh;          /* X display screen geometry width, height */
-int bh;              /* bar height */
-int lrpad;           /* sum of left and right padding for text */
+int running = 1;
+int RESTART = 0;
+char stext[256];       
+int screen = 0;
+int sw = 0, sh = 0;     
+int bh = 0;             
+int lrpad = 0;          
 int (*xerrorxlib)(Display *, XErrorEvent *);
-unsigned int numlockmask;
+unsigned int numlockmask = 0;
+unsigned int accnum = 0; 
 Atom wmatom[WMLast], motifatom;
 Atom netatom[NetLast];
 Cur *cursor[CurLast];
-Clr **scheme;
-Clr **tagscheme;
-Display *dpy;
-Drw *drw;
-Monitor *mons, *selmon;
-Window root, wmcheckwin;
-Client *lastfocused;
-Pool *pl;
-unsigned int accnum; /* Active client counter Number */
-int running;
-int RESTART;
-Client *lastfocused;
+Clr **scheme = NULL;
+Clr **tagscheme = NULL;
+Display *dpy = NULL;
+Drw *drw = NULL;
+Monitor *mons, *selmon = NULL;
+Window root = 0, wmcheckwin = 0;
+Client *lastfocused = NULL;
+Pool *pl = NULL;
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags
@@ -102,7 +99,6 @@ struct NumTags
 Client *
 alttab(int ended)
 {
-    /* fixe later */
     Monitor *m = selmon;
     static Client *c = NULL, *tabnext = NULL;
     if(ended) tabnext = m->sel;
@@ -126,6 +122,9 @@ alttab(int ended)
         if(CFG_ALT_TAB_SHOW_PREVIEW) 
         {   arrange(m);
         }
+    }
+    else
+    {   
     }
     return tabnext;
 }
@@ -160,7 +159,6 @@ alttabend(Client *tabnext)
     XDestroyWindow(dpy, selmon->tabwin);
 }
 
-/* function implementations */
 void
 applyrules(Client *c)
 {
@@ -220,7 +218,7 @@ applysizehints(Client *c, int *x, int *y, int *w, int *h, int interact)
     }
     if (*h < bh) *h = bh;
     if (*w < bh) *w = bh;
-    if (CFG_RESIZE_HINTS || c->isfloating || !c->mon->lt[c->mon->sellt]->arrange)
+    if (CFG_RESIZE_HINTS || c->isfloating ||  !c->mon->lt[c->mon->sellt]->arrange)
     {
         if (!c->hintsvalid) updatesizehints(c);
         /* see last two sentences in ICCCM 4.1.2.3 */
@@ -357,7 +355,6 @@ cleanupmon(Monitor *mon)
         for (m = mons; m && m->next != mon; m = m->next);
         m->next = mon->next;
     }
-    free(mon->tagmap);
     cleanupsbar(mon);
     cleanuptabwin(mon);
     free(mon);
@@ -375,102 +372,6 @@ cleanuptabwin(Monitor *m)
 {
     XUnmapWindow(dpy, m->tabwin);
     XDestroyWindow(dpy, m->tabwin);
-}
-
-int
-docked(Client *c)
-{
-    /* & better inling for some reason idk */
-    return dockedvert(c) & dockedhorz(c);
-}
-
-int 
-dockedvert(Client *c)
-{
-    return (c->mon->wy == c->y) & (c->mon->wh == HEIGHT(c));
-}
-
-int 
-dockedhorz(Client *c)
-{
-    return (c->mon->wx == c->x) & (c->mon->ww == WIDTH(c));
-}
-
-void
-drw_pic(Drw *drw, int x, int y, unsigned int w, unsigned int h, Picture pic)
-{
-    if (!drw)
-        return;
-    XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
-}
-
-Picture
-drw_picture_create_resized(Drw *drw, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
-    Pixmap pm;
-    Picture pic;
-    GC gc;
-
-    if (srcw <= (dstw << 1u) && srch <= (dsth << 1u))
-    {
-        XImage img =
-        {
-            srcw, srch, 0, ZPixmap, src,
-            ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
-            32, 0, 32,
-            0, 0, 0,
-        };
-        XInitImage(&img);
-
-        pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
-        gc = XCreateGC(drw->dpy, pm, 0, NULL);
-        XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
-        XFreeGC(drw->dpy, gc);
-
-        pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
-        XFreePixmap(drw->dpy, pm);
-
-        XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
-        XTransform xf;
-        xf.matrix[0][0] = (srcw << 16u) / dstw;
-        xf.matrix[0][1] = 0;
-        xf.matrix[1][0] = 0;
-        xf.matrix[1][1] = (srch << 16u) / dsth;
-        xf.matrix[1][2] = 0;
-        xf.matrix[0][2] = 0;
-        xf.matrix[2][0] = 0;
-        xf.matrix[2][1] = 0;
-        xf.matrix[2][2] = 65536;
-        XRenderSetPictureTransform(drw->dpy, pic, &xf);
-        return pic;
-    }
-    Imlib_Image origin = imlib_create_image_using_data(srcw, srch, (DATA32 *)src);
-    if (!origin) return None;
-    imlib_context_set_image(origin);
-    imlib_image_set_has_alpha(1);
-    Imlib_Image scaled = imlib_create_cropped_scaled_image(0, 0, srcw, srch, dstw, dsth);
-    imlib_free_image_and_decache();
-    if (!scaled) return None;
-    imlib_context_set_image(scaled);
-    imlib_image_set_has_alpha(1);
-
-    XImage img = 
-    {
-        dstw, dsth, 0, ZPixmap, (char *)imlib_image_get_data_for_reading_only(),
-        ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
-        32, 0, 32,
-        0, 0, 0,
-    };
-    XInitImage(&img);
-
-    pm = XCreatePixmap(drw->dpy, drw->root, dstw, dsth, 32);
-    gc = XCreateGC(drw->dpy, pm, 0, NULL);
-    XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, dstw, dsth);
-    imlib_free_image_and_decache();
-    XFreeGC(drw->dpy, gc);
-
-    pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
-    XFreePixmap(drw->dpy, pm);
-    return pic;
 }
 
 void
@@ -506,7 +407,6 @@ createmon(void)
     m->topbar   = CFG_TOP_BAR;
     m->lt[0]    = &layouts[CFG_DEFAULT_LAYOUT];
     m->lt[1]    = &layouts[CFG_DEFAULT_PREV_LAYOUT];
-    m->tagmap   = ecalloc(LENGTH(tags), sizeof(Pixmap));
     m->isfullscreen = 0;
     /* prevent garbage values (undefined behaviour) */
     m->clients  = NULL;
@@ -578,6 +478,104 @@ dirtomon(int dir)
     {   for (m = mons; m->next != selmon; m = m->next);
     }
     return m;
+}
+
+int
+docked(Client *c)
+{
+    /* & better inling for some reason idk */
+    return dockedvert(c) & dockedhorz(c);
+}
+
+int 
+dockedvert(Client *c)
+{
+    return (c->mon->wy == c->y) & (c->mon->wh == HEIGHT(c));
+}
+
+int 
+dockedhorz(Client *c)
+{
+    return (c->mon->wx == c->x) & (c->mon->ww == WIDTH(c));
+}
+
+/* Draws a specified Picture onto drw->picture */
+static void
+drw_pic(Drw *drwstruct, int x, int y, unsigned int w, unsigned int h, Picture pic)
+{
+    if (!drw)
+        return;
+    XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
+}
+
+/* Resizes a Picture using imlib2 if its too big */
+static Picture
+drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
+    Pixmap pm;
+    Picture pic;
+    GC gc;
+
+    if (srcw <= (dstw << 1u) && srch <= (dsth << 1u))
+    {
+        XImage img =
+        {
+            srcw, srch, 0, ZPixmap, src,
+            ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
+            32, 0, 32,
+            0, 0, 0,
+        };
+        XInitImage(&img);
+
+        pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
+        gc = XCreateGC(drw->dpy, pm, 0, NULL);
+        XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
+        XFreeGC(drw->dpy, gc);
+
+        pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
+        XFreePixmap(drw->dpy, pm);
+
+        XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
+        XTransform xf;
+        xf.matrix[0][0] = (srcw << 16u) / dstw;
+        xf.matrix[0][1] = 0;
+        xf.matrix[1][0] = 0;
+        xf.matrix[1][1] = (srch << 16u) / dsth;
+        xf.matrix[1][2] = 0;
+        xf.matrix[0][2] = 0;
+        xf.matrix[2][0] = 0;
+        xf.matrix[2][1] = 0;
+        xf.matrix[2][2] = 65536;
+        XRenderSetPictureTransform(drw->dpy, pic, &xf);
+        return pic;
+    }
+    Imlib_Image origin = imlib_create_image_using_data(srcw, srch, (DATA32 *)src);
+    if (!origin) return None;
+    imlib_context_set_image(origin);
+    imlib_image_set_has_alpha(1);
+    Imlib_Image scaled = imlib_create_cropped_scaled_image(0, 0, srcw, srch, dstw, dsth);
+    imlib_free_image_and_decache();
+    if (!scaled) return None;
+    imlib_context_set_image(scaled);
+    imlib_image_set_has_alpha(1);
+
+    XImage img = 
+    {
+        dstw, dsth, 0, ZPixmap, (char *)imlib_image_get_data_for_reading_only(),
+        ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
+        32, 0, 32,
+        0, 0, 0,
+    };
+    XInitImage(&img);
+
+    pm = XCreatePixmap(drw->dpy, drw->root, dstw, dsth, 32);
+    gc = XCreateGC(drw->dpy, pm, 0, NULL);
+    XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, dstw, dsth);
+    imlib_free_image_and_decache();
+    XFreeGC(drw->dpy, gc);
+
+    pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
+    XFreePixmap(drw->dpy, pm);
+    return pic;
 }
 
 void
@@ -760,7 +758,7 @@ drawbartabs(Monitor *m, int x, int maxw)
     return x + btpos + tabsz;
 }
 
-int /* returns the positon at which it ends */
+int
 drawbartags(Monitor *m, int x)
 {
     Client *c;
@@ -803,7 +801,6 @@ drawbartags(Monitor *m, int x)
     }
     return x;
 }
-
 
 void
 focus(Client *c)
@@ -862,10 +859,24 @@ getatomprop(Client *c, Atom prop)
     return atom;
 }
 
-const Layout *
+inline const Layout *
 getmonlyt(Monitor *m)
+{   return m->lt[m->sellt];
+}
+
+inline const Layout *
+getmonolyt(Monitor *m)
+{   return m->lt[!m->sellt];
+}
+
+/* applies prealpha to Picture image data point */
+static uint32_t
+prealpha(uint32_t p) 
 {
-    return m->lt[m->sellt];
+    uint8_t a = p >> 24u;
+    uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
+    uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
+    return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
 }
 
 Picture
@@ -1075,14 +1086,19 @@ grabkeys(void)
         XFree(syms);
     }
 }
+
 void
 grid(Monitor *m) 
 {
     unsigned int i, n, cx, cy, cw, ch, aw, ah, cols, rows;
+    int tmpcw;
+    int tmpch;
     Client *c;
     for(n = 0, c = nexttiled(m->clients); c; c = nexttiled(c->next))
         n++;
-
+    if(!n) 
+    {   return;
+    }
     /* grid dimensions */
     for(rows = 0; rows <= (n >> 1); ++rows)
         if(rows * rows >= n)
@@ -1099,8 +1115,87 @@ grid(Monitor *m)
         /* adjust height/width of last row/column's windows */
         ah = !!((i + 1) % rows) * (m->wh - ch * rows);
         aw = !!(i >= rows * (cols - 1)) * (m->ww - cw * cols);
-        resize(c, cx, cy, cw - (c->bw << 1) + aw, ch - (c->bw << 1) + ah, False);
+
+        /* CFG_GAP_PX without fucking everything else */
+        cx += CFG_GAP_PX;
+        cy += CFG_GAP_PX;
+
+        tmpcw = cw - (c->bw << 1) + aw;
+        tmpch = ch - (c->bw << 1) + ah;
+
+        tmpcw -= CFG_GAP_PX;
+        tmpch -= CFG_GAP_PX;
+
+        tmpcw -= !!aw * CFG_GAP_PX;
+        tmpch -= !ah * CFG_GAP_PX;
+
+        resize(c, cx, cy, tmpcw, tmpch, 0);
         ++i;
+    }
+}
+
+void
+killclient(Client *c, int type)
+{
+    const int probablynotsystempid = 100;
+    if(!c) return;
+    if(!sendevent(c, wmatom[WMDelete]))
+    {
+        XGrabServer(dpy);
+        XSetErrorHandler(xerrordummy);
+        XSetCloseDownMode(dpy, DestroyAll);
+        switch(type)
+        {
+        case Graceful:
+            XKillClient(dpy, c->win);
+            break;
+        case Destroy:
+            XDestroyWindow(dpy, c->win);
+            XSync(dpy, False);
+            XSetErrorHandler(xerror);
+            XUngrabServer(dpy);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Destroy Killed: %d", c->pid);
+                    kill(SIGTERM, c->pid);
+                }
+            }
+            XSync(dpy, False);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Destroy sigkilled: %d", c->pid);
+                    kill(SIGKILL, c->pid);
+                }
+            }
+            break;
+        case Safedestroy:
+            XKillClient(dpy, c->win);
+            XSync(dpy, False);
+            XSetErrorHandler(xerror);
+            XUngrabServer(dpy);
+            if(c && c->win) 
+            {   XDestroyWindow(dpy, c->win);
+            }
+            XSync(dpy, False);
+            if(c && c->win)
+            {
+                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
+                {   
+                    debug("Safedestroy Killed: %d", c->pid);
+                    kill(SIGTERM, c->pid);
+                }
+            }
+            XSync(dpy, False);
+            return;
+        }
+        /* Make sure x receive the request */
+        XSync(dpy, False);
+        XSetErrorHandler(xerror);
+        XUngrabServer(dpy);
     }
 }
 
@@ -1116,8 +1211,7 @@ isuniquegeom(XineramaScreenInfo *unique, size_t n, XineramaScreenInfo *info)
 }
 #endif /* XINERAMA */
 
-/* handle new windows */
-void
+Client *
 manage(Window w, XWindowAttributes *wa)
 {
     Client *c, *t = NULL;
@@ -1159,7 +1253,6 @@ manage(Window w, XWindowAttributes *wa)
     c->x = MAX(c->x, c->mon->wx);
     c->y = MAX(c->y, c->mon->wy);
     c->bw = CFG_BORDER_PX;
-
     wc.border_width = c->bw;
     XConfigureWindow(dpy, w, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
@@ -1168,6 +1261,7 @@ manage(Window w, XWindowAttributes *wa)
     updatesizehints(c);
     updatewmhints(c);
     updatemotifhints(c);
+    /* events handled by dwm https://tronche.com/gui/x/xlib/events/processing-overview.html#KeymapStateMask */
     XSelectInput(dpy, w, EnterWindowMask|FocusChangeMask|PropertyChangeMask|StructureNotifyMask);
     grabbuttons(c, 0);
     c->wasfloating = 0;
@@ -1192,16 +1286,54 @@ manage(Window w, XWindowAttributes *wa)
     /* destroy any new clients if we past our client limit */
     if(accnum > CFG_MAX_CLIENT_COUNT)
     {
-        XMapWindow(dpy, c->win);
         killclient(c, Safedestroy);
         unmanage(c, 1);
-        return;
+        return NULL;
     }
     arrange(c->mon);
     /* check if selmon->fullscreen */
     setfullscreen(c, selmon->isfullscreen);
-    XMapWindow(dpy, c->win);
+    XMapWindow(dpy, w);
     focus(NULL);
+    return c;
+}
+
+void
+maximize(Client *c)
+{
+    const int x = c->mon->wx;
+    const int y = c->mon->wy;
+    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
+    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
+    c->oldx = c->x;
+    c->oldy = c->y;
+    c->oldw = c->w;
+    c->oldh = c->h;
+    resize(c, x, y, w, h, 1);
+}
+
+void
+maximizevert(Client *c)
+{
+    const int x = c->x;
+    const int y = c->mon->wy;
+    const int w = c->w;
+    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
+    c->oldy = c->y;
+    c->oldh = c->h;
+    resize(c, x, y, w, h, 1);
+}
+
+void
+maximizehorz(Client *c)
+{
+    const int x = c->mon->wx;
+    const int y = c->y;
+    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
+    const int h = c->h;
+    c->oldx = c->x;
+    c->oldw = c->w;
+    resize(c, x, y, w, h, 1);
 }
 
 void
@@ -1249,18 +1381,11 @@ pop(Client *c)
     arrange(c->mon);
 }
 
-uint32_t
-prealpha(uint32_t p) {
-    uint8_t a = p >> 24u;
-    uint32_t rb = (a * (p & 0xFF00FFu)) >> 8u;
-    uint32_t g = (a * (p & 0x00FF00u)) >> 8u;
-    return (rb & 0xFF00FFu) | (g & 0x00FF00u) | (a << 24u);
-}
-
 void
 restoresession(void)
 {
-    /* fix later */
+    /* TODO */
+
     restoremonsession(selmon);
 }
 void
@@ -1484,8 +1609,8 @@ restack(Monitor *m)
             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
             wc.sibling = c->win;
         }
-        if(getmonlyt(m) == &layouts[Floating] || getmonlyt(m) == &layouts[Monocle])
-        {   //setfloating(c, !docked(c));
+        if(docked(c)) 
+        {   setfloating(c, 0);
         }
     }
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
@@ -1529,6 +1654,45 @@ run(void)
     {
         if (handler[ev.type]) 
         {   handler[ev.type](&ev); /* call handler */
+        }
+        if(!ENABLE_DEBUGGING)
+        {   continue;
+        }
+        switch (ev.type) 
+        {
+            case KeyPress:            debug("KeyPress");         break;
+            case KeyRelease:          debug("KeyRelease");       break;
+            case ButtonPress:         debug("ButtonPress");      break;
+            case ButtonRelease:       debug("ButtonRelease");    break;
+            //case MotionNotify:        debug("MotionNotify");     break;
+            case EnterNotify:         debug("EnterNotify");      break;
+            case LeaveNotify:         debug("LeaveNotify");      break;
+            case FocusIn:             debug("FocusIn");          break;
+            case FocusOut:            debug("FocusOut");         break;
+            case KeymapNotify:        debug("KeymapNotify");     break;
+            case Expose:              debug("Expose");           break;
+            case GraphicsExpose:      debug("GraphicsExpose");   break;
+            case NoExpose:            debug("NoExpose");         break;
+            case VisibilityNotify:    debug("VisibilityNotify"); break;
+            case CreateNotify:        debug("CreateNotify");     break;
+            case DestroyNotify:       debug("DestroyNotify");    break;
+            case UnmapNotify:         debug("UnmapNotify");      break;
+            case MapNotify:           debug("MapNotify");        break;
+            case MapRequest:          debug("MapRequest");       break;
+            case ReparentNotify:      debug("ReparentNotify");   break;
+            case ConfigureNotify:     debug("ConfigureNotify");  break;
+            case ConfigureRequest:    debug("ConfigureRequest"); break;
+            case GravityNotify:       debug("GravityNotify");    break;
+            case ResizeRequest:       debug("ResizeRequest");    break;
+            case CirculateNotify:     debug("CirculateNotify");  break;
+            case CirculateRequest:    debug("CirculateRequest"); break;
+            case PropertyNotify:      debug("PropertyNotify");   break;
+            case SelectionClear:      debug("SelectionClear");   break;
+            case SelectionRequest:    debug("SelectionRequest"); break;
+            case SelectionNotify:     debug("SelectionNotify");  break;
+            case ColormapNotify:      debug("ColormapNotify");   break;
+            case ClientMessage:       debug("ClientMessage");    break;
+            case MappingNotify:       debug("MappingNotify");    break;
         }
     }
 }
@@ -1583,45 +1747,24 @@ scan(void)
     {
         for (i = 0; i < num; i++)
         {
+            /* override_redirect only needed to be handled for old windows */
+            /* X auto redirects when running wm so no need to do anything else */
             if (!XGetWindowAttributes(dpy, wins[i], &wa)
                     || wa.override_redirect || XGetTransientForHint(dpy, wins[i], &d1)) continue;
             if (wa.map_state == IsViewable || getstate(wins[i]) == IconicState)
-                manage(wins[i], &wa);
+            {   manage(wins[i], &wa);
+            }
         }
         for (i = 0; i < num; i++)
         {   /* now the transients */
             if (!XGetWindowAttributes(dpy, wins[i], &wa)) continue;
             if (XGetTransientForHint(dpy, wins[i], &d1)
                     && (wa.map_state == IsViewable || getstate(wins[i]) == IconicState))
-                manage(wins[i], &wa);
+            {   manage(wins[i], &wa);
+            }
         }
         if (wins) XFree(wins);
     }
-}
-
-void
-sendmon(Client *c, Monitor *m)
-{
-    if (c->mon == m)
-        return;
-    unfocus(c, 1);
-    detach(c);
-    detachstack(c);
-    c->mon = m;
-    c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
-    attach(c);
-    attachstack(c);
-    focus(NULL);
-    arrangeall();
-}
-
-void
-setclientstate(Client *c, long state)
-{
-    long data[] = { state, None };
-
-    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
-                    PropModeReplace, (unsigned char *)data, 2);
 }
 
 int
@@ -1649,6 +1792,31 @@ sendevent(Client *c, Atom proto)
         XSendEvent(dpy, c->win, False, NoEventMask, &ev);
     }
     return exists;
+}
+
+void
+sendmon(Client *c, Monitor *m)
+{
+    if (c->mon == m)
+        return;
+    unfocus(c, 1);
+    detach(c);
+    detachstack(c);
+    c->mon = m;
+    c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+    attach(c);
+    attachstack(c);
+    focus(NULL);
+    arrangeall();
+}
+
+void
+setclientstate(Client *c, long state)
+{
+    long data[] = { state, None };
+
+    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
+                    PropModeReplace, (unsigned char *)data, 2);
 }
 
 void
@@ -1722,8 +1890,8 @@ setfullscreen(Client *c, int fullscreen)
 void
 setmonlyt(Monitor *m, int layout)
 {
-    m->lt[!selmon->sellt] = m->lt[selmon->sellt];
-    m->lt[selmon->sellt] = (Layout *)&layouts[layout];
+    m->lt[!m->sellt] = m->lt[m->sellt];
+    m->lt[m->sellt] = (Layout *)&layouts[layout];
 }
 
 void
@@ -1751,19 +1919,13 @@ setsticky(Client *c, int sticky)
 void
 setup(void)
 {
-    /* init variables globals */
-    numlockmask = 0;
-    running = 1;
-    RESTART = 0;
-    lastfocused = NULL;
-    pl = NULL;
-
-    /* init screen */
-    XSetWindowAttributes wa;
+    /* IO handler */
+    XSetIOErrorHandler(xexithandler);
     /* clean up any zombies immediately */
     sighandler();
     /* setup pool (biggest risk of failure due to calloc) */
     setuppool();
+    XSetWindowAttributes wa;
     screen = DefaultScreen(dpy);
     sw = DisplayWidth(dpy, screen);
     sh = DisplayHeight(dpy, screen);
@@ -1775,23 +1937,28 @@ setup(void)
     bh = drw->fonts->h + 2;
     if(CFG_BAR_HEIGHT) bh = CFG_BAR_HEIGHT;
     updategeom();
+
     XInitAtoms(dpy);
     motifatom = XInternAtom(dpy, "_MOTIF_WM_HINTS", False);
+
     setupcur();
     setuptags();
     updatebars();
     updatestatus();
+    updatebars();
+    updatestatus();
     /* supporting window for NetWMCheck */
     wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
-    XChangeProperty(dpy, wmcheckwin, netatom[NetWMCheck], XA_WINDOW, 32,
+    XChangeProperty(dpy, wmcheckwin, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     XChangeProperty(dpy, wmcheckwin, netatom[NetWMName], XInternAtom(dpy, "UTF8_STRING", False), 8,
                     PropModeReplace, (unsigned char *) WM_NAME, LENGTH(WM_NAME));
-    XChangeProperty(dpy, root, netatom[NetWMCheck], XA_WINDOW, 32,
+    XChangeProperty(dpy, root, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
                     PropModeReplace, (unsigned char *) &wmcheckwin, 1);
     /* EWMH support per view */
     XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
                     PropModeReplace, (unsigned char *) netatom, NetLast);
+    XDeleteProperty(dpy, root, netatom[NetClientList]);
     setdesktopnum();
     setdesktop();
     setdesktopnames();
@@ -1800,7 +1967,7 @@ setup(void)
     /* select events */
     wa.cursor = cursor[CurNormal]->cursor;
     wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask
-                    |ButtonPressMask|PointerMotionMask|EnterWindowMask
+                    |ButtonPressMask|ButtonReleaseMask|PointerMotionMask|EnterWindowMask
                     |LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
     XChangeWindowAttributes(dpy, root, CWEventMask|CWCursor, &wa);
     XSelectInput(dpy, root, wa.event_mask);
@@ -1812,10 +1979,23 @@ void
 setupcur(void)
 {
     cursor[CurNormal]           = drw_cur_create(drw, XC_left_ptr);
+
+
+    /* resizing curs */
+
+    /* vertical */
+    cursor[CurResizeTop]        = drw_cur_create_img(drw, "size_ver");
+    cursor[CurResizeBottom]     = cursor[CurResizeTop];
+    /* diagonal left */
     cursor[CurResizeTopLeft]    = drw_cur_create_img(drw, "size_fdiag");
+    cursor[CurResizeBottomLeft] = cursor[CurResizeTopLeft];
+    /* diagonal right */
     cursor[CurResizeTopRight]   = drw_cur_create_img(drw, "size_bdiag");
-    cursor[CurResizeBottomLeft] = drw_cur_create_img(drw, "size_fdiag");
-    cursor[CurResizeBottomRight]= drw_cur_create_img(drw, "size_bdiag");
+    cursor[CurResizeBottomRight]= cursor[CurResizeTopRight];
+    /* horizontal */
+    cursor[CurResizeLeft] = drw_cur_create_img(drw, "size_hor");
+    cursor[CurResizeRight] =  cursor[CurResizeLeft];
+    /* move curs */
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 }
 
@@ -1924,109 +2104,6 @@ sigterm(int signo)
 }
 
 void
-killclient(Client *c, int type)
-{
-    const int probablynotsystempid = 100;
-    if(!c) return;
-    if(!sendevent(c, wmatom[WMDelete]))
-    {
-        XGrabServer(dpy);
-        XSetErrorHandler(xerrordummy);
-        XSetCloseDownMode(dpy, DestroyAll);
-        switch(type)
-        {
-        case Graceful:
-            XKillClient(dpy, c->win);
-            break;
-        case Destroy:
-            XDestroyWindow(dpy, c->win);
-            XSync(dpy, False);
-            XSetErrorHandler(xerror);
-            XUngrabServer(dpy);
-            if(c && c->win)
-            {
-                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
-                {   
-                    debug("Destroy Killed: %d", c->pid);
-                    kill(SIGTERM, c->pid);
-                }
-            }
-            XSync(dpy, False);
-            if(c && c->win)
-            {
-                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
-                {   
-                    debug("Destroy sigkilled: %d", c->pid);
-                    kill(SIGKILL, c->pid);
-                }
-            }
-            break;
-        case Safedestroy:
-            XKillClient(dpy, c->win);
-            XSync(dpy, False);
-            XSetErrorHandler(xerror);
-            XUngrabServer(dpy);
-            if(c && c->win) 
-            {   XDestroyWindow(dpy, c->win);
-            }
-            XSync(dpy, False);
-            if(c && c->win)
-            {
-                if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
-                {   
-                    debug("Safedestroy Killed: %d", c->pid);
-                    kill(SIGTERM, c->pid);
-                }
-            }
-            XSync(dpy, False);
-            return;
-        }
-        /* Make sure x receive the request */
-        XSync(dpy, False);
-        XSetErrorHandler(xerror);
-        XUngrabServer(dpy);
-    }
-}
-
-void
-maximize(Client *c)
-{
-    const int x = c->mon->wx;
-    const int y = c->mon->wy;
-    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
-    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
-    c->oldx = c->x;
-    c->oldy = c->y;
-    c->oldw = c->w;
-    c->oldh = c->h;
-    resize(c, x, y, w, h, 1);
-}
-
-void
-maximizevert(Client *c)
-{
-    const int x = c->x;
-    const int y = c->mon->wy;
-    const int w = c->w;
-    const int h = c->mon->wh - (CFG_BORDER_PX << 1);
-    c->oldy = c->y;
-    c->oldh = c->h;
-    resize(c, x, y, w, h, 1);
-}
-
-void
-maximizehorz(Client *c)
-{
-    const int x = c->mon->wx;
-    const int y = c->y;
-    const int w = c->mon->ww - (CFG_BORDER_PX << 1);
-    const int h = c->h;
-    c->oldx = c->x;
-    c->oldw = c->w;
-    resize(c, x, y, w, h, 1);
-}
-
-void
 tile(Monitor *m)
 {
     unsigned int h, mw, my, ty;
@@ -2049,8 +2126,18 @@ tile(Monitor *m)
             ny = m->wy + my;
             nw = mw - (c->bw << 1);
             nh = h - (c->bw << 1);
+
+            /* we divide nw also to get even gaps
+             * if we didnt the center gap would be twices as big
+             * Although this may be desired, one would simply remove the shift ">>" by 1 in nw 
+             */
+            nx += CFG_GAP_PX;
+            ny += CFG_GAP_PX;
+            nw -= CFG_GAP_PX;
+            nh -= CFG_GAP_PX << 1;
             resize(c, nx, ny, nw, nh, 0);
-            if (my + HEIGHT(c) < (unsigned int)m->wh) my += HEIGHT(c);
+                                                                        /* spacing for windows below */
+            if (my + HEIGHT(c) < (unsigned int)m->wh) my += HEIGHT(c) + CFG_GAP_PX;
         }
         else
         {
@@ -2059,8 +2146,15 @@ tile(Monitor *m)
             ny = m->wy + ty;
             nw = m->ww - mw - (c->bw << 1);
             nh = h - (c->bw << 1);
+
+            nx += CFG_GAP_PX;
+            ny += CFG_GAP_PX;
+            nw -= CFG_GAP_PX << 1;
+            nh -= CFG_GAP_PX << 1;
+
             resize(c, nx, ny, nw, nh, 0);
-            if (ty + HEIGHT(c) < (unsigned int)m->wh) ty += HEIGHT(c);
+                                                                    /* spacing for windows below */ 
+            if (ty + HEIGHT(c) < (unsigned int)m->wh) ty += HEIGHT(c) + CFG_GAP_PX;
         }
     }
 }
@@ -2102,6 +2196,8 @@ unmanage(Client *c, int destroyed)
         XUngrabServer(dpy);
     }
     if (lastfocused == c) lastfocused = NULL;
+    /* -- cause we start index from 0 */
+    --c->num;
     poolfree(pl, c, c->num);
     focus(NULL);
     updateclientlist();
@@ -2116,20 +2212,12 @@ updatebars(void)
     {
         .override_redirect = True, /*patch */
         .background_pixmap = ParentRelative,
-        .event_mask = ButtonPressMask|ExposureMask|PointerMotionMask
+        .event_mask = ButtonPressMask|ButtonReleaseMask|ExposureMask|PointerMotionMask
     };
 
     XClassHint ch = {WM_NAME, WM_NAME};
     for (m = mons; m; m = m->next)
     {
-        if (!m->tagwin)
-        {
-            m->tagwin = XCreateWindow(dpy, root, m->wx, m->by + bh, m->mw / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE),
-                                      m->mh / (CFG_TAG_PREVIEW_SCALE + !CFG_TAG_PREVIEW_SCALE), 0, DefaultDepth(dpy, screen), CopyFromParent,
-                                      DefaultVisual(dpy, screen), CWOverrideRedirect|CWBackPixmap|CWEventMask, &wa);
-            XDefineCursor(dpy, m->tagwin, cursor[CurNormal]->cursor);
-            XUnmapWindow(dpy, m->tagwin);
-        }
         if (m->barwin) continue;
         m->barwin = XCreateWindow(dpy, root, m->wx, m->by, m->ww, bh, 0, DefaultDepth(dpy, screen),
                                   CopyFromParent, DefaultVisual(dpy, screen),
@@ -2369,6 +2457,7 @@ updatesizehints(Client *c)
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
     }
     c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
+
 }
 
 void
@@ -2382,10 +2471,7 @@ updatestatus(void)
 void
 updatetitle(Client *c)
 {
-    if (!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
-        gettextprop(c->win, XA_WM_NAME, c->name, sizeof c->name);
-    if (c->name[0] == '\0') /* hack to mark broken clients */
-        strcpy(c->name, BROKEN);
+    XGetWindowName(dpy, c->win, c->name, sizeof(c->name));
 }
 
 void
@@ -2498,7 +2584,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   maximizevert(c);
         }
         else
-        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 0);
         }
     }
     else if (state == netatom[NetWMStateMaximizedVert])
@@ -2514,7 +2600,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   maximizehorz(c);
         }
         else
-        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+        {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 0);
         }
     }
     /*  else if (state == netatom[NetWMAbove])          {REPLACED BY NetWMAlwaysOnTop}      */
@@ -2639,11 +2725,22 @@ Client *
 wintoclient(Window w)
 {
     Client *c;
+    Client *c2;
     Monitor *m;
 
     for (m = mons; m; m = m->next)
-        for (c = m->clients; c; c = c->next)
+    {
+        c = m->clients;
+        c2 = m->clast;
+        for (; c && c2; c = c->next )
+        {
             if (c->win == w) return c;
+            if (c2->win == w) return c2;
+            if(c == c2) break;
+            c2 = c2->prev;
+        }
+
+    }
     return NULL;
 }
 
@@ -2685,27 +2782,177 @@ winunmap(Window win, Window winroot, int iconify)
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
  * ignored (especially on UnmapNotify's). Other types of errors call Xlibs
- * default error handler, which may call exit. */
+ * default error handler, which may call exit. 
+ * Side note: Most errors shown can be ignored leaving only the extensions 
+ * and some others that can call exit(); however we tell the user about these as their still useful to know
+ * */
 int
-xerror(Display *dpy, XErrorEvent *ee)
+xerror(Display *display, XErrorEvent *ee)
 {
-    if (ee->error_code == BadWindow
-            || (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
-            || (ee->request_code == X_PolyText8 && ee->error_code == BadDrawable)
-            || (ee->request_code == X_PolyFillRectangle && ee->error_code == BadDrawable)
-            || (ee->request_code == X_PolySegment && ee->error_code == BadDrawable)
-            || (ee->request_code == X_ConfigureWindow && ee->error_code == BadMatch)
-            || (ee->request_code == X_GrabButton && ee->error_code == BadAccess)
-            || (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
-            || (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
-        return 0;
-    fprintf(stderr, "fatal error: request code=%d, error code=%d\n",
-            ee->request_code, ee->error_code);
+    switch(ee->error_code)
+    {
+        case Success: debug("WARNING: X_ERROR_TRIGGER_ON_SUCCESS "); break;
+        case BadWindow: debug("WARNING: X_ERROR_BAD_WINDOW"); break;
+        case BadAccess: debug("WARNING: X_ERROR_BAD_ACCESS"); break;
+        case BadAlloc: debug("WARNING: X_ERROR_BAD_ALLOC"); break;
+        case BadAtom: debug("WARNING: X_ERROR_BAD_ATOM"); break;
+        case BadColor: debug("WARNING: X_ERROR_BAD_COLOR"); break;
+        case BadCursor: debug("WARNING: X_ERROR_BAD_CURSOR"); break;
+        case BadDrawable: debug("WARNING: X_ERROR_BAD_DRAWABLE"); break;
+        case BadFont: debug("WARNING: X_ERROR_BAD_FONT"); break;
+        case BadGC: debug("WARNING: X_ERROR_BAD_GC"); break;
+        case BadIDChoice: debug("WARNING: X_ERROR_BAD_ID_CHOICE"); break;
+        case BadImplementation: debug("WARNING: X_ERROR_BAD_IMPLEMENTATION"); break;
+        case BadLength: debug("WARNING: X_ERROR_BAD_LENGTH"); break;
+        case BadMatch: debug("WARNING: X_ERROR_BAD_MATCH"); break;
+        case BadName: debug("WARNING: X_ERROR_BAD_NAME"); break;
+        case BadPixmap: debug("WARNING: X_ERROR_BAD_PIXMAP"); break;
+        case BadRequest: debug("WARNING: X_ERROR_BAD_REQUEST"); break;
+        case BadValue: debug("WARNING: X_ERROR_BAD_VALUE"); break;
+        default: goto ret; 
+    }
+    /* sometimes doesnt change binary size for some reason???
+     * But its not in the assembly so Idk
+     */
+    if(CFG_X_VERBOSE_ERRORS)
+    {
+        switch(ee->request_code)
+        {   
+            case X_CreateWindow: debug("X_REQUEST_CREATE_WINDOW"); break;
+            case X_ChangeWindowAttributes: debug("X_REQUEST_CHANGE_WINDOW_ATTRIBUTES"); break;
+            case X_GetWindowAttributes: debug("X_REQUEST_GET_WINDOW_ATTRIBUTES"); break;
+            case X_DestroyWindow: debug("X_REQUEST_DESTROY_WINDOW"); break;
+            case X_DestroySubwindows: debug("X_REQUEST_DESTROY_SUBWINDOWS"); break;
+            case X_ChangeSaveSet: debug("X_REQUEST_CHANGE_SAVE_SET"); break;
+            case X_ReparentWindow: debug("X_REQUEST_REPARENT_WINDOW"); break;
+            case X_MapWindow: debug("X_REQUEST_MAP_WINDOW"); break;
+            case X_MapSubwindows: debug("X_REQUEST_MAP_SUBWINDOWS"); break;
+            case X_UnmapWindow: debug("X_REQUEST_UNMAP_WINDOW"); break;
+            case X_UnmapSubwindows: debug("X_REQUEST_UNMAP_SUBWINDOWS"); break;
+            case X_ConfigureWindow: debug("X_REQUEST_CONFIGURE_WINDOW"); break;
+            case X_CirculateWindow: debug("X_REQUEST_CIRCULATE_WINDOW"); break;
+            case X_GetGeometry: debug("X_REQUEST_GET_GEOMETRY"); break;
+            case X_QueryTree: debug("X_REQUEST_QUERY_TREE"); break;
+            case X_InternAtom: debug("X_REQUEST_INTERN_ATOM"); break;
+            case X_GetAtomName: debug("X_REQUEST_GET_ATOM_NAME"); break;
+            case X_ChangeProperty: debug("X_REQUEST_CHANGE_PROPERTY"); break;
+            case X_DeleteProperty: debug("X_REQUEST_DELETE_PROPERTY"); break;
+            case X_GetProperty: debug("X_REQUEST_GET_PROPERTY"); break;
+            case X_ListProperties: debug("X_REQUEST_LIST_PROPERTIES"); break;
+            case X_SetSelectionOwner: debug("X_REQUEST_SET_SELECTION_OWNER"); break;
+            case X_GetSelectionOwner: debug("X_REQUEST_GET_SELECTION_OWNER"); break;
+            case X_ConvertSelection: debug("X_REQUEST_CONVERT_SELECTION"); break;
+            case X_SendEvent: debug("X_REQUEST_SEND_EVENT"); break;
+            case X_GrabPointer: debug("X_REQUEST_GRAB_POINTER"); break;
+            case X_UngrabPointer: debug("X_REQUEST_UNGRAB_POINTER"); break;
+            case X_GrabButton: debug("X_REQUEST_GRAB_BUTTON"); break;
+            case X_UngrabButton: debug("X_REQUEST_UNGRAB_BUTTON"); break;
+            case X_ChangeActivePointerGrab: debug("X_REQUEST_CHANGE_ACTIVE_POINTER_GRAB"); break;
+            case X_GrabKeyboard: debug("X_REQUEST_GRAB_KEYBOARD"); break;
+            case X_UngrabKeyboard: debug("X_REQUEST_UNGRAB_KEYBOARD"); break;
+            case X_GrabKey: debug("X_REQUEST_GRAB_KEY"); break;
+            case X_UngrabKey: debug("X_REQUEST_UNGRAB_KEY"); break;
+            case X_AllowEvents: debug("X_REQUEST_ALLOW_EVENTS"); break;
+            case X_GrabServer: debug("X_REQUEST_GRAB_SERVER"); break;
+            case X_UngrabServer: debug("X_REQUEST_UNGRAB_SERVER"); break;
+            case X_QueryPointer: debug("X_REQUEST_QUERY_POINTER"); break;
+            case X_GetMotionEvents: debug("X_REQUEST_GET_MOTION_EVENTS"); break;
+            case X_TranslateCoords: debug("X_REQUEST_TRANSLATE_COORDS"); break;
+            case X_WarpPointer: debug("X_REQUEST_WARP_POINTER"); break;
+            case X_SetInputFocus: debug("X_REQUEST_SET_INPUT_FOCUS"); break;
+            case X_GetInputFocus: debug("X_REQUEST_GET_INPUT_FOCUS"); break;
+            case X_QueryKeymap: debug("X_REQUEST_QUERY_KEYMAP"); break;
+            case X_OpenFont: debug("X_REQUEST_OPEN_FONT"); break;
+            case X_CloseFont: debug("X_REQUEST_CLOSE_FONT"); break;
+            case X_QueryFont: debug("X_REQUEST_QUERY_FONT"); break;
+            case X_QueryTextExtents: debug("X_REQUEST_QUERY_TEXT_EXTENTS"); break;
+            case X_ListFonts: debug("X_REQUEST_LIST_FONTS"); break;
+            case X_ListFontsWithInfo: debug("X_REQUEST_LIST_FONTS_WITH_INFO"); break;
+            case X_SetFontPath: debug("X_REQUEST_SET_FONT_PATH"); break;
+            case X_GetFontPath: debug("X_REQUEST_GET_FONT_PATH"); break;
+            case X_CreatePixmap: debug("X_REQUEST_CREATE_PIXMAP"); break;
+            case X_FreePixmap: debug("X_REQUEST_FREE_PIXMAP"); break;
+            case X_CreateGC: debug("X_REQUEST_CREATE_GC"); break;
+            case X_ChangeGC: debug("X_REQUEST_CHANGE_GC"); break;
+            case X_CopyGC: debug("X_REQUEST_COPY_GC"); break;
+            case X_SetDashes: debug("X_REQUEST_SET_DASHES"); break;
+            case X_SetClipRectangles: debug("X_REQUEST_SET_CLIP_RECTANGLES"); break;
+            case X_FreeGC: debug("X_REQUEST_FREE_GC"); break;
+            case X_ClearArea: debug("X_REQUEST_CLEAR_AREA"); break;
+            case X_CopyArea: debug("X_REQUEST_COPY_AREA"); break;
+            case X_CopyPlane: debug("X_REQUEST_COPY_PLANE"); break;
+            case X_PolyPoint: debug("X_REQUEST_POLY_POINT"); break;
+            case X_PolyLine: debug("X_REQUEST_POLY_LINE"); break;
+            case X_PolySegment: debug("X_REQUEST_POLY_SEGMENT"); break;
+            case X_PolyRectangle: debug("X_REQUEST_POLY_RECTANGLE"); break;
+            case X_PolyArc: debug("X_REQUEST_POLY_ARC"); break;
+            case X_FillPoly: debug("X_REQUEST_FILL_POLY"); break;
+            case X_PolyFillRectangle: debug("X_REQUEST_POLY_FILL_RECTANGLE"); break;
+            case X_PolyFillArc: debug("X_REQUEST_POLY_FILL_ARC"); break;
+            case X_PutImage: debug("X_REQUEST_PUT_IMAGE"); break;
+            case X_GetImage: debug("X_REQUEST_GET_IMAGE"); break;
+            case X_PolyText8: debug("X_REQUEST_POLY_TEXT_8"); break;
+            case X_PolyText16: debug("X_REQUEST_POLY_TEXT_16"); break;
+            case X_ImageText8: debug("X_REQUEST_IMAGE_TEXT_8"); break;
+            case X_ImageText16: debug("X_REQUEST_IMAGE_TEXT_16"); break;
+            case X_CreateColormap: debug("X_REQUEST_CREATE_COLORMAP"); break;
+            case X_FreeColormap: debug("X_REQUEST_FREE_COLORMAP"); break;
+            case X_CopyColormapAndFree: debug("X_REQUEST_COPY_COLORMAP_AND_FREE"); break;
+            case X_InstallColormap: debug("X_REQUEST_INSTALL_COLORMAP"); break;
+            case X_UninstallColormap: debug("X_REQUEST_UNINSTALL_COLORMAP"); break;
+            case X_ListInstalledColormaps: debug("X_REQUEST_LIST_INSTALLED_COLORMAPS"); break;
+            case X_AllocColor: debug("X_REQUEST_ALLOC_COLOR"); break;
+            case X_AllocNamedColor: debug("X_REQUEST_ALLOC_NAMED_COLOR"); break;
+            case X_AllocColorCells: debug("X_REQUEST_ALLOC_COLOR_CELLS"); break;
+            case X_AllocColorPlanes: debug("X_REQUEST_ALLOC_COLOR_PLANES"); break;
+            case X_FreeColors: debug("X_REQUEST_FREE_COLORS"); break;
+            case X_StoreColors: debug("X_REQUEST_STORE_COLORS"); break;
+            case X_StoreNamedColor: debug("X_REQUEST_STORE_NAMED_COLOR"); break;
+            case X_QueryColors: debug("X_REQUEST_QUERY_COLORS"); break;
+            case X_LookupColor: debug("X_REQUEST_LOOKUP_COLOR"); break;
+            case X_CreateCursor: debug("X_REQUEST_CREATE_CURSOR"); break;
+            case X_CreateGlyphCursor: debug("X_REQUEST_CREATE_GLYPH_CURSOR"); break;
+            case X_FreeCursor: debug("X_REQUEST_FREE_CURSOR"); break;
+            case X_RecolorCursor: debug("X_REQUEST_RECOLOR_CURSOR"); break;
+            case X_QueryBestSize: debug("X_REQUEST_QUERY_BEST_SIZE"); break;
+            case X_QueryExtension: debug("X_REQUEST_QUERY_EXTENSION"); break;
+            case X_ListExtensions: debug("X_REQUEST_LIST_EXTENSIONS"); break;
+            case X_ChangeKeyboardMapping: debug("X_REQUEST_CHANGE_KEYBOARD_MAPPING"); break;
+            case X_GetKeyboardMapping: debug("X_REQUEST_GET_KEYBOARD_MAPPING"); break;
+            case X_ChangeKeyboardControl: debug("X_REQUEST_CHANGE_KEYBOARD_CONTROL"); break;
+            case X_GetKeyboardControl: debug("X_REQUEST_GET_KEYBOARD_CONTROL"); break;
+            case X_Bell: debug("X_REQUEST_BELL"); break;
+            case X_ChangePointerControl: debug("X_REQUEST_CHANGE_POINTER_CONTROL"); break;
+            case X_GetPointerControl: debug("X_REQUEST_GET_POINTER_CONTROL"); break;
+            case X_SetScreenSaver: debug("X_REQUEST_SET_SCREEN_SAVER"); break;
+            case X_GetScreenSaver: debug("X_REQUEST_GET_SCREEN_SAVER"); break;
+            case X_ChangeHosts: debug("X_REQUEST_CHANGE_HOSTS"); break;
+            case X_ListHosts: debug("X_REQUEST_LIST_HOSTS"); break;
+            case X_SetAccessControl: debug("X_REQUEST_SET_ACCESS_CONTROL"); break;
+            case X_SetCloseDownMode: debug("X_REQUEST_SET_CLOSE_DOWN_MODE"); break;
+            case X_KillClient: debug("X_REQUEST_KILL_CLIENT"); break;
+            case X_RotateProperties: debug("X_REQUEST_ROTATE_PROPERTIES"); break;
+            case X_ForceScreenSaver: debug("X_REQUEST_FORCE_SCREEN_SAVER"); break;
+            case X_SetPointerMapping: debug("X_REQUEST_SET_POINTER_MAPPING"); break;
+            case X_GetPointerMapping: debug("X_REQUEST_GET_POINTER_MAPPING"); break;
+            case X_SetModifierMapping: debug("X_REQUEST_SET_MODIFIER_MAPPING"); break;
+            case X_GetModifierMapping: debug("X_REQUEST_GET_MODIFIER_MAPPING"); break;
+            case X_NoOperation: debug("X_REQUEST_NO_OPERATION"); break;
+            default: goto ret; 
+        }
+    }
+    else
+    {
+        debug("WARNING: X_ERROR_CODE [%d] X_REQUEST_CODE [%d] X_MINOR_CODE [%d] ****", ee->error_code, ee->request_code, ee->minor_code);
+    }
+    return 0;
+ret:
+    debug("FATAL: X_ERROR_CODE [%d] X_REQUEST_CODE [%d] X_MINOR_CODE [%d] ****", ee->error_code, ee->request_code, ee->minor_code);
     return xerrorxlib(dpy, ee); /* may call exit */
 }
 
 int
-xerrordummy(Display *dpy, XErrorEvent *ee)
+xerrordummy(Display *display, XErrorEvent *ee)
 {
     return 0;
 }
@@ -2713,10 +2960,16 @@ xerrordummy(Display *dpy, XErrorEvent *ee)
 /* Startup Error handler to check if another window manager
  * is already running. */
 int
-xerrorstart(Display *dpy, XErrorEvent *ee)
+xerrorstart(Display *display, XErrorEvent *ee)
 {
     die("WARN: another window manager is already running");
     return -1;
+}
+
+int
+xexithandler(Display *display)
+{
+    return 0;
 }
 
 int

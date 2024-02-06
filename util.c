@@ -62,7 +62,7 @@ smprintf(char *fmt, ...)
     va_end(fmtargs);
     return ret;
 }
-
+/* Youll only really see these in a debugger such as gdb */
 void
 debug(char *fmt, ...)
 {
@@ -76,7 +76,7 @@ debug(char *fmt, ...)
     va_end(args);
 
     perror(txt);
-    fprintf(stdout, "%s", txt);
+    fprintf(stdout, "\n%s\n", txt);
 
     free(txt);
 }

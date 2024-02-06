@@ -41,7 +41,7 @@ DEBUGFLAGS = -ggdb -g -pg
 WARNINGFLAGS = -pedantic -Wall -Wno-deprecated-declarations -Wshadow -Wuninitialized
 PRELINKERFLAGS = -flto -fipa-pta -fprefetch-loop-arrays 
 # can set higher but function overhead is pretty small so meh
-INLINELIMIT = 25
+INLINELIMIT = 15
 LINKERFLAGS = ${DYNAMICLINK} -Wl,--gc-sections,--as-needed,--relax,--strip-all -finline-functions -finline-limit=${INLINELIMIT} -flto 
 
 BINARY = ${X64}

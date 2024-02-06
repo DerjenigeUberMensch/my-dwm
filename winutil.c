@@ -74,10 +74,35 @@ XPingWindow(Display *display, Window win)
     XSendEvent(display, win, 1, ClientMessage, &ev);
 }
 
-char *
-XGetWindowName(Display *display, Window win)
+int
+XGetWindowName(Display *display, Window win, char *name, size_t sizeofname)
 {
-    return " ";
+    XGetTextProp(display, win, XInternAtom(display, "_NET_WM_NAME", False), name, sizeofname);
+    char **list = NULL;
+    int n;
+    XTextProperty tname;
+    if(!name || sizeofname == 0)
+    {   return BadLength;
+    }
+    name[0] = '\0';
+    if (!XGetTextProperty(display, win, &tname, XInternAtom(display, "_NET_WM_NAME", False)) || !tname.nitems)
+    {   XGetTextProperty(display, win, &tname, XA_WM_NAME);
+    }
+    if (tname.encoding == XA_STRING)
+        strncpy(name, (char *)tname.value, sizeofname - 1);
+    else if (XmbTextPropertyToTextList(display, &tname, &list, &n) >= Success && n > 0 && *list)
+    {
+        strncpy(name, *list, sizeofname - 1);
+        XFreeStringList(list);
+    }
+    name[sizeofname - 1] = '\0';
+    XFree(tname.value);
+    if (name[0] == '\0') /* hack to mark broken clients */
+    {
+        strncpy(name, "NOT_SET", sizeofname);
+        return BadName;
+    }
+    return Success;
 }
 
 pid_t
@@ -103,11 +128,12 @@ XInitAtoms(Display *display)
     /* prob should have made a int f = False;
      * or use 0; but they could change false or whatever
      */
-     /* wm */
+    /* wm */
     wmatom[WMProtocols] = XInternAtom(display, "WM_PROTOCOLS", False);
     wmatom[WMDelete] = XInternAtom(display, "WM_DELETE_WINDOW", False);
     wmatom[WMState] = XInternAtom(display, "WM_STATE", False);
     wmatom[WMTakeFocus] = XInternAtom(display, "WM_TAKE_FOCUS", False);
+
     /* wm state */
     netatom[NetWMState] = XInternAtom(display, "_NET_WM_STATE", False);
     netatom[NetWMStateModal] = XInternAtom(display, "_NET_WM_STATE_MODAL", False);
@@ -150,6 +176,7 @@ XInitAtoms(Display *display)
     netatom[NetVirtualRoots] = XInternAtom(display, "_NET_VIRTUAL_ROOTS", False);
     netatom[NetDesktopLayout] = XInternAtom(display, "_NET_DESKTOP_LAYOUT", False);
     netatom[NetShowingDesktop] = XInternAtom(display, "_NET_SHOWING_DESKTOP", False);
+
     /* other root messages */
     netatom[NetCloseWindow] = XInternAtom(display, "_NET_CLOSE_WINDOW", False);
     netatom[NetMoveResizeWindow] = XInternAtom(display, "_NET_MOVERESIZE_WINDOW", False);
@@ -157,6 +184,7 @@ XInitAtoms(Display *display)
     netatom[NetRestackWindow] = XInternAtom(display, "_NET_RESTACK_WINDOW", False);
     netatom[NetRequestFrameExtents] = XInternAtom(display, "_NET_REQUEST_FRAME_EXTENTS", False);
     netatom[NetActiveWindow] = XInternAtom(display, "_NET_ACTIVE_WINDOW", False);
+
     /* application win properties */
     netatom[NetWMName] = XInternAtom(display, "_NET_WM_NAME", False);
     netatom[NetWMVisibleName] = XInternAtom(display, "_NET_WM_VISIBLE_NAME", False);
@@ -198,7 +226,6 @@ XInitAtoms(Display *display)
     netatom[NetWMUserTimeWindow] = XInternAtom(display, "_NET_WM_USER_TIME_WINDOW", False);
 
     /* stuff */
-    netatom[NetWMCheck] = XInternAtom(display, "_NET_WM_CHECK", False);
     netatom[NetWMFullscreen] = XInternAtom(display, "_NET_WM_FULLSCREEN", False);
     netatom[NetWMAbove] = XInternAtom(display, "_NET_WM_ABOVE", False);
 

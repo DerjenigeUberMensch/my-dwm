@@ -29,6 +29,18 @@
 #include "toggle.h"
 #include "events.h"
 
+
+/*
+ * Making your own stuff with Arg
+ * Get your Function if it doesnt require an Arg simply pass NULL:
+ * Example: ResizeWindow(NULL);
+ * However if it does then pass Arg and its data type see dwm.h
+ * Example:
+ * Arg arg;
+ * arg.i = 10;
+ * SomeToggleFunction(&arg);
+ */
+
 void
 UserStats(const Arg *arg)
 {
@@ -61,11 +73,13 @@ KillWindow(const Arg *arg)
 {
     killclient(selmon->sel, Graceful);
 }
+
 void
 TerminateWindow(const Arg *arg)
 {
     killclient(selmon->sel, Destroy);
 }
+
 void
 DragWindow(const Arg *arg) /* movemouse */
 {
@@ -107,6 +121,7 @@ DragWindow(const Arg *arg) /* movemouse */
             }
             nx = ocx + (ev.xmotion.x - x);
             ny = ocy + (ev.xmotion.y - y);
+            /* snap to window area */
             if (abs(selmon->wx - nx) < CFG_SNAP)
                 nx = selmon->wx;
             else if (abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < CFG_SNAP)
@@ -138,6 +153,7 @@ Restart(const Arg *arg)
     savesession();
     restart();
 }
+
 void
 Quit(const Arg *arg)
 {
@@ -165,8 +181,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     int nx, ny;
     int horiz, vert;
     int basew, baseh;
-    int incw, inch;
-    const float frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /*prevent 0 division errors */
+    const int frametime = 1000 / (CFG_WIN_RATE + !CFG_WIN_RATE); /*prevent 0 division errors */
 
     unsigned int dui;
     Window dummy;
@@ -183,15 +198,24 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     horiz = nx < c->w >> 1 ? -1 : 1;
     vert  = ny < c->h >> 1 ? -1 : 1;
+
     if(horiz == -1)
     {
-        if(vert == -1) cur = cursor[CurResizeTopLeft]->cursor;
-        else cur = cursor[CurResizeBottomRight]->cursor;
+        if(vert == -1) 
+        {   cur = cursor[CurResizeTopLeft]->cursor;
+        }
+        else 
+        {   cur = cursor[CurResizeBottomRight]->cursor;
+        }
     }
     else
     {
-        if(vert == -1) cur = cursor[CurResizeTopRight]->cursor;
-        else cur = cursor[CurResizeBottomLeft]->cursor;
+        if(vert == -1) 
+        {   cur = cursor[CurResizeTopRight]->cursor;
+        }
+        else
+        {   cur = cursor[CurResizeBottomLeft]->cursor;
+        }
     }
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cur, CurrentTime) != GrabSuccess) return;
@@ -201,8 +225,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     och = c->h;
     ocx = c->x;
     ocy = c->y;
-    incw = c->incw;
-    inch = c->inch;
     basew = MAX(c->minw ? c->minw : c->basew, CFG_RESIZE_BASE_WIDTH);
     baseh = MAX(c->minh ? c->minh : c->baseh, CFG_RESIZE_BASE_HEIGHT);
     do
@@ -228,8 +250,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
             /* clamp */
             nw = MAX(nw, basew);
             nh = MAX(nh, baseh);
-            if(nw < incw) nw = ocw;
-            if(nh < inch) nh = ocw;
             /* flip sign if -1 else default to 0 */
             nx = ocx + !~horiz * (ocw - nw);
             ny = ocy + !~vert  * (och - nh);
@@ -237,14 +257,14 @@ ResizeWindow(const Arg *arg) /* resizemouse */
             break;
         }
     } while (ev.type != ButtonRelease);
-    /* add if w + x > monx || w + x < 0 resize */
     if(WIDTH(c) > c->mon->ww)
         maximizehorz(c);
-    if(HEIGHT(c) + bh * c->mon->showbar >= c->mon->wh)
+    if(HEIGHT(c) + bh * c->mon->showbar > c->mon->wh)
         maximizevert(c);
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
-    if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) {
+    if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) 
+    {
         sendmon(c, m);
         selmon = m;
         focus(NULL);
@@ -268,10 +288,12 @@ SetWindowLayout(const Arg *arg)
         if(m->sel != mnext) { detach(m->sel); attach(m->sel); }
         arrange(m);
     }
-    else drawbar(m);
+    else 
+    {   /* update the way the bar looks to show "responsiveness" */
+        drawbar(m);
+    }
 }
 
-/* arg > 1.0 will set mfact absolutely */
 void
 SetMonitorFact(const Arg *arg)
 {
@@ -284,6 +306,20 @@ SetMonitorFact(const Arg *arg)
     arrange(selmon);
 }
 
+/* Creates a window Usage:
+ * char *variablename[] = {"executablename", NULL}
+ * if you want to add arguments to the executable you do so after so like this:
+ * char *variablename[] = {"executablename", "argument1", NULL}
+ * there is no limit to the amount of args that you can use BUT you must end it with NULL
+ *
+ * { KeyPress,         SUPER,                      XK_n,       UserStats,       {variablename} },
+ * After that if you in keybinds simply pass it in the Argument brackets:       ^^^^^^^^^^^^^ 
+ *
+ * if you are making you want to use it in code then make a Arg
+ * Arg arg;
+ * arg.v = variablename;
+ * SpawnWindow(&arg);
+ */
 void
 SpawnWindow(const Arg *arg)
 {
@@ -295,6 +331,7 @@ SpawnWindow(const Arg *arg)
         die("FATAL ERROR: EXECVP '%s' FAILED:", ((char **)arg->v)[0]);
     }
 }
+
 void
 MaximizeWindow(const Arg *arg)
 {
@@ -360,6 +397,11 @@ MaximizeWindowHorizontal(const Arg *arg)
         arrange(selmon);
     }
 }
+
+/* Switches to the next window visible
+ * then makes it so that both windows are next to each other 
+ * producing a somewhat simple (in theory) alttab function
+ */
 
 void
 AltTab(const Arg *arg)
@@ -493,7 +535,13 @@ ToggleFullscreen(const Arg *arg)
         setfullscreen(c, m->isfullscreen);
     }
     if(m->isfullscreen)  setmonlyt(m, Monocle);
-    else setmonlyt(m, m->olyt);
+    else 
+    {
+        /* Manually set layout to previous */
+        const Layout *lyt = m->lt[!m->sellt];
+        m->lt[!m->sellt] = m->lt[m->sellt];
+        m->lt[m->sellt] = lyt;
+    }
     ToggleStatusBar(NULL);
     arrange(m);
 }
@@ -524,6 +572,7 @@ ToggleView(const Arg *arg)
         selmon->tagset[selmon->seltags] = newtagset;
         focus(NULL);
         arrange(selmon);
+        updatedesktop();
     }
 }
 

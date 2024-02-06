@@ -487,6 +487,7 @@ Cur *
 drw_cur_create_img(Drw *drw, const char *img)
 {
     /* XcursorSetDefaultSize(dpy, size); */
+    /* https://het.as.utexas.edu/HET/Software/PyQt/qcursor.html */
     Cur *cur;
     XcursorImage *curimg;
     if(!drw || !(cur = ecalloc(1, sizeof(Cur))))
