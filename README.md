@@ -52,7 +52,7 @@ Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 
 ## Compiling
 1. Clone this repository: 
-https://github.com/DerjenigeUberMensch/Sd-WM.git
+https://github.com/DerjenigeUberMensch/WSWM.git
 2. ```cd WSWM``` into the repository
 3. ```git checkout origin/Experimental```
 3. Configure it See **Configuration** (Optional)
