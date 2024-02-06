@@ -207,15 +207,24 @@ ResizeWindow(const Arg *arg) /* resizemouse */
     if (!XQueryPointer (dpy, c->win, &dummy, &dummy, &rcurx, &rcury, &nx, &ny, &dui)) return;
     horiz = nx < c->w >> 1 ? -1 : 1;
     vert  = ny < c->h >> 1 ? -1 : 1;
+
     if(horiz == -1)
     {
-        if(vert == -1) cur = cursor[CurResizeTopLeft]->cursor;
-        else cur = cursor[CurResizeBottomRight]->cursor;
+        if(vert == -1) 
+        {   cur = cursor[CurResizeTopLeft]->cursor;
+        }
+        else 
+        {   cur = cursor[CurResizeBottomRight]->cursor;
+        }
     }
     else
     {
-        if(vert == -1) cur = cursor[CurResizeTopRight]->cursor;
-        else cur = cursor[CurResizeBottomLeft]->cursor;
+        if(vert == -1) 
+        {   cur = cursor[CurResizeTopRight]->cursor;
+        }
+        else
+        {   cur = cursor[CurResizeBottomLeft]->cursor;
+        }
     }
     if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
                      None, cur, CurrentTime) != GrabSuccess) return;

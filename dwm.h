@@ -35,6 +35,7 @@ enum CurImg
 {
     CurNormal,
     CurResizeTopLeft, CurResizeTopRight, CurResizeBottomLeft, CurResizeBottomRight,
+    CurResizeTop, CurResizeBottom, CurResizeLeft, CurResizeRight,
     CurMove,
     CurLast
 };

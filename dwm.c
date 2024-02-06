@@ -1975,10 +1975,23 @@ void
 setupcur(void)
 {
     cursor[CurNormal]           = drw_cur_create(drw, XC_left_ptr);
+
+
+    /* resizing curs */
+
+    /* vertical */
+    cursor[CurResizeTop]        = drw_cur_create_img(drw, "size_ver");
+    cursor[CurResizeBottom]     = cursor[CurResizeTop];
+    /* diagonal left */
     cursor[CurResizeTopLeft]    = drw_cur_create_img(drw, "size_fdiag");
+    cursor[CurResizeBottomLeft] = cursor[CurResizeTopLeft];
+    /* diagonal right */
     cursor[CurResizeTopRight]   = drw_cur_create_img(drw, "size_bdiag");
-    cursor[CurResizeBottomLeft] = drw_cur_create_img(drw, "size_fdiag");
-    cursor[CurResizeBottomRight]= drw_cur_create_img(drw, "size_bdiag");
+    cursor[CurResizeBottomRight]= cursor[CurResizeTopRight];
+    /* horizontal */
+    cursor[CurResizeLeft] = drw_cur_create_img(drw, "size_hor");
+    cursor[CurResizeRight] =  cursor[CurResizeLeft];
+    /* move curs */
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 }
 
