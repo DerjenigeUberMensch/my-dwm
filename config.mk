@@ -51,7 +51,7 @@ RELEASEFLAGS = ${CCFLAGS}
 
 DEBUG 	= ${CCFLAGS} ${DEBUGFLAGS} -O0
 # uncomment for debugging
-#LINKERFLAGS = ${DYNAMICLINK} -Wl,--gc-sections
+LINKERFLAGS = ${DYNAMICLINK} -Wl,--gc-sections
 
 SIZE  	= ${RELEASEFLAGS} -Os
 # This rarely saves a substantial amount of instructions

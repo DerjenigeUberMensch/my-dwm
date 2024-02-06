@@ -1117,13 +1117,17 @@ grid(Monitor *m)
         aw = !!(i >= rows * (cols - 1)) * (m->ww - cw * cols);
 
         /* CFG_GAP_PX without fucking everything else */
-        cx += !aw * CFG_GAP_PX >> 1;
-        cy += !ah * CFG_GAP_PX >> 1;
+        cx += CFG_GAP_PX;
+        cy += CFG_GAP_PX;
+
         tmpcw = cw - (c->bw << 1) + aw;
         tmpch = ch - (c->bw << 1) + ah;
 
-        tmpcw -= CFG_GAP_PX << 1;
-        tmpch -= CFG_GAP_PX << 1;
+        tmpcw -= CFG_GAP_PX;
+        tmpch -= CFG_GAP_PX;
+
+        tmpcw -= !!aw * CFG_GAP_PX;
+        tmpch -= !ah * CFG_GAP_PX;
 
         resize(c, cx, cy, tmpcw, tmpch, 0);
         ++i;
@@ -2122,8 +2126,18 @@ tile(Monitor *m)
             ny = m->wy + my;
             nw = mw - (c->bw << 1);
             nh = h - (c->bw << 1);
+
+            /* we divide nw also to get even gaps
+             * if we didnt the center gap would be twices as big
+             * Although this may be desired, one would simply remove the shift ">>" by 1 in nw 
+             */
+            nx += CFG_GAP_PX;
+            ny += CFG_GAP_PX;
+            nw -= CFG_GAP_PX;
+            nh -= CFG_GAP_PX << 1;
             resize(c, nx, ny, nw, nh, 0);
-            if (my + HEIGHT(c) < (unsigned int)m->wh) my += HEIGHT(c);
+                                                                        /* spacing for windows below */
+            if (my + HEIGHT(c) < (unsigned int)m->wh) my += HEIGHT(c) + CFG_GAP_PX;
         }
         else
         {
@@ -2132,8 +2146,15 @@ tile(Monitor *m)
             ny = m->wy + ty;
             nw = m->ww - mw - (c->bw << 1);
             nh = h - (c->bw << 1);
+
+            nx += CFG_GAP_PX;
+            ny += CFG_GAP_PX;
+            nw -= CFG_GAP_PX << 1;
+            nh -= CFG_GAP_PX << 1;
+
             resize(c, nx, ny, nw, nh, 0);
-            if (ty + HEIGHT(c) < (unsigned int)m->wh) ty += HEIGHT(c);
+                                                                    /* spacing for windows below */ 
+            if (ty + HEIGHT(c) < (unsigned int)m->wh) ty += HEIGHT(c) + CFG_GAP_PX;
         }
     }
 }
