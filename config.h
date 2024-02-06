@@ -21,13 +21,13 @@
 #define CFG_DEFAULT_TAG_NUM     1           /* Tag number when starting dwm (1-9); 0 for default tag            */
 /* Window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
-#define CFG_GAP_PX              25          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
-#define CFG_SNAP                0           /* snap window to border in pixels; (NOT RECOMMENDED)0 to disable   */
+#define CFG_GAP_PX              15          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
+#define CFG_SNAP                15           /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
 #define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
 #define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */
-#define CFG_RESIZE_IGNORE_HINTS 0           /* (NOT RECOMMENDED)1 Ignore size hints use base(w/h); 0 to disable */
+#define CFG_RESIZE_IGNORE_HINTS 0           /* 1 Ignore size hints use base(w/h) (NOT RECOMMENDED); 0 to disable*/
 #define CFG_STORE_PID           1           /* 1 store pid in client; 0 to disable, effects below               */
 #define CFG_ALLOW_PID_KILL      1           /* Allow PID to be grabbed to Terminate a window ONLY on failure    */
 #define CFG_RESIZE_THRESHOLD_PX 15          /* Threshold in pixels for when to detect resizing in corners       */
