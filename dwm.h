@@ -17,7 +17,6 @@
 #define WIDTH(X)                ((X)->w + ((X)->bw << 1))
 #define HEIGHT(X)               ((X)->h + ((X)->bw << 1))
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
-#define TAGSHIFT(X)             (1 << (X - 1))
 #define TAGSLENGTH              (LENGTH(tags))
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define OPAQUE                  0xffU
@@ -43,11 +42,18 @@ enum CurImg
 /* color schemes */
 enum SchemeType
 {
-    SchemeNorm, SchemeSel,                      /* default */
-    SchemeUrgent, SchemeWarn,                   /* signals */
-    SchemeAltTab, SchemeAltTabSelect,           /* alt tab */
-    SchemeBarTabActive, SchemeBarTabInactive,   /* bar tab */
-    SchemeTagActive,                            /*  tags   */
+    /* system */
+    SchemeUrgent, SchemeWarn,                   
+
+    /* border */
+    SchemeBorder, SchemeBorderSel,         
+    /* alt tab */
+    SchemeAltTab, SchemeAltTabSel,           
+    /* bar stuff */
+    SchemeBarName, SchemeBarSymbol,
+    SchemeBarTabSel, SchemeBarTab,   
+    SchemeBarTagSel,                            
+
 };
 
 /* clicks */
@@ -164,6 +170,9 @@ struct Client
                                  * ->Flag
                                  */
     unsigned int isfullscreen;  /* Is Client Fullscreen;
+                                 * ->Flag
+                                 */
+    unsigned int hidden;        /* Is the Client not shown for some reason?
                                  * ->Flag
                                  */
     int num;                    /* Client Number        */

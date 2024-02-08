@@ -641,7 +641,7 @@ drawalttab(int first, Monitor *m)
     for(c = m->clients; c; c = c->next)
     {
         if(!ISVISIBLE(c)) continue;
-        schemecol = c != selmon->sel ? SchemeAltTab : SchemeAltTabSelect;
+        schemecol = c != selmon->sel ? SchemeAltTab : SchemeAltTabSel;
         /* for some reason this breaks when not using a variable and just putting in the thing */
         txtw = TEXTW(c->name) - lrpad;
         drw_setscheme(drw, scheme[schemecol]);
@@ -653,7 +653,7 @@ drawalttab(int first, Monitor *m)
         drw_text(drw, 0, y, maxwNeeded, maxhNeeded, txtpad, c->name, 0);
         y += maxhNeeded;
     }
-    drw_setscheme(drw, scheme[SchemeNorm]); /* set scheme back to normal */
+    drw_setscheme(drw, scheme[SchemeBorder]); /* set scheme back to normal */
     drw_map(drw, m->tabwin, 0, 0, CFG_ALT_TAB_MAX_WIDTH, CFG_ALT_TAB_MAX_HEIGHT);
 }
 
@@ -677,7 +677,7 @@ drawbarname(Monitor *m)
     const int tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
     if (CFG_SHOW_WM_NAME && m == selmon)  /* only draw on selmon */
     {
-        drw_setscheme(drw, scheme[SchemeNorm]);
+        drw_setscheme(drw, scheme[SchemeBarName]);
         drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);
         return tw;
     }
@@ -693,7 +693,7 @@ drawbars(void)
 int
 drawbarsym(Monitor *m, int x)
 {
-    drw_setscheme(drw, scheme[SchemeNorm]);
+    drw_setscheme(drw, scheme[SchemeBarSymbol]);
     return drw_text(drw, x, 0, TEXTW(m->ltsymbol), bh, lrpad >> 1, m->ltsymbol, 0);
 }
 
@@ -717,7 +717,7 @@ drawbartabs(Monitor *m, int x, int maxw)
     h = bh;
     boxh = bh >> 2;
     boxw = bh >> 2;
-    curscheme = SchemeBarTabInactive; /* init curscheme */
+    curscheme = SchemeBarTab ; /* init curscheme */
     /* set default scheme (blank canvas)*/
     drw_setscheme(drw, scheme[curscheme]);
     drw_rect(drw, x, 0, maxw, h, 1, 1);
@@ -741,8 +741,8 @@ drawbartabs(Monitor *m, int x, int maxw)
     /* draw rest of them */
     for(c = m->clients; c; c = c->next)
     {
-        if(!ISVISIBLE(c)) continue;
-        curscheme = c == m->sel ? SchemeBarTabActive  : SchemeBarTabInactive;
+        if(!ISVISIBLE(c) || c->hidden) continue;
+        curscheme = c == m->sel ? SchemeBarTabSel : SchemeBarTab;
         iconspace = c->icon ? c->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_setscheme(drw, scheme[curscheme]);
 
@@ -788,7 +788,7 @@ drawbartags(Monitor *m, int x)
         w = TEXTW(tags[i]);
         drw_setscheme(drw, tagscheme[i]);
         if(tagselected)
-        {   drw_setscheme(drw, scheme[SchemeTagActive]);
+        {   drw_setscheme(drw, scheme[SchemeBarTagSel]);
         }
         drw_text(drw, x, 0, w, bh, lrpad >> 1, tags[i], urg & 1 << i);
         if (occ & (1 << i))
@@ -812,15 +812,18 @@ focus(Client *c)
     if (c)
     {
         if (c->mon != selmon) selmon = c->mon;
-        if (c->isurgent) seturgent(c, 0);
+        if (c->isurgent) 
+        {   seturgent(c, 0);
+        }
         detachstack(c);
         attachstack(c);
         grabbuttons(c, 1);
         /* set new focused border first to avoid flickering */
-        XSetWindowBorder(dpy, c->win, scheme[SchemeSel][ColBorder].pixel);
+        XSetWindowBorder(dpy, c->win, scheme[SchemeBorderSel][ColBorder].pixel);
         /* lastfocused may be us if another window was unmanaged */
         if (lastfocused && lastfocused != c)
-            XSetWindowBorder(dpy, lastfocused->win, scheme[SchemeNorm][ColBorder].pixel);
+        {   XSetWindowBorder(dpy, lastfocused->win, scheme[SchemeBorder][ColBorder].pixel);
+        }
         setfocus(c);
     }
     else
@@ -1087,6 +1090,7 @@ grabkeys(void)
     }
 }
 
+
 void
 grid(Monitor *m) 
 {
@@ -1255,7 +1259,7 @@ manage(Window w, XWindowAttributes *wa)
     c->bw = CFG_BORDER_PX;
     wc.border_width = c->bw;
     XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-    XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
+    XSetWindowBorder(dpy, w, scheme[SchemeBorder][ColBorder].pixel);
     configure(c); /* propagates border_width, if size doesn't change */
     updatewindowtype(c);
     updatesizehints(c);
@@ -1814,6 +1818,11 @@ sendmon(Client *c, Monitor *m)
 }
 
 void
+setborderbcol(Window win, char *schemecol)
+{
+    //XSetWindowBorder(dpy, win, scheme[ColBorder].pixel);
+}
+void
 setclientstate(Client *c, long state)
 {
     long data[] = { state, None };
@@ -2033,6 +2042,12 @@ seturgent(Client *c, int urg)
     XWMHints *wmh;
 
     c->isurgent = urg;
+    if(urg)
+    {   XSetWindowBorder(dpy, c->win, scheme[SchemeUrgent][ColBorder].pixel);
+    }
+    else
+    {   XSetWindowBorder(dpy, c->win, scheme[SchemeBorder][ColBorder].pixel);
+    }
     if (!(wmh = XGetWMHints(dpy, c->win)))
         return;
     wmh->flags = urg ? (wmh->flags | XUrgencyHint) : (wmh->flags & ~XUrgencyHint);
@@ -2168,6 +2183,7 @@ unfocus(Client *c, int setfocus)
     if (!c) return;
     grabbuttons(c, 0);
     lastfocused = c;
+	XSetWindowBorder(dpy, c->win, scheme[SchemeBorder][ColBorder].pixel);
     if (setfocus)
     {
         XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -2512,18 +2528,23 @@ updatewindowstate(Client *c, Atom state, int data)
      */
     /* this is a headache to look at fix later */
     int toggle = (data == 2);
+
+    Monitor *m;
     Client *temp;
+    
+    m = c->mon;
     data = !!data;
     if (state == netatom[NetWMStateModal])
     {
         if(toggle)
         {   setfloating(c, !c->isfloating);
-            c->isurgent = !c->isurgent;
+            seturgent(c, !c->isurgent);
         }
         else
         {   setfloating(c, data);
-            c->isurgent = data;
+            seturgent(c, data);
         }
+        restack(m);
     }
     else if (state == netatom[NetWMStateAlwaysOnTop])
     {
@@ -2535,6 +2556,7 @@ updatewindowstate(Client *c, Atom state, int data)
         {   setfloating(c, data);
             c->alwaysontop = data;
         }
+        restack(m);
     }
     else if (state == netatom[NetWMStateStayOnTop])
     {
@@ -2546,15 +2568,17 @@ updatewindowstate(Client *c, Atom state, int data)
         {   setfloating(c, data);
             c->stayontop = data;
         }
+        restack(m);
     }
     else if (state == netatom[NetWMStateDemandAttention])
     {
         if(toggle)
-        {   c->isurgent = !c->isurgent;
+        {   seturgent(c, !c->isurgent);
         }
         else
-        {   c->isurgent = data;
+        {   seturgent(c, data);
         }
+        restack(m);
     }
     else if (state == netatom[NetWMStateFullscreen])
     {
@@ -2573,6 +2597,7 @@ updatewindowstate(Client *c, Atom state, int data)
             {   ToggleFullscreen(NULL);
             }
         }
+        restack(m);
     }
     else if (state == netatom[NetWMStateMaximizedHorz])
     {
@@ -2589,6 +2614,7 @@ updatewindowstate(Client *c, Atom state, int data)
         else
         {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 0);
         }
+        arrange(m);
     }
     else if (state == netatom[NetWMStateMaximizedVert])
     {
@@ -2605,6 +2631,7 @@ updatewindowstate(Client *c, Atom state, int data)
         else
         {   resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 0);
         }
+        arrange(m);
     }
     /*  else if (state == netatom[NetWMAbove])          {REPLACED BY NetWMAlwaysOnTop}      */
     else if (state == netatom[NetWMStateSticky])
@@ -2615,6 +2642,7 @@ updatewindowstate(Client *c, Atom state, int data)
         else 
         {   setsticky(c, data);
         }
+        restack(m);
     }
     else if (state == netatom[NetWMStateBelow])
     {
@@ -2625,6 +2653,30 @@ updatewindowstate(Client *c, Atom state, int data)
         else if(data)
         {   XLowerWindow(dpy, c->win);
         }
+        restack(m);
+    }
+    else if (state == netatom[NetWMStateSkipTaskbar])
+    {   
+        if(toggle)
+        {   c->hidden = !c->hidden;
+        }
+        else
+        {   c->hidden = data;
+        }
+        drawbar(m);
+    }
+    else if (state == netatom[NetWMStateSkipPager])
+    {   /* This is stupid; IGNORE */
+    }
+    else if (state == netatom[NetWMStateHidden])
+    {   
+        if(toggle)
+        {   /* IGNORE */
+        }
+        else
+        {   c->hidden = data;
+        }
+        restack(m);
     }
     else if (state == netatom[NetWMStateFocused])
     {
@@ -2639,46 +2691,46 @@ updatewindowtype(Client *c)
     Atom wtype = getatomprop(c, netatom[NetWMWindowType]);
     updatewindowstate(c, state, 1); /* _NET_WM_STATE_ADD */
     if (wtype == netatom[NetWMWindowTypeDesktop])
-    {
+    {   /* This feature is kinda dumb so we ignore it */
     }
     else if (wtype == netatom[NetWMWindowTypeDock])
-    {   c->isfloating = c->stayontop = 1;
+    {   c->isfloating = c->stayontop = c->alwaysontop = 1;
     }
     else if (wtype == netatom[NetWMWindowTypeToolbar])
-    {
+    {   /* TODO */
     }
     else if (wtype == netatom[NetWMWindowTypeMenu])
-    {
+    {   /* TODO */
     }
     else if (wtype == netatom[NetWMWindowTypeUtility])
-    {
+    {   /* TODO */
     }
     else if (wtype == netatom[NetWMWindowTypeSplash])
-    {
+    {   /* IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeDialog])
     {   c->alwaysontop = c->isfloating = 1;
     }
     else if (wtype == netatom[NetWMWindowTypeDropdownMenu])
-    {
+    {   /* TODO */
     }
     else if (wtype == netatom[NetWMWindowTypePopupMenu])
-    {
+    {   /* override-redirect IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeTooltip])
-    {
+    {   /* override-redirect IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeNotification])
-    {
+    {   /* override-redirect IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeCombo])
-    {
+    {   /* override-redirect IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeDnd])
-    {
+    {   /* override-redirect IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeNormal])
-    {
+    {   /* This hint indicates that this window has no special properties IGNORE */
     }
 }
 

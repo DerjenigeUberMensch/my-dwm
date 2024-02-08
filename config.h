@@ -13,6 +13,18 @@
  * XEvent:   https://tronche.com/gui/x/xlib/events/structures.html
  * Document: https://www.x.org/releases/X11R7.5/doc/x11proto/proto.pdf
  */
+
+/* FOR NON C USERS
+ * This is where you can change the settings
+ * You simply change to any of the things are there
+ * so if its a number make it a number if its a number with .0 you can make any .0 number
+ * However if you cant then dont
+ * Secondly to see the changes happen you need to "recompile"
+ * You can do this by making the changes you, saving and typing this in console
+ * "sudo make install"
+ * After that you simply Restart with the default keybinding below
+ * Ctrl+WindowKey+p
+ */
 /* Monitor */
 #define CFG_MONITOR_FACT        0.55        /* factor of master area size [0.05..0.95]                          */
 #define CFG_MASTER_COUNT        1           /* number of clients in master area                                 */
@@ -22,7 +34,7 @@
 /* Window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
 #define CFG_GAP_PX              15          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
-#define CFG_SNAP                15           /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
+#define CFG_SNAP                15          /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
 #define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
 #define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
@@ -84,7 +96,10 @@
 static const char *fonts[]      =   {"monospace:size=12" };
 static const char dmenufont[]   =   {"monospace:size=12"};
 
-/* COLOURS */
+/* COLOURS HEX */
+/* pick a color and paste the code
+ * https://www.w3schools.com/colors/colors_picker.asp
+ */
 #define COL_BLACK       "#000000"
 #define COL_WHITE       "#ffffff"
 #define COL_GREY        "#C0C0C0"
@@ -96,18 +111,23 @@ static const char dmenufont[]   =   {"monospace:size=12"};
 /* static char col_term_blue[]   = "#ecffff"; */
 static char *colors[][3] =
 {
+    /* "sel" -> selected/select */
     /*					        fg         bg          border   */
-    [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme normal */
-    [SchemeSel]             = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme Selected*/
-    [SchemeUrgent]          = { COL_BLUE,  COL_RED,   COL_BLUE }, /* NOT USED */
-    [SchemeWarn]            = { COL_WHITE, COL_YELLOW,COL_WHITE}, /* NOT USED */
+    [SchemeBorder]      = { COL_WHITE, COL_BLACK, COL_WHITE}, 
+    [SchemeBorderSel]   = { COL_WHITE, COL_BLACK, COL_WHITE}, 
+    [SchemeUrgent]      = { COL_BLUE,  COL_RED,   COL_BLUE }, 
+    [SchemeWarn]        = { COL_WHITE, COL_YELLOW,COL_WHITE}, 
 
-    [SchemeAltTab]          = { COL_WHITE, COL_BLACK, COL_BLACK},
-    [SchemeAltTabSelect]    = { COL_BLACK, COL_WHITE, COL_WHITE},
+    /* Alt Tab */
+    [SchemeAltTab]      = { COL_WHITE, COL_BLACK, COL_BLACK},
+    [SchemeAltTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE},
 
-    [SchemeBarTabActive]    = { COL_BLACK, COL_WHITE, COL_WHITE}, /* Scheme Normal   */
-    [SchemeBarTabInactive]  = { COL_WHITE, COL_BLACK, COL_BLACK}, /* Scheme Selected */
-    [SchemeTagActive]       = { COL_BLACK, COL_WHITE, COL_WHITE}, /* Scheme Selected */
+    /* Status bar */
+    [SchemeBarTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+    [SchemeBarSymbol]   = { COL_WHITE, COL_BLACK, COL_BLACK}, 
+    [SchemeBarTab]      = { COL_WHITE, COL_BLACK, COL_BLACK}, 
+    [SchemeBarTagSel]      = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+    [SchemeBarName]     = { COL_BLACK, COL_WHITE, COL_WHITE}, 
 
 };
 /* appearance */

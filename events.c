@@ -232,7 +232,9 @@ clientmessage(XEvent *e) /* see https://specifications.freedesktop.org/wm-spec/l
     {   updatewindowtype(c);
     }
     else if (msg == netatom[NetActiveWindow])
-    {   if (c != selmon->sel && !c->isurgent) seturgent(c, 1);
+    {   if (c != selmon->sel && !c->isurgent) 
+        {   seturgent(c, 1);
+        }
     }
     else if (msg == netatom[NetCloseWindow])
     {   killclient(c, Graceful);
@@ -390,6 +392,7 @@ configurenotify(XEvent *e)
             arrangeall();
         }
     }
+
     if(ev->override_redirect)
     {
         if((c = wintoclient(ev->window)))
