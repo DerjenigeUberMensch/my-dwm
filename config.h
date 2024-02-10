@@ -114,7 +114,7 @@ static char *colors[][3] =
     /* "sel" -> selected/select */
     /*					        fg         bg          border   */
     [SchemeBorder]      = { COL_WHITE, COL_BLACK, COL_WHITE}, 
-    [SchemeBorderSel]   = { COL_WHITE, COL_BLACK, COL_WHITE}, 
+    [SchemeBorderSel]   = { COL_BLACK, COL_WHITE, COL_BLACK}, 
     [SchemeUrgent]      = { COL_BLUE,  COL_RED,   COL_BLUE }, 
     [SchemeWarn]        = { COL_WHITE, COL_YELLOW,COL_WHITE}, 
 
@@ -126,12 +126,23 @@ static char *colors[][3] =
     [SchemeBarTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE}, 
     [SchemeBarSymbol]   = { COL_WHITE, COL_BLACK, COL_BLACK}, 
     [SchemeBarTab]      = { COL_WHITE, COL_BLACK, COL_BLACK}, 
-    [SchemeBarTagSel]      = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+    [SchemeBarTagSel]   = { COL_BLACK, COL_WHITE, COL_WHITE}, 
     [SchemeBarName]     = { COL_BLACK, COL_WHITE, COL_WHITE}, 
 
 };
 /* appearance */
 /* tagging */
+
+#define _TAG_1  (1 << 0)
+#define _TAG_2  (1 << 1)
+#define _TAG_3  (1 << 2)
+#define _TAG_4  (1 << 3)
+#define _TAG_5  (1 << 4)
+#define _TAG_6  (1 << 5)
+#define _TAG_7  (1 << 6)
+#define _TAG_8  (1 << 7)
+#define _TAG_9  (1 << 8)
+
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 static const char *tagcols[][2] = {
     /* fg       bg */
@@ -145,6 +156,7 @@ static const char *tagcols[][2] = {
     {COL_WHITE, COL_BLACK},
     {COL_WHITE, COL_BLACK},
 };
+
 static const Rule rules[] =
 {
     /* xprop(1):
@@ -159,7 +171,7 @@ static const Rule rules[] =
 
 static const Layout layouts[] =
 {
-    /* symbol     arrange function */
+    /*Name          symbol     arrange function */
     [Tiled]     = { "[T]",      tile            },
     [Floating]  = { "[F]",      NULL            },
     [Monocle]   = { "[M]",      monocle         },
