@@ -48,6 +48,9 @@
 #include <X11/Xutil.h>
 #include <Imlib2.h>
 
+/* threading */
+#include <pthread.h>
+
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
@@ -721,7 +724,7 @@ drawbartabs(Monitor *m, int x, int maxw)
     /* set default scheme (blank canvas)*/
     drw_setscheme(drw, scheme[curscheme]);
     drw_rect(drw, x, 0, maxw, h, 1, 1);
-    for(c = m->clients; c; c = c->next) tabcnt += !!ISVISIBLE(c);
+    for(c = m->clients; c; c = c->next) tabcnt += !!ISVISIBLE(c) && !c->hidden;
     /* exit if no clients selected */
     if(!tabcnt) return x;
     tabsz = maxw / tabcnt;
@@ -1225,8 +1228,16 @@ manage(Window w, XWindowAttributes *wa)
     /* alloc enough memory for new client struct */
     c = poolgrab(pl, accnum);
     ++accnum;
-    c->num = accnum;
     c->win = w;
+    c->num = accnum;
+    /* destroy any new clients if we past our client limit */
+    if(accnum > CFG_MAX_CLIENT_COUNT)
+    {
+        ++c->mon->cc;
+        killclient(c, Safedestroy);
+        unmanage(c, 1);
+        return NULL;
+    }
     /* initialize geometry */
     c->x = c->oldx = wa->x;
     c->y = c->oldy = wa->y;
@@ -1273,9 +1284,6 @@ manage(Window w, XWindowAttributes *wa)
         c->isfloating = c->wasfloating = trans != None || c->isfixed;
     /* set floating if always on top */
     c->isfloating = c->isfloating || c->alwaysontop;
-    if(c->isfloating)
-    {   XRaiseWindow(dpy, c->win);
-    }
 
     attach(c);
     attachstack(c);
@@ -1287,13 +1295,6 @@ manage(Window w, XWindowAttributes *wa)
         unfocus(selmon->sel, 0);
     c->mon->sel = c;
     ++c->mon->cc;
-    /* destroy any new clients if we past our client limit */
-    if(accnum > CFG_MAX_CLIENT_COUNT)
-    {
-        killclient(c, Safedestroy);
-        unmanage(c, 1);
-        return NULL;
-    }
     arrange(c->mon);
     /* check if selmon->fullscreen */
     setfullscreen(c, selmon->isfullscreen);
