@@ -488,7 +488,7 @@ configurerequest(XEvent *e)
     }
 }
 
-    void
+void
 createnotify(XEvent *e)
 {
 }

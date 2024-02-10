@@ -10,7 +10,7 @@
 #include <X11/cursorfont.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/keysym.h>
-#include <X11/XF86keysym.h> //config.h multimedia keys
+#include <X11/XF86keysym.h> 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -44,9 +44,6 @@
 void
 UserStats(const Arg *arg)
 {
-    static int somenum = 1;
-    setsticky(selmon->sel, somenum);
-    somenum ^= 1;
 }
 
 void
