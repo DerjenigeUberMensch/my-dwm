@@ -61,7 +61,9 @@ https://github.com/DerjenigeUberMensch/WSWM.git
 
 ## Configuration
 To **configure** WSWM head on over to `config.h` and change the variables there to fit your needs.
+
 For **keybinds** head on over to `keybinds.h` and change the variables there to fit your needs
+
 If you feel like **patching** WSWM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**.
 
 ## Troubleshoot
