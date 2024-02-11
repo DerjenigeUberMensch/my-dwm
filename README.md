@@ -60,9 +60,9 @@ https://github.com/DerjenigeUberMensch/WSWM.git
 5. Done.
 
 ## Configuration
-To **configure** WSWM head on over to `config.def.h` and change the variables there to fit your needs.
-If you feel like **patching** WSWM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**. 
-Once you **finish** `rm config.h` if it exists and **recompile.**
+To **configure** WSWM head on over to `config.h` and change the variables there to fit your needs.
+For **keybinds** head on over to `keybinds.h` and change the variables there to fit your needs
+If you feel like **patching** WSWM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**.
 
 ## Troubleshoot
 This is an **_experimental_** build and may contain bugs,
