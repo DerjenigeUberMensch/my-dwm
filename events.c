@@ -8,7 +8,9 @@
 
 #include "events.h"
     
-
+/* LASTEvent -> 36
+ * See /usr/include/X11/X.h
+ */
 void 
 (*handler[LASTEvent]) (XEvent *) = 
 {
@@ -56,6 +58,7 @@ void
     [SelectionClear] = selectionclear,
     [SelectionNotify] = selectionnotify,
     [SelectionRequest] = selectionrequest,
+    [GenericEvent] = genericevent,
 };
 
 static void 
@@ -806,3 +809,10 @@ reparentnotify(XEvent *e)
 {
 
 }
+
+void
+genericevent(XEvent *e)
+{
+}
+
+
