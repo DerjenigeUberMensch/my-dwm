@@ -232,6 +232,7 @@ struct Monitor
     Client *slast;              /* Last Stack Client in linked list         */
     Client *sel;                /* Selected Client                          */
     Monitor *next;              /* Next Monitor                             */
+
     Window barwin;              /* Status Bar Window                        */
     Window tabwin;              /* Alt-Tab Window                           */
     const Layout *lt[2];        /* Previous and Current Layout Indexed by sellt*/
@@ -553,6 +554,7 @@ extern Monitor *mons;       /* Monitors */
 extern Monitor *selmon;     /* selected monitor */
 extern Window root;         /* Root window */
 extern Window wmcheckwin;   /* _NET_SUPPORTING_WM_CHECK */
+
 /* ACC */
 extern unsigned int accnum; /* Active client counter Number */
 

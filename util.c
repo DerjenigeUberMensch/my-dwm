@@ -82,7 +82,7 @@ debug(char *fmt, ...)
 }
 
 unsigned int
-ui_hash(unsigned int x)
+UIHash(unsigned int x)
 {
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
@@ -91,7 +91,7 @@ ui_hash(unsigned int x)
 }
 
 unsigned int
-ui_unhash(unsigned int x)
+UIUnHash(unsigned int x)
 {
     x = ((x >> 16) ^ x) * 0x119de1f3;
     x = ((x >> 16) ^ x) * 0x119de1f3;
@@ -99,7 +99,26 @@ ui_unhash(unsigned int x)
     return x;
 }
 
-double functime(void (*_timefunction)(void))
+uint64_t 
+UI64Hash(uint64_t x)
+{
+    x = (x ^ (x >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
+    x = (x ^ (x >> 27)) * UINT64_C(0x94d049bb133111eb);
+    x = x ^ (x >> 31);
+    return x;
+}
+
+uint64_t
+UI64UnHash(uint64_t x)
+{
+    x = (x ^ (x >> 31) ^ (x >> 62)) * UINT64_C(0x319642b2d24d8ec3);
+    x = (x ^ (x >> 27) ^ (x >> 54)) * UINT64_C(0x96de1b173f119089);
+    x = x ^ (x >> 30) ^ (x >> 60);
+    return x;
+}
+
+double 
+functime(void (*_timefunction)(void))
 {
     clock_t start, end;
     start = clock();
