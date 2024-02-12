@@ -704,7 +704,6 @@ int
 drawbartabs(Monitor *m, int x, int maxw)
 {
     Client *c;
-    char *txt;
     unsigned int tabcnt;     /* tab count                    */
     unsigned int tabsz;      /* tab size                     */
     unsigned int iconspace;
@@ -715,6 +714,10 @@ drawbartabs(Monitor *m, int x, int maxw)
     unsigned int btpos;      /* current bartab positon x     */
     int y;
     int h;
+
+    #define MAX_BUF_SIZE 256 + 1    /* clients name should NEVER exceed this amount as set in the client struct */
+    static char txt[MAX_BUF_SIZE];
+    int boundscheck = 0;
 
     btpos = cc = tabcnt = y = 0;
     h = bh;
@@ -740,22 +743,25 @@ drawbartabs(Monitor *m, int x, int maxw)
         return x + iconspace + TEXTW(m->sel->name);
     }
 
-    /* draw first tab */
     /* draw rest of them */
     for(c = m->clients; c; c = c->next)
     {
+        memset(txt, 0, MAX_BUF_SIZE);
         if(!ISVISIBLE(c) || c->hidden) continue;
         curscheme = c == m->sel ? SchemeBarTabSel : SchemeBarTab;
         iconspace = c->icon ? c->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_setscheme(drw, scheme[curscheme]);
 
         /* TAGMASK is a mask of EVERY tag so we check for it to see if sticky */
-        txt = smprintf("%s%s", c->tags == TAGMASK ? "*" : "", c->name);
-        if(txt) drw_text(drw, x + btpos, y, tabsz, h, iconspace, txt, 0);
+        boundscheck = snprintf(txt, MAX_BUF_SIZE, "%s%s", (c->tags == TAGMASK) ? "*" : "", c->name);
+        /* only print text if we pass check */
+        if(!(boundscheck < 0 || boundscheck >= MAX_BUF_SIZE))
+        {   drw_text(drw, x + btpos, y, tabsz, h, iconspace, txt, 0);
+        }
         /* draw icon */
         if(c->icon)
-            drw_pic(drw, x + btpos, y + ((h - c->ich) >> 1), c->icw, c->ich, c->icon);
-        free(txt);
+        {   drw_pic(drw, x + btpos, y + ((h - c->ich) >> 1), c->icw, c->ich, c->icon);
+        }
         btpos += tabsz;
     }
     return x + btpos + tabsz;
@@ -1229,14 +1235,6 @@ manage(Window w, XWindowAttributes *wa)
     ++accnum;
     c->win = w;
     c->num = accnum;
-    /* destroy any new clients if we past our client limit */
-    if(accnum > CFG_MAX_CLIENT_COUNT)
-    {
-        ++c->mon->cc;
-        killclient(c, Safedestroy);
-        unmanage(c, 1);
-        return NULL;
-    }
     /* initialize geometry */
     c->x = c->oldx = wa->x;
     c->y = c->oldy = wa->y;
@@ -1247,6 +1245,15 @@ manage(Window w, XWindowAttributes *wa)
     c->snext = NULL;
     c->prev = NULL;
     c->sprev = NULL;
+    /* destroy any new clients if we past our client limit */
+    if(accnum > CFG_MAX_CLIENT_COUNT)
+    {
+        c->mon = selmon;
+        ++c->mon->cc;
+        killclient(c, Safedestroy);
+        unmanage(c, 1);
+        return NULL;
+    }
     updateicon(c);
     updatetitle(c);
     if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans)))
@@ -1594,7 +1601,6 @@ resizeclient(Client *c, int x, int y, int w, int h)
     configure(c);
     XSync(dpy, False);
 }
-
 void
 restack(Monitor *m)
 {
@@ -1617,7 +1623,9 @@ restack(Monitor *m)
         {   setfloating(c, 0);
         }
     }
+
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
+
     if(!CFG_WIN10_FLOATING)
     {
         for(c = m->slast; c; c = c->sprev) 
@@ -1630,8 +1638,7 @@ restack(Monitor *m)
     for(c = m->slast; c; c = c->sprev) 
     {
         if(c->alwaysontop && ISVISIBLE(c)) 
-        {
-            XRaiseWindow(dpy, c->win);
+        {   XRaiseWindow(dpy, c->win);
         }
     }
     for(c = m->slast; c; c = c->sprev) 
@@ -1647,6 +1654,7 @@ restack(Monitor *m)
         {   XRaiseWindow(dpy, c->win);
         }
     }
+
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2780,19 +2788,13 @@ Client *
 wintoclient(Window w)
 {
     Client *c;
-    Client *c2;
     Monitor *m;
 
     for (m = mons; m; m = m->next)
     {
         c = m->clients;
-        c2 = m->clast;
-        for (; c && c2; c = c->next )
-        {
-            if (c->win == w) return c;
-            if (c2->win == w) return c2;
-            if(c == c2) break;
-            c2 = c2->prev;
+        for (; c; c = c->next )
+        {   if (c->win == w) return c;
         }
 
     }
