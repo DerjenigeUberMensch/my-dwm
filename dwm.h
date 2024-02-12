@@ -42,11 +42,18 @@ enum CurImg
 /* color schemes */
 enum SchemeType
 {
-    SchemeNorm, SchemeSel,                      /* default */
-    SchemeUrgent, SchemeWarn,                   /* signals */
-    SchemeAltTab, SchemeAltTabSelect,           /* alt tab */
-    SchemeBarTabActive, SchemeBarTabInactive,   /* bar tab */
-    SchemeTagActive,                            /*  tags   */
+    /* system */
+    SchemeUrgent, SchemeWarn,                   
+
+    /* border */
+    SchemeBorder, SchemeBorderSel,         
+    /* alt tab */
+    SchemeAltTab, SchemeAltTabSel,           
+    /* bar stuff */
+    SchemeBarName, SchemeBarSymbol,
+    SchemeBarTabSel, SchemeBarTab,   
+    SchemeBarTagSel,                            
+
 };
 
 /* clicks */
@@ -163,6 +170,9 @@ struct Client
                                  * ->Flag
                                  */
     unsigned int isfullscreen;  /* Is Client Fullscreen;
+                                 * ->Flag
+                                 */
+    unsigned int hidden;        /* Is the Client not shown for some reason?
                                  * ->Flag
                                  */
     int num;                    /* Client Number        */
@@ -324,12 +334,14 @@ extern const Layout *getmonlyt(Monitor *m);
  * getmonlyt(m) -> &layouts[LAYOUT_TYPE]
  */
 extern const Layout *getmonolyt(Monitor *m);
+
 /* Returns A Picture prop with specified w/h */
 extern Picture geticonprop(Window win, unsigned int *picw, unsigned int *pich);
 /* Assigns specified *x, *y root pointer coordinates;
  * Returns XStatus
  */
 extern int  getrootptr(int *x, int *y);
+extern const unsigned int gettagshift(int tagnum);
 /* returns specified Window state; */
 extern long getstate(Window w);
 /* Assigns char *text with specified sizeof(text) from atom textprop;

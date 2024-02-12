@@ -1,0 +1,412 @@
+
+
+
+
+Sections:
+.Compiling
+.Modifying
+.Configuring
+.Keybinds
+.HELP    (NEVER USED C)
+.HELPDEV (Other stuff if you already know C)
+
+
+.Compiling:
+    To compile type "make".
+    To compile on system type "sudo make install".
+    To Uninstall on system type "sudo make uninstall".
+
+.Modifying
+    Read LICENSE for details. (MIT)
+
+    Most of the functions have been commented in the .h header files
+    So you can see what they do their you can also request for better documentation 
+    by opening an "issue" on github.
+
+.Configuring
+    To configure this build goto config.h
+    To configure keybinds goto keybinds.h
+
+.Keybinds
+    SUPER = WindowsKey
+    LMB = Left mouse button
+    RMB = Right mouse button
+
+    SUPER+d         dmenu
+    SUPER+Enter     st (terminal)
+    SUPER+e         thunar (file manager)
+    SUPER+b         ToggleStatusBar
+    SUPER+q	        View
+    SUPER+Shift+q   KillWindow
+    Ctrl+Alt+q	    TerminateWindow
+    SUPER+w         MaximizeWindow
+    SUPER+Shift+p   Quit
+    SUPER+Ctrl+p    Restart
+    SUPER+z         SetLayoutTiled
+    SUPER+x         SetLayoutFloating
+    SUPER+c         SetLayoutMonocle
+    SUPER+g         SetLayoutGrid
+    F11             ToggleFullscreen
+    Alt+Tab         AltTab
+
+    /* multimedia keys */
+    XF86XK_AudioMute            mute_vol
+    XF86XK_AudioLowerVolume     down_vol
+    XF86XK_AudioRaiseVolume     up_vol
+    XF86XK_MonBrightnessDown    dimmer
+    XF86XK_MonBrightnessUp      brighter
+    XF86XK_AudioPlay            pause_vol
+    XF86XK_AudioPause           pause_vol
+    XF86XK_AudioNext            next_vol
+    XF86XK_AudioPrev            prev_vol
+
+    /*                      (1 - 9)                          */
+    SUPER                      X        ShowTag/TagWindow/ToggleTag
+
+    /* Mouse stuff */
+    SUPER   LMB     DragWindow
+    SUPER   RMB     ResizeWindow
+
+
+#endif
+
+.HELP
+    You probably dont know what any of this is and thats fine lets walk you through some stuff
+    Your main interest here is "config.h" you can head over there and keep this tab open for referece
+    You may visit keybinds.h once you get enough experience but for now just refer to .keybinds
+
+    .Comments
+    A comment in C (AKA something that does nothing) can be written as follows
+    /* THIS IS A COMMENT */
+    // THIS IS A COMMENT
+    /*
+     * THIS IS A COMMENT
+     */
+    /*
+        THIS IS A COMMENT
+    */
+    
+    Comments are often useful to read and you should as they help you out with stuff
+    
+    .defines
+    These are you main configuration utility they help you customize your window manager however you want (mostly)
+    Lets walk you through what they do:
+
+    This is a "define" and they ussually look like this
+
+    #define SOME_WORD       X           /* SOME COMMENT */
+
+    "#define": you can ignore this but this basically tells the computer "I want this thing to do this"
+    "SOME_WORD": This is just the name of the thing you want to do something it can be any name that uses regular characters, ie: a,b,c,d...
+    "X": This is the value or what the "thing" is.
+    
+    Now that you know how they look lets try some out.
+
+    #define MONITOR_COUNT   10      /* This is the amount of max monitors my cool_program can have */
+
+    Ok this makes a thing called "MONITOR_COUNT" and based on what the comment says, we can assume this sets the maximum amount of monitors
+    cool_program can handle.
+    
+    #define WM_NAME     "Swag WM"   /* This sets the name of the window manager on startup */
+
+    Ok this makes a thing called "WM_NAME" and based on the comment, we can assume this sets the name of the window manager
+
+    
+    .char
+    These are often flexible things that can be confusing but lets go through the ones in config.h
+    
+    "static": This makes the "thing" only be included in the file and nowhere else (You dont know c so just ignore)
+    "const": This makes the "thing" not be able to be changed. (You dont know c so just ignore)
+    "char": This makes the "thing" a character (one key). (You dont know c so just ignore)
+    "*": This makes the "thing" a pointer, which is like the address to your buddies house its there but you dont own his home  (You dont know c so just ignore)
+    "=": This tells the computer what I want from it.
+    "{}": This tells the computer that whatever I want for this thing is inside those brackets.
+    '"': These Quotes are the same as the brackets but instead tell the computer that I want a "string" AKA a word to be in there.
+    "somefont:size=x": 
+        "somefont" tells the computer the font you want
+        ":": this tells the computer "I want more stuff too"
+        "size=x": This tells the computer that you want size to be equal to x (AKA the size you want in pixels)
+                                                       size      =         x
+        "": The lack of space means that the programers making it didnt account for space so nor do you (dont add space)
+    
+    
+    To add more fonts for either simply add them to the things in the brackets {} with comments seperating them (IN quotes ")
+    
+    'static const char *fonts[] = {"cool_font:size=20"};'
+
+    'static const char dmenufonts[] = {"cool_font:size=20"};'
+
+    EXAMPLE:
+    You can put as many fonts as you want but they are just backups to the first font 
+    EX1:
+    static const char *fonts[] = {"cool_font1:size=10", "cool_font2:size=20", "cool_font3:size=15"};
+                                    ^^^ first font       ^^^ second font        ^^^ third font
+    EX2:
+    static const char dmenufonts[] = {"monospace:size=5", "dracula:size=25"};
+                                       ^^^ first font      ^^^ second font
+
+
+
+    .char colors
+    "static": This makes the "thing" only be included in the file and nowhere else (You dont know c so just ignore)
+    "char": This makes the "thing" a character (one key). (You dont know c so just ignore)
+    "*": This makes the "thing" a pointer, which is like the address to your buddies house its there but you dont own his home  (You dont know c so just ignore)
+    "[]": This tells the computer that I want a bunch of things that I dont know the size of */
+    "[3]": This tells the computer that the bunch of things I want are 3 things { thing1, thing2, thing3 }
+    "=": This tells the computer what I want from it.
+    "{}": This tells the computer that whatever I want for this thing is inside those brackets
+    "/* */": This is a comment
+    
+    This is how it looks like (go down for explanation)
+    
+    static char *colors[][3] =
+    {
+        /* "sel" -> selected/select */
+        /*					        fg         bg          border   */
+        [SchemeBorder]      = { COL_WHITE, COL_BLACK, COL_WHITE}, 
+        [SchemeBorderSel]   = { COL_WHITE, COL_BLACK, COL_WHITE}, 
+        [SchemeUrgent]      = { COL_BLUE,  COL_RED,   COL_BLUE }, 
+        [SchemeWarn]        = { COL_WHITE, COL_YELLOW,COL_WHITE}, 
+
+        /* Alt Tab */
+        [SchemeAltTab]      = { COL_WHITE, COL_BLACK, COL_BLACK},
+        [SchemeAltTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE},
+
+        /* Status bar */
+        [SchemeBarTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+        [SchemeBarSymbol]   = { COL_WHITE, COL_BLACK, COL_BLACK}, 
+        [SchemeBarTab]      = { COL_WHITE, COL_BLACK, COL_BLACK}, 
+        [SchemeBarTagSel]      = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+        [SchemeBarName]     = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+
+    };
+
+    "/* "sel" -> selected/select */": This is just saying that "Sel" is short for selected
+    "/* fg */": This just says that the first thing { thing1, x, x } is the foreground color
+    "/* bg */": This just says that the second thing{ x, thing2, x } is the background color
+    "/* border */": This just says that the third thing{ x, x, thing3 } is the border color
+    "[Something]": This tells you what thing you changing is going to effect
+    
+    Lets try it out with our own colours
+    Oh yeah I forgot to mention but you can get colours by its "hex"
+    You can go here for the colors but its just a colour with the "#" thing
+    https://www.w3schools.com/colors/colors_picker.asp
+
+    /* Defining by colours that I want */
+   
+    #define COOL_BLUE   "#00CCFF"
+    #define SWAG_LIME   "#00ff00"
+    #define BLOODY_RED  "#cc0000"
+
+    /* Changing the colours thing for my cool colours */
+
+    static char *colors[][3] =
+    {
+        /*					        fg         bg          border   */
+
+        /* I want to change my foreground (AKA text colour) so I put in my colour
+        [SchemeBorder]      = { COOL_BLUE, COL_BLACK, COL_WHITE}, /* Now its blue cool */
+    };
+
+
+
+
+
+    .char tags
+
+    "static": This makes the "thing" only be included in the file and nowhere else (You dont know c so just ignore)
+    "const": This makes the "thing" not be able to be changed. (You dont know c so just ignore)
+    "char": This makes the "thing" a character (one key). (You dont know c so just ignore)
+    "*": This makes the "thing" a pointer, which is like the address to your buddies house its there but you dont own his home  (You dont know c so just ignore)
+    "[]": This tells the computer that I want a bunch of things that I dont know the size of */
+    "=": This tells the computer what I want from it.
+    '"': These Quotes are the same as the brackets but instead tell the computer that I want a "string" AKA a word to be in there.
+    "{}": This tells the computer that whatever I want for this thing is inside those brackets
+    "/* */": This is a comment
+    
+    This is how it looks like
+    
+    static const char *tags[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9"};
+    
+    Lets change it to be our own tags
+
+    static const char *tags[] = {"W", "G", "X", "T", "Z", "G", "1", "10", "4000" };
+    
+    That was lame, we can use fonts to give the ability for better tags, but that is in another patch...
+
+    .char tagcols
+    See .char colors for more info
+
+    .Rule rules
+    
+    I personally have never used these cause I never found a reason to 
+    So I'll just explain it in more technical terms
+
+    "/* class */": This is simply the application name so google chrome would be "chromium"; firefox would be "firefox"
+    "/* instance */": This is for sub windows of the application so "picture-in-picture" would be simply that
+    "/* title */": See above
+    "/* tag mask */: This is a the tag shift (AKA number that you want the tag to be in)
+    "/* isfloating */": This variable is moslty useless due to how restack() is handled
+    "/* monitor */": This tells that monitor to put the window in (-1 being the current monitor)
+
+    #define _TAG_1  (1 << 0)
+    #define _TAG_2  (1 << 1)
+    #define _TAG_3  (1 << 2)
+    #define _TAG_4  (1 << 3)
+    #define _TAG_5  (1 << 4)
+    #define _TAG_6  (1 << 5)
+    #define _TAG_7  (1 << 6)
+    #define _TAG_8  (1 << 7)
+    #define _TAG_9  (1 << 8)
+
+    static const Rule rules[] =
+    {
+        /* xprop(1):
+        *	WM_CLASS(STRING) = instance, class
+        *	WM_NAME(STRING) = title
+        */
+        /* class      instance    title       tags mask     isfloating   monitor */
+        { "Gimp",     NULL,       NULL,       0,            1,           -1 },
+    };
+    
+    Ex:
+    
+    static const Rule rules[] =
+    {
+        /* class      instance               title                      tags mask           isfloating   monitor */
+        { "firefox",  "picture-in-picture",  "picture-in-picture",       _TAG_5,            0,           -1 },
+    };
+    
+    This would make the applications window firefox->picture-in-picture go to the fifth tag and be non floating on the selected monitor
+    
+
+    
+    .Layout layouts
+    
+    
+    "static": This makes the "thing" only be included in the file and nowhere else (You dont know c so just ignore)
+    "const": This makes the "thing" not be able to be changed. (You dont know c so just ignore)
+    "Layout": This is a special "thing" that is called a struct (You dont know c s just ignore)
+    "[]": This tells the computer that I want a bunch of things that I dont know the size of */
+    "=": This tells the computer what I want from it.
+    '"': These Quotes are the same as the brackets but instead tell the computer that I want a "string" AKA a word to be in there.
+    "{}": This tells the computer that whatever I want for this thing is inside those brackets
+    "/* */": This is a comment
+    "[SOMETHING]": This tells the computer the index or where I want the thing to be
+
+    
+    This is a mostly no touch touch thing but you can change 1 thing and thats the symbol
+
+    static const Layout layouts[] =
+    {
+        /*Name          symbol     arrange function */
+        [Tiled]     = { "[T]",      tile            },
+        [Floating]  = { "[F]",      NULL            },
+        [Monocle]   = { "[M]",      monocle         },
+        [Grid]      = { "[G]",      grid            },
+    };
+
+    Ex:
+    The symbol can be really changed to anything BELOW 16 characters
+    You could change this to hold more though see dwm.h ltsymbol
+    
+    static const Layout layouts[] =
+    {
+        /*Name          symbol     arrange function */
+        [Tiled]     = { "[X]",      tile            },
+        [Floating]  = { "",         NULL            },
+        [Monocle]   = { "[six]",    monocle         },
+        [Grid]      = { "Bacon",    grid            },
+    };
+
+
+
+
+
+.HELPDEV
+    Most of the code is written with no special attributes
+    See dwm.h for quick documentation
+    
+    sel -> selected
+    selmon -> selected monitor
+    selmon->sel = selected client
+    m->sel = selected client
+
+    linked list view
+    clients is every client in the current monitor (even not visible)
+    m->clients->next->next->next->next->clast
+
+    Stacking linked list view
+    stack is only clients in stack AKA in current tag ( I think )
+    m->stack->next->next->next->next->slast
+
+
+    tags are bitflags basically
+    so tag 1 is this
+    1 << 0
+    0000 0000 0000 0001
+    tag 2
+    1 << 1
+    0000 0000 0000 0010
+    tag 3
+    1 << 2
+    0000 0000 0000 0100
+
+    and so on
+
+    To check if a client is in the current tag AKA ISVIBILE(C)
+    c->mon->tagset[c->mon->seltags] & c->tags
+
+    One could also check for a specified tag and if the current monitor is in it
+    This one checks for tag 4 AKA (1 << 3)
+    
+    c->mon->tagset[c->mon->seltags] & _TAG_4 
+
+    One could also set every tag by simply doing ~0 but that leads to problems which is why we use TAGMASK instead
+    this would set all the tags making the client "sticky"
+    c->tags = TAGMASK
+
+    Oh and m->tagset[!m->tagset] is the previous tags
+    while m->tagset[m->tagset] is the current
+
+    case: no case
+    indentation: 4 spaces
+    func:
+
+    void *
+    functionname(...);
+
+    if()
+    {
+    }
+    
+    please try to not use this syntax especially with if statments
+    if(condition) {
+    }
+
+    instead if its 1 line simply do
+    if(condition)
+    {   whatever
+    }
+    
+    or (less prefered)
+    
+    if(condition)
+        whatever
+    
+    
+
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+

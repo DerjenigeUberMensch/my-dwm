@@ -44,6 +44,8 @@ extern void selectionclear(XEvent *event);
 extern void selectionnotify(XEvent *event);
 extern void selectionrequest(XEvent *event);
 
+extern void genericevent(XEvent *event);
+
 extern void (*handler[LASTEvent]) (XEvent *);
 
 #endif

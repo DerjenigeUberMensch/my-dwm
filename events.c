@@ -8,7 +8,9 @@
 
 #include "events.h"
     
-
+/* LASTEvent -> 36
+ * See /usr/include/X11/X.h
+ */
 void 
 (*handler[LASTEvent]) (XEvent *) = 
 {
@@ -56,6 +58,7 @@ void
     [SelectionClear] = selectionclear,
     [SelectionNotify] = selectionnotify,
     [SelectionRequest] = selectionrequest,
+    [GenericEvent] = genericevent,
 };
 
 static void 
@@ -88,7 +91,7 @@ updateclicktype(XButtonEvent *e, unsigned int *click, Arg *arg)
         detach(c);
         attach(c);
         focus(c);
-        if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
+        if(c->isfloating || c->alwaysontop || CFG_WIN10_FLOATING) XRaiseWindow(dpy, c->win);
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
         *click = ClkClientWin;
     }
@@ -232,7 +235,9 @@ clientmessage(XEvent *e) /* see https://specifications.freedesktop.org/wm-spec/l
     {   updatewindowtype(c);
     }
     else if (msg == netatom[NetActiveWindow])
-    {   if (c != selmon->sel && !c->isurgent) seturgent(c, 1);
+    {   if (c != selmon->sel && !c->isurgent) 
+        {   seturgent(c, 1);
+        }
     }
     else if (msg == netatom[NetCloseWindow])
     {   killclient(c, Graceful);
@@ -390,6 +395,7 @@ configurenotify(XEvent *e)
             arrangeall();
         }
     }
+
     if(ev->override_redirect)
     {
         if((c = wintoclient(ev->window)))
@@ -485,7 +491,7 @@ configurerequest(XEvent *e)
     }
 }
 
-    void
+void
 createnotify(XEvent *e)
 {
 }
@@ -803,3 +809,10 @@ reparentnotify(XEvent *e)
 {
 
 }
+
+void
+genericevent(XEvent *e)
+{
+}
+
+

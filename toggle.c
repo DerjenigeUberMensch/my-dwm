@@ -10,7 +10,7 @@
 #include <X11/cursorfont.h>
 #include <X11/Xcursor/Xcursor.h>
 #include <X11/keysym.h>
-#include <X11/XF86keysym.h> //config.h multimedia keys
+#include <X11/XF86keysym.h> 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -44,9 +44,6 @@
 void
 UserStats(const Arg *arg)
 {
-    static int somenum = 1;
-    setsticky(selmon->sel, somenum);
-    somenum ^= 1;
 }
 
 void
@@ -121,6 +118,7 @@ DragWindow(const Arg *arg) /* movemouse */
             }
             nx = ocx + (ev.xmotion.x - x);
             ny = ocy + (ev.xmotion.y - y);
+
             /* snap to window area */
             if (abs(selmon->wx - nx) < CFG_SNAP)
                 nx = selmon->wx;
@@ -257,10 +255,6 @@ ResizeWindow(const Arg *arg) /* resizemouse */
             break;
         }
     } while (ev.type != ButtonRelease);
-    if(WIDTH(c) > c->mon->ww)
-        maximizehorz(c);
-    if(HEIGHT(c) + bh * c->mon->showbar > c->mon->wh)
-        maximizevert(c);
     XUngrabPointer(dpy, CurrentTime);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
     if ((m = recttomon(c->x, c->y, c->w, c->h)) != selmon) 
@@ -269,7 +263,7 @@ ResizeWindow(const Arg *arg) /* resizemouse */
         selmon = m;
         focus(NULL);
     }
-    restack(selmon);
+    restack(m);
 }
 
 void

@@ -13,6 +13,18 @@
  * XEvent:   https://tronche.com/gui/x/xlib/events/structures.html
  * Document: https://www.x.org/releases/X11R7.5/doc/x11proto/proto.pdf
  */
+
+/* FOR NON C USERS
+ * This is where you can change the settings
+ * You simply change to any of the things are there
+ * so if its a number make it a number if its a number with .0 you can make any .0 number
+ * However if you cant then dont
+ * Secondly to see the changes happen you need to "recompile"
+ * You can do this by making the changes you, saving and typing this in console
+ * "sudo make install"
+ * After that you simply Restart with the default keybinding below
+ * Ctrl+WindowKey+p
+ */
 /* Monitor */
 #define CFG_MONITOR_FACT        0.55        /* factor of master area size [0.05..0.95]                          */
 #define CFG_MASTER_COUNT        1           /* number of clients in master area                                 */
@@ -22,7 +34,7 @@
 /* Window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
 #define CFG_GAP_PX              15          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
-#define CFG_SNAP                15           /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
+#define CFG_SNAP                15          /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
 #define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
 #define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
@@ -31,6 +43,7 @@
 #define CFG_STORE_PID           1           /* 1 store pid in client; 0 to disable, effects below               */
 #define CFG_ALLOW_PID_KILL      1           /* Allow PID to be grabbed to Terminate a window ONLY on failure    */
 #define CFG_RESIZE_THRESHOLD_PX 15          /* Threshold in pixels for when to detect resizing in corners       */
+#define CFG_WIN10_FLOATING      0           /* Use windows 10 terrible ordering of windows                      */
 /* Status Bar */
 #define WM_NAME                 "dwm.exe"   /* wm name displayed when using X (type neofetch to see this)       */
 #define CFG_SHOW_WM_NAME        0           /* 1 Show window manager name at end of status bar; 0 to disable    */
@@ -83,7 +96,10 @@
 static const char *fonts[]      =   {"monospace:size=12" };
 static const char dmenufont[]   =   {"monospace:size=12"};
 
-/* COLOURS */
+/* COLOURS HEX */
+/* pick a color and paste the code
+ * https://www.w3schools.com/colors/colors_picker.asp
+ */
 #define COL_BLACK       "#000000"
 #define COL_WHITE       "#ffffff"
 #define COL_GREY        "#C0C0C0"
@@ -95,22 +111,38 @@ static const char dmenufont[]   =   {"monospace:size=12"};
 /* static char col_term_blue[]   = "#ecffff"; */
 static char *colors[][3] =
 {
+    /* "sel" -> selected/select */
     /*					        fg         bg          border   */
-    [SchemeNorm]            = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme normal */
-    [SchemeSel]             = { COL_WHITE, COL_BLACK, COL_WHITE}, /* Scheme Selected*/
-    [SchemeUrgent]          = { COL_BLUE,  COL_RED,   COL_BLUE }, /* NOT USED */
-    [SchemeWarn]            = { COL_WHITE, COL_YELLOW,COL_WHITE}, /* NOT USED */
+    [SchemeBorder]      = { COL_WHITE, COL_BLACK, COL_WHITE}, 
+    [SchemeBorderSel]   = { COL_BLACK, COL_WHITE, COL_BLACK}, 
+    [SchemeUrgent]      = { COL_BLUE,  COL_RED,   COL_BLUE }, 
+    [SchemeWarn]        = { COL_WHITE, COL_YELLOW,COL_WHITE}, 
 
-    [SchemeAltTab]          = { COL_WHITE, COL_BLACK, COL_BLACK},
-    [SchemeAltTabSelect]    = { COL_BLACK, COL_WHITE, COL_WHITE},
+    /* Alt Tab */
+    [SchemeAltTab]      = { COL_WHITE, COL_BLACK, COL_BLACK},
+    [SchemeAltTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE},
 
-    [SchemeBarTabActive]    = { COL_BLACK, COL_WHITE, COL_WHITE}, /* Scheme Normal   */
-    [SchemeBarTabInactive]  = { COL_WHITE, COL_BLACK, COL_BLACK}, /* Scheme Selected */
-    [SchemeTagActive]       = { COL_BLACK, COL_WHITE, COL_WHITE}, /* Scheme Selected */
+    /* Status bar */
+    [SchemeBarTabSel]   = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+    [SchemeBarSymbol]   = { COL_WHITE, COL_BLACK, COL_BLACK}, 
+    [SchemeBarTab]      = { COL_WHITE, COL_BLACK, COL_BLACK}, 
+    [SchemeBarTagSel]   = { COL_BLACK, COL_WHITE, COL_WHITE}, 
+    [SchemeBarName]     = { COL_BLACK, COL_WHITE, COL_WHITE}, 
 
 };
 /* appearance */
 /* tagging */
+
+#define _TAG_1  (1 << 0)
+#define _TAG_2  (1 << 1)
+#define _TAG_3  (1 << 2)
+#define _TAG_4  (1 << 3)
+#define _TAG_5  (1 << 4)
+#define _TAG_6  (1 << 5)
+#define _TAG_7  (1 << 6)
+#define _TAG_8  (1 << 7)
+#define _TAG_9  (1 << 8)
+
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 static const char *tagcols[][2] = {
     /* fg       bg */
@@ -124,6 +156,7 @@ static const char *tagcols[][2] = {
     {COL_WHITE, COL_BLACK},
     {COL_WHITE, COL_BLACK},
 };
+
 static const Rule rules[] =
 {
     /* xprop(1):
@@ -138,7 +171,7 @@ static const Rule rules[] =
 
 static const Layout layouts[] =
 {
-    /* symbol     arrange function */
+    /*Name          symbol     arrange function */
     [Tiled]     = { "[T]",      tile            },
     [Floating]  = { "[F]",      NULL            },
     [Monocle]   = { "[M]",      monocle         },

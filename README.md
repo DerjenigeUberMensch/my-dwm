@@ -8,12 +8,11 @@
 
 - **Actual fullscreen**
 - **Alt-Tab**
-- **maximize**
+- **maximize(rewritten)**
 - **refreshrate**
 - **noborderflicker**
 - **activetagindicatorbar**
 - **activemonitor**
-- **stacker**
 - **grid**
 - **winicon**
 - **restartsig**
@@ -47,23 +46,25 @@ sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg
 ```
 
 ## Usage 
-To **use** Sd-WM you must first **compile it**.
+To **use** dwm you must first **compile it**.
 Afterwards you must put `exec dwm` in your `~/.xinitrc` file. **See Below.**
 
 
 ## Compiling
 1. Clone this repository: 
-https://github.com/DerjenigeUberMensch/Sd-WM.git
-2. ```cd Sd-WM``` into the repository
+https://github.com/DerjenigeUberMensch/WSWM.git
+2. ```cd WSWM``` into the repository
 3. ```git checkout origin/Experimental```
 3. Configure it See **Configuration** (Optional)
 4. `sudo make install` to compile or 'make' to compile but not install on system
 5. Done.
 
 ## Configuration
-To **configure** Sd-WM head on over to `config.def.h` and change the variables there to fit your needs.
-If you feel like **patching** Sd-WM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**. 
-Once you **finish** `rm config.h` if it exists and **recompile.**
+To **configure** WSWM head on over to `config.h` and change the variables there to fit your needs.
+
+For **keybinds** head on over to `keybinds.h` and change the variables there to fit your needs
+
+If you feel like **patching** WSWM **yourself** you may do so and find **documentation** **[here](https://dwm.suckless.org/customisation/)**.
 
 ## Troubleshoot
 This is an **_experimental_** build and may contain bugs,
@@ -72,7 +73,7 @@ Screen tearing can be mitigated by using a compositor or by enabling it in your 
 **HOWEVER do note that using a compositor may reduce performance when having a large amounts of windows open +50**
 
 If you have any **major** **issues** with a **current** commit you can **revert** to a **previous commit** for a generally stabler version.
-Or you can open an **[issue](https://github.com/DerjenigeUberMensch/Sd-WM/issues)** about it.
+Or you can open an **[issue](https://github.com/DerjenigeUberMensch/WSWM/issues)** about it.
 
 ## Know Issues
 Icons seem to be never freed for some reason resulting in high memory usage ~20Mib or more
