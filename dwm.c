@@ -92,6 +92,7 @@ Monitor *mons, *selmon = NULL;
 Window root = 0, wmcheckwin = 0;
 Client *lastfocused = NULL;
 Pool *pl = NULL;
+ClientHash hashedwins[CFG_MAX_CLIENT_COUNT];
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags
@@ -483,20 +484,21 @@ dirtomon(int dir)
     return m;
 }
 
-int
+inline int
 docked(Client *c)
 {
     /* & better inling for some reason idk */
+    /* This is called alot of times specifically in restack() so performance does somewhat matter */
     return dockedvert(c) & dockedhorz(c);
 }
 
-int 
+inline int 
 dockedvert(Client *c)
 {
     return (c->mon->wy == c->y) & (c->mon->wh == HEIGHT(c));
 }
 
-int 
+inline int 
 dockedhorz(Client *c)
 {
     return (c->mon->wx == c->x) & (c->mon->ww == WIDTH(c));
@@ -630,10 +632,9 @@ drawalttab(int first, Monitor *m)
         if(CFG_ALT_TAB_POS_Y == 1) posy += (selmon->mh >> 1) - maxhNeeded;
         if(CFG_ALT_TAB_POS_Y == 2) posy += 0;
 
-        /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
         m->tabwin = XCreateWindow(dpy, root, posx, posy, maxwNeeded, maxhNeeded, 0, DefaultDepth(dpy, screen),
                                   None, DefaultVisual(dpy, screen),
-                                  CWOverrideRedirect|CWBackPixmap|CWEventMask|CWBorderPixel|CWSaveUnder, &wa); /* create tabwin */
+                                  CWOverrideRedirect|CWBackPixmap|CWEventMask|CWBorderPixel|CWSaveUnder, &wa); 
         XMapRaised(dpy, m->tabwin);
         XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
     }
@@ -737,9 +738,11 @@ drawbartabs(Monitor *m, int x, int maxw)
         iconspace = m->sel->icon ? m->sel->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_text(drw, x, y, maxw, h, iconspace, m->sel->name, 0);
         if(m->sel->icon)
-            drw_pic( drw, x, y + ((h- m->sel->ich) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
+        {   drw_pic( drw, x, y + ((h- m->sel->ich) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
+        }
         if(m->sel->isfloating)
-            drw_rect(drw, x, y + boxh, boxw, boxw, m->sel->isfixed, 0);
+        {   drw_rect(drw, x, y + boxh, boxw, boxw, m->sel->isfixed, 0);
+        }
         return x + iconspace + TEXTW(m->sel->name);
     }
 
@@ -758,7 +761,7 @@ drawbartabs(Monitor *m, int x, int maxw)
         if(!(boundscheck < 0 || boundscheck >= MAX_BUF_SIZE))
         {   drw_text(drw, x + btpos, y, tabsz, h, iconspace, txt, 0);
         }
-        /* draw icon */
+
         if(c->icon)
         {   drw_pic(drw, x + btpos, y + ((h - c->ich) >> 1), c->icw, c->ich, c->icon);
         }
@@ -795,9 +798,11 @@ drawbartags(Monitor *m, int x)
         {   tagselected = m == selmon && selmon->sel && selmon->sel->tags & (1 << i);
         }
         w = TEXTW(tags[i]);
-        drw_setscheme(drw, tagscheme[i]);
         if(tagselected)
         {   drw_setscheme(drw, scheme[SchemeBarTagSel]);
+        }
+        else
+        {   drw_setscheme(drw, tagscheme[i]);
         }
         drw_text(drw, x, 0, w, bh, lrpad >> 1, tags[i], urg & 1 << i);
         if (occ & (1 << i))
@@ -1306,6 +1311,10 @@ manage(Window w, XWindowAttributes *wa)
     setfullscreen(c, selmon->isfullscreen);
     XMapWindow(dpy, w);
     focus(NULL);
+
+    const int hash = UI64Hash(w) % CFG_MAX_CLIENT_COUNT;
+    hashedwins[hash].id = hash;
+    hashedwins[hash].data= c;
     return c;
 }
 
@@ -1654,7 +1663,6 @@ restack(Monitor *m)
         {   XRaiseWindow(dpy, c->win);
         }
     }
-
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -1965,8 +1973,6 @@ setup(void)
     setuptags();
     updatebars();
     updatestatus();
-    updatebars();
-    updatestatus();
     /* supporting window for NetWMCheck */
     wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
     XChangeProperty(dpy, wmcheckwin, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
@@ -2074,10 +2080,17 @@ setviewport(void)
 void
 showhide(Client *c)
 {
-    if (ISVISIBLE(c))
+    /* this is called alot in short bursts */
+    int x = ISVISIBLE(c);
+    x  =  !x * (c->mon->mx - (WIDTH(c) << 1));
+    x += (!x * c->x - 1); /* -1 to prevent recall of ISVISIBLE(c) */
+    XMoveWindow(dpy, c->win, x, c->y);
+    /*
+    if(ISVISIBLE(c))
         XMoveWindow(dpy, c->win, c->x, c->y);
     else
         XMoveWindow(dpy, c->win, c->mon->mx - (WIDTH(c) << 1), c->y);
+    */
 }
 
 void
@@ -2225,6 +2238,11 @@ unmanage(Client *c, int destroyed)
     if (lastfocused == c) lastfocused = NULL;
     /* -- cause we start index from 0 */
     --c->num;
+
+    const int hash = UI64Hash(c->win) % CFG_MAX_CLIENT_COUNT;
+    hashedwins[hash].id = 0;
+    hashedwins[hash].data= NULL;
+
     poolfree(pl, c, c->num);
     focus(NULL);
     updateclientlist();
@@ -2689,7 +2707,6 @@ updatewindowstate(Client *c, Atom state, int data)
     else if (state == netatom[NetWMStateFocused])
     {
     }
-    arrange(c->mon);
 }
 
 void
@@ -2789,6 +2806,11 @@ wintoclient(Window w)
 {
     Client *c;
     Monitor *m;
+
+    c = (Client *)hashedwins[UI64Hash(w) % CFG_MAX_CLIENT_COUNT].data;
+    if(c && c->win == w)
+    {   return c;
+    }
 
     for (m = mons; m; m = m->next)
     {
@@ -3041,6 +3063,7 @@ main(int argc, char *argv[])
     if(!XInitThreads()) die("FATAL: NO_MULTI_THREADING");
     if (!(dpy = XOpenDisplay(NULL)))
         die("FATAL: CANNOT_OPEN_DISPLAY");
+
     checkotherwm();
     setup();
 

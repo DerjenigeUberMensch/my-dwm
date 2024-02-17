@@ -275,15 +275,15 @@ SetWindowLayout(const Arg *arg)
 
     if(!m || m->isfullscreen) return;
     setmonlyt(m, arg->i);
-    arrangemon(m);
     if(m->sel) 
     {       
         mnext = nextvisible(m->clients);
         if(m->sel != mnext) { detach(m->sel); attach(m->sel); }
         arrange(m);
     }
-    else 
-    {   /* update the way the bar looks to show "responsiveness" */
+    else
+    {
+        arrangemon(m);
         drawbar(m);
     }
 }
@@ -330,25 +330,33 @@ void
 MaximizeWindow(const Arg *arg)
 {
     Client *c = selmon->sel;
-    if(c && !c->isfixed && !c->mon->isfullscreen)
+    if(c)
     {
-        if(docked(c))
-        {   
-            setfloating(c, 1);
-            /* assume client has never been moved */
-            if(c->x == c->oldx && c->y == c->oldy && c->oldw == c->w && c->oldh == c->h)
-            {
-                c->oldx += CFG_SNAP;
-                c->oldy += CFG_SNAP;
+        if(c->isfixed)
+        {   /* certain apps work terribly with our mechanism so we just set them to the opposite */
+            setfloating(c, !c->isfloating);
+            return;
+        }
+        if(!c->mon->isfullscreen)
+        {
+            if(docked(c))
+            {   
+                setfloating(c, 1);
+                /* assume client has never been moved */
+                if(c->x == c->oldx && c->y == c->oldy && c->oldw == c->w && c->oldh == c->h)
+                {
+                    c->oldx += CFG_SNAP;
+                    c->oldy += CFG_SNAP;
+                }
+                resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
             }
-            resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+            else
+            {   
+                setfloating(c, 0);
+                maximize(c);
+            }
+            arrange(selmon);
         }
-        else
-        {   
-            setfloating(c, 0);
-            maximize(c);
-        }
-        arrange(selmon);
     }
 }
 
@@ -525,18 +533,27 @@ ToggleFullscreen(const Arg *arg)
     m->isfullscreen = !m->isfullscreen;
     for (c = m->clients; c; c = c->next) 
     {
-        if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop) continue;
+        if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop)
+        {   continue;
+        }
         setfullscreen(c, m->isfullscreen);
     }
-    if(m->isfullscreen)  setmonlyt(m, Monocle);
+    if(m->isfullscreen) 
+    {   setmonlyt(m, Monocle);
+        if(m->showbar)
+        {   ToggleStatusBar(NULL);
+        }
+    }
     else 
     {
         /* Manually set layout to previous */
         const Layout *lyt = m->lt[!m->sellt];
         m->lt[!m->sellt] = m->lt[m->sellt];
         m->lt[m->sellt] = lyt;
+        if(m->oshowbar && !m->showbar)
+        {   ToggleStatusBar(NULL);
+        }
     }
-    ToggleStatusBar(NULL);
     arrange(m);
 }
 

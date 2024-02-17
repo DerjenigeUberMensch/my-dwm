@@ -1,7 +1,6 @@
 #ifndef CFG_H_
 #define CFG_H_
 
-#include "dwm.h"
 /* See LICENSE file for copyright and license details.
  * 4 Tab spaces; No tab characters use spaces for tabs
  * Basic overview of dwm => https://ratfactor.com/dwm
@@ -33,9 +32,9 @@
 #define CFG_DEFAULT_TAG_NUM     1           /* Tag number when starting dwm (1-9); 0 for default tag            */
 /* Window */
 #define CFG_BORDER_PX           0           /* border pixel of windows                                          */
-#define CFG_GAP_PX              15          /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
+#define CFG_GAP_PX              5           /* invisible border pixel of windows (CFG_BORDER_PX not affected)   */
 #define CFG_SNAP                15          /* snap window to border in pixels; 0 to disable (NOT RECOMMENDED) */
-#define CFG_WIN_RATE            120         /* max refresh rate when resizing, moving windows;  0 to disable    */
+#define CFG_WIN_RATE            0           /* max refresh rate when resizing, moving windows;  0 to disable    */
 #define CFG_HOVER_FOCUS         0           /* 1 on mouse hover focus that window; 0 to disable                 */
 #define CFG_RESIZE_BASE_WIDTH   0           /* Minimum size for resizing windows; while respecting sizehints    */
 #define CFG_RESIZE_BASE_HEIGHT  0           /* Minimum size for resizing windows; while respecting sizehints    */

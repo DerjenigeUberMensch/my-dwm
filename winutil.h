@@ -20,6 +20,13 @@ pid_t XGetPid(Display *display, Window win);
 /* Initiliazes All display Atoms */
 void XInitAtoms(Display *display);
 
+typedef struct ClientHash ClientHash;
+
+struct ClientHash
+{   
+    unsigned long id;
+    void *data;
+};
 
 /* typedef unsigned long Atom; */
 enum NETWMPROTOCOLS
