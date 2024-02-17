@@ -9,6 +9,7 @@
 #define KEYBINDS_DEF_H_
 
 #include <X11/XF86keysym.h> 
+#include <X11/keysym.h>
 #include "toggle.h"
 #include "config.h"
 

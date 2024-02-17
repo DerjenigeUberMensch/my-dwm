@@ -7,6 +7,9 @@
 #include "drw.h"
 #include "winutil.h"
 /* macros */
+
+
+
 #define BUTTONMASK              (ButtonPressMask|ButtonReleaseMask)
 #define CLEANMASK(mask)         (mask & ~(numlockmask|LockMask) & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
 #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
@@ -562,5 +565,6 @@ extern int running;         /* Are we still running the program? */
 extern int RESTART;         /* Restart Flag */
 extern Client *lastfocused; /* Last focused client */
 extern Pool *pl;            /* Memory pool for the clients */
+extern ClientHash winshash[];
 
 #endif

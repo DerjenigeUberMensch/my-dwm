@@ -622,14 +622,7 @@ keyrelease(XEvent *e)
 void
 mapnotify(XEvent *e)
 {
-    static Window seen = 0;
     XMapEvent *ev = &e->xmap;
-    Client *c;
-    /* check if window sucesfully mapped to apply compositor effects */
-    if(seen == ev->window || !(c = wintoclient(ev->window)))
-    {   return;
-    }
-    seen = ev->window;
     return;
 }
 
