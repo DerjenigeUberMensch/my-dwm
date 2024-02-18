@@ -2083,7 +2083,7 @@ showhide(Client *c)
     /* this is called alot in short bursts */
     int x = ISVISIBLE(c);
     x  =  !x * (c->mon->mx - (WIDTH(c) << 1));
-    x += (!x * c->x - 1); /* -1 to prevent recall of ISVISIBLE(c) */
+    x += (!x * c->x);
     XMoveWindow(dpy, c->win, x, c->y);
     /*
     if(ISVISIBLE(c))
@@ -2808,6 +2808,7 @@ wintoclient(Window w)
     Monitor *m;
 
     c = (Client *)hashedwins[UI64Hash(w) % CFG_MAX_CLIENT_COUNT].data;
+
     if(c && c->win == w)
     {   return c;
     }
