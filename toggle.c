@@ -30,6 +30,15 @@
 #include "events.h"
 
 
+/* extern stuff */
+extern Monitor *selmon;
+extern Monitor *mons;
+extern int running;
+extern Window root;
+extern Display *dpy;
+extern Cur *cursor[CurLast];
+extern int bh;
+
 /*
  * Making your own stuff with Arg
  * Get your Function if it doesnt require an Arg simply pass NULL:

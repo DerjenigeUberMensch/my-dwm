@@ -71,6 +71,7 @@
 #include "keybinds.h"
 
 /* extern var declarations */
+
 int running = 1;
 int RESTART = 0;
 char stext[256];       

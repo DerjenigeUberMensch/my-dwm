@@ -7,6 +7,21 @@
 #include "util.h"
 
 #include "events.h"
+
+
+extern Monitor *selmon;
+extern Drw *drw;
+extern int lrpad;
+extern Display *dpy;
+extern int numlockmask;
+extern Window root;
+extern int sw;
+extern int sh;
+extern int bh;
+extern Monitor *mons;
+extern Atom motifatom;
+extern char stext[256];
+
     
 /* LASTEvent -> 36
  * See /usr/include/X11/X.h
@@ -79,9 +94,11 @@ updateclicktype(XButtonEvent *e, unsigned int *click, Arg *arg)
             /* hide preview if we click the bar */
         }
         else if (e->x < x + (int)TEXTW(selmon->ltsymbol))
-            *click = ClkLtSymbol;
+        {   *click = ClkLtSymbol;
+        }
         else if (e->x > selmon->ww - (int)TEXTW(stext) * CFG_SHOW_WM_NAME)
-            *click = ClkStatusText;
+        {   *click = ClkStatusText;
+        }
         else
         {   *click = ClkWinTitle;
         }
