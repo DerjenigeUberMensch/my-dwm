@@ -1458,7 +1458,6 @@ restoremonsession(Monitor *m)
     if(!(clients = calloc(cc, sizeof(Client *)))) return;
     while(1)
     {
-
         if(fgets(str, MAX_LENGTH, fr))
         {
             nl = strchr(str, '\n');
@@ -1488,39 +1487,33 @@ restoremonsession(Monitor *m)
                     );
             /* XXX */
             if(check != CHECK_SUM) continue;
-            for(c = m->clients; c; c = c->next) 
+            c = wintoclient(cwin);
+            c->tags = ctags;
+            c->oldx = cox;
+            c->oldy = coy;
+            c->oldw = cow;
+            c->oldh = coh;
+            c->wasfloating = cofloating;
+            if(cissel) csel = c;
+            /* breaks on non floating clients */
+            if(cfloating)
             {
-                if(c->win == cwin) 
+                c->isfloating = 1;
+                resize(c, cx, cy, cw, ch, 0);
+            }
+            setmonlyt(m, clyt);
+            int cflag = 0;
+            /* restack order (This is skipped if we fuck up) */
+            for(i = 0; i < cc; ++i)
+            {
+                if(!clients[i]) 
                 {
-                    c->tags = ctags;
-                    c->oldx = cox;
-                    c->oldy = coy;
-                    c->oldw = cow;
-                    c->oldh = coh;
-                    c->wasfloating = cofloating;
-                    if(cissel) csel = c;
-                    /* breaks on non floating clients */
-                    if(cfloating)
-                    {
-                        c->isfloating = 1;
-                        resize(c, cx, cy, cw, ch, 0);
-                    }
-                    setmonlyt(m, clyt);
-                    /* restack order (This is skipped if we fuck up) */
-                    int cflag = 0;
-                    for(i = 0; i < cc; ++i)
-                    {
-                        if(!clients[i]) 
-                        {
-                            clients[i] = c;
-                            cflag = 1;
-                            break;
-                        }
-                    }
-                    if(!cflag) debug("WARNING: RESTORE_SESSION_TOO_MANY_CLIENTS");
+                    clients[i] = c;
+                    cflag = 1;
                     break;
                 }
             }
+            if(!cflag) debug("WARNING: RESTORE_SESSION_TOO_MANY_CLIENTS");
         }
         else
         {
