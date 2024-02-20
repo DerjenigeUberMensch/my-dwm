@@ -104,13 +104,7 @@ updateclicktype(XButtonEvent *e, unsigned int *click, Arg *arg)
         }
     }
     else if ((c = wintoclient(e->window)))
-    {
-        detach(c);
-        attach(c);
-        focus(c);
-        if(c->isfloating || c->alwaysontop || CFG_WIN10_FLOATING) XRaiseWindow(dpy, c->win);
-        XAllowEvents(dpy, ReplayPointer, CurrentTime);
-        *click = ClkClientWin;
+    {   *click = ClkClientWin;
     }
 }
 
@@ -145,7 +139,7 @@ buttonpress(XEvent *e)
                 detach(c);
                 attach(c);
                 focus(c);
-                if(c->isfloating || c->alwaysontop) XRaiseWindow(dpy, c->win);
+                if(c->isfloating || c->alwaysontop || CFG_WIN10_FLOATING) XRaiseWindow(dpy, c->win);
                 XAllowEvents(dpy, ReplayPointer, CurrentTime);
             }
             break;
@@ -180,6 +174,7 @@ buttonrelease(XEvent *e)
         selmon = m;
         focus(NULL);
     }
+
     updateclicktype(ev, &click, &arg);
     switch(click)
     {
@@ -310,7 +305,7 @@ clientmessage(XEvent *e) /* see https://specifications.freedesktop.org/wm-spec/l
             data1 += c->w >> 1;
             data2 += c->h >> 1;
         }
-        resize(c, data1, data2, data3, data4, 1);
+        resize(c, data1, data2, data3, data4, 0);
     }
     else if (msg == netatom[NetMoveResize])
     {
@@ -349,28 +344,40 @@ clientmessage(XEvent *e) /* see https://specifications.freedesktop.org/wm-spec/l
     }
     /* https://specifications.freedesktop.org/wm-spec/latest/ar01s03.html */
     else if (msg == netatom[NetNumberOfDesktops])
-    {   
+    {   /* ignore */
     }
     else if (msg == netatom[NetDesktopGeometry])
-    {   
+    {   /* ignore */
     }
     else if (msg == netatom[NetDesktopViewport])
-    {   
+    {   /* TODO */
     }
     else if (msg == netatom[NetCurrentDesktop])
-    {
+    {   
+        Arg arg;    /* prevent underflow and overflow */
+        arg.ui = MIN(data0 * (data0 > 0), LENGTH(tags));
+        View(&arg);
+        debug("[%s] changed current desktop at clientmessage()", c->name);
     }
     else if (msg == netatom[NetShowingDesktop])
-    {
+    {   /* TODO */
     }
     else if (msg == netatom[NetWMDesktop])
     {
+        /* refer: https://specifications.freedesktop.org/wm-spec/latest/ _NET_WM_DESKTOP */
+
+        /* long 64 bit */       /* long 32 bit */
+        if(data0 == 0xFFFFFFFF || data0 == ~0)
+        {   setsticky(c, 1);
+            return;
+        }
+        c->tags = 1 << data0;
     }
     else if (msg == netatom[WMProtocols])
     {   /* Protocol handler */
     }
     else if (msg == netatom[NetWMFullscreenMonitors])
-    {
+    {   /* TODO */
     }
 }
 
@@ -432,6 +439,7 @@ configurerequest(XEvent *e)
     Monitor *m;
     XConfigureRequestEvent *ev = &e->xconfigurerequest;
     XWindowChanges wc;
+
     if ((c = wintoclient(ev->window)))
     {
         m = c->mon;
@@ -569,7 +577,7 @@ focusin(XEvent *e)
 void
 focusout(XEvent *e)
 {
-    XFocusChangeEvent *ev = &e->xfocus;
+    /* XFocusChangeEvent *ev = &e->xfocus; */
 }
 
 void
@@ -639,8 +647,7 @@ keyrelease(XEvent *e)
 void
 mapnotify(XEvent *e)
 {
-    XMapEvent *ev = &e->xmap;
-    return;
+    /* XMapEvent *ev = &e->xmap; */
 }
 
 void
@@ -650,7 +657,8 @@ mappingnotify(XEvent *e)
 
     XRefreshKeyboardMapping(ev);
     if (ev->request == MappingKeyboard)
-        grabkeys();
+    {   grabkeys();
+    }
 }
 
 /* handle new client request */
@@ -660,9 +668,11 @@ maprequest(XEvent *e)
     static XWindowAttributes wa;
     XMapRequestEvent *ev = &e->xmaprequest;
     if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
-        return;
+    {   return;
+    }
     if (!wintoclient(ev->window))
-        manage(ev->window, &wa);
+    {   manage(ev->window, &wa);
+    }
 }
 
 void
