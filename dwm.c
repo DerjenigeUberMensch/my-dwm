@@ -1319,7 +1319,7 @@ manage(Window w, XWindowAttributes *wa)
     focus(NULL);
 
     const int hash = UI64Hash(w) % CFG_MAX_CLIENT_COUNT;
-    hashedwins[hash].id = hash;
+    hashedwins[hash].id = w;
     hashedwins[hash].data= c;
     return c;
 }
