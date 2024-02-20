@@ -70,6 +70,11 @@
 #include "config.h"
 #include "keybinds.h"
 
+/* Window limit occurs of 23 on 15 for some reason????? */
+#if CFG_GAP_PX == 15
+#define CFG_GAP_PX 16
+#endif
+
 /* extern var declarations */
 
 int running = 1;
