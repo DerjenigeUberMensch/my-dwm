@@ -133,16 +133,20 @@ buttonpress(XEvent *e)
         case ClkStatusText: break;
         case ClkWinTitle: break;
         case ClkClientWin: 
+        {
             c = wintoclient(ev->window);
             if(m->sel != c)
             {
                 detach(c);
                 attach(c);
                 focus(c);
-                if(c->isfloating || c->alwaysontop || CFG_WIN10_FLOATING) XRaiseWindow(dpy, c->win);
+                if(c->isfloating || c->alwaysontop || CFG_WIN10_FLOATING) 
+                {   XRaiseWindow(dpy, c->win);
+                }
                 XAllowEvents(dpy, ReplayPointer, CurrentTime);
             }
             break;
+        }
     }
 
     for (i = 0; i < LENGTH(buttons); i++)
@@ -184,7 +188,6 @@ buttonrelease(XEvent *e)
         case ClkWinTitle: break;
         case ClkClientWin: break;
     }
-
     for (i = 0; i < LENGTH(buttons); i++)
     {
         if (click == buttons[i].click &&
@@ -232,6 +235,7 @@ clientmessage(XEvent *e) /* see https://specifications.freedesktop.org/wm-spec/l
     long data3;
     long data4;
     Client *c = wintoclient(cme->window);
+    Client *tmp = NULL;
     if(!c) return;
     data0 = cme->data.l[0];
     data1 = cme->data.l[1];
@@ -328,10 +332,24 @@ clientmessage(XEvent *e) /* see https://specifications.freedesktop.org/wm-spec/l
             case _NET_WM_MOVERESIZE_SIZE_BOTTOM:
             case _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT:
             case _NET_WM_MOVERESIZE_SIZE_LEFT:
+                tmp = c;
+                if(c != c->mon->sel)
+                {   focus(c);
+                }
                 ResizeWindow(NULL);
+                if(tmp)
+                {   focus(tmp);
+                }
                 break;
             case _NET_WM_MOVERESIZE_MOVE: 
+                tmp = c;
+                if(c != c->mon->sel)
+                {   focus(c);
+                }
                 DragWindow(NULL);
+                if(tmp)
+                {   focus(tmp);
+                }
                 break;
             /* These are wierd cases where we could make another function for them
              * But they are too subjective to make use of

@@ -53,6 +53,11 @@ extern int bh;
 void
 UserStats(const Arg *arg)
 {
+    Client *c = selmon->sel;
+    if(!c)
+    {   return;
+    }
+    setsticky(c, !STICKY(c));
 }
 
 void
@@ -342,8 +347,16 @@ MaximizeWindow(const Arg *arg)
     if(c)
     {
         if(c->isfixed)
-        {   /* certain apps work terribly with our mechanism so we just set them to the opposite */
-            setfloating(c, !c->isfloating);
+        {   /* most fixed apps refuse to be flip floating so we just snap to what "max" would be */
+            int x = c->oldx;
+            int y = c->oldy;
+            if(c->x != selmon->wx)
+            {   x = selmon->wx;
+            }
+            if(c->y != selmon->wy)
+            {   y = selmon->wy;
+            }
+            resize(c, x, y, c->w, c->h, 0);
             return;
         }
         if(!c->mon->isfullscreen)

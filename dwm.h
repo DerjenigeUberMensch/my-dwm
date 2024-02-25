@@ -20,6 +20,7 @@
 #define WIDTH(X)                ((X)->w + ((X)->bw << 1))
 #define HEIGHT(X)               ((X)->h + ((X)->bw << 1))
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+#define STICKY(C)               ((C->tags == TAGMASK))
 #define TAGSLENGTH              (LENGTH(tags))
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define OPAQUE                  0xffU
