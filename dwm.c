@@ -98,7 +98,8 @@ Monitor *mons, *selmon = NULL;
 Window root = 0, wmcheckwin = 0;
 Client *lastfocused = NULL;
 Pool *pl = NULL;
-ClientHash hashedwins[CFG_MAX_CLIENT_COUNT];
+
+Client *hashedwins[CFG_MAX_CLIENT_COUNT];
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags
@@ -161,7 +162,6 @@ alttabend(Client *tabnext)
             attach(c);
         }
     }
-
     focus(tabnext);
     focus(c);
     arrange(m);
@@ -1087,6 +1087,7 @@ grabkeys(void)
         XUngrabKey(dpy, AnyKey, AnyModifier, root);
         XDisplayKeycodes(dpy, &start, &end);
         syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
+
         if (!syms) return;
         for (k = start; k <= (unsigned int)end; k++)
         {
@@ -1177,6 +1178,7 @@ killclient(Client *c, int type)
             XSync(dpy, False);
             XSetErrorHandler(xerror);
             XUngrabServer(dpy);
+#if CFG_STORE_PID && CFG_ALLOW_PID_KILL
             if(c && c->win)
             {
                 if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
@@ -1194,12 +1196,14 @@ killclient(Client *c, int type)
                     kill(SIGKILL, c->pid);
                 }
             }
+#endif
             break;
         case Safedestroy:
             XKillClient(dpy, c->win);
             XSync(dpy, False);
             XSetErrorHandler(xerror);
             XUngrabServer(dpy);
+#if CFG_STORE_PID && CFG_ALLOW_PID_KILL
             if(c && c->win) 
             {   XDestroyWindow(dpy, c->win);
             }
@@ -1213,6 +1217,7 @@ killclient(Client *c, int type)
                 }
             }
             XSync(dpy, False);
+#endif
             return;
         }
         /* Make sure x receive the request */
@@ -1298,10 +1303,10 @@ manage(Window w, XWindowAttributes *wa)
     grabbuttons(c, 0);
     c->wasfloating = 0;
     if (!c->isfloating)
-        c->isfloating = c->wasfloating = trans != None || c->isfixed;
+    {   c->isfloating = c->wasfloating = trans != None;
+    }
     /* set floating if always on top */
-    c->isfloating = c->isfloating || c->alwaysontop;
-
+    c->isfloating = c->isfloating || c->alwaysontop || c->stayontop;
     attach(c);
     attachstack(c);
     XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1309,7 +1314,8 @@ manage(Window w, XWindowAttributes *wa)
     XMoveResizeWindow(dpy, c->win, c->x + (sw << 1), c->y, c->w, c->h); /* some windows require this */
     setclientstate(c, NormalState);
     if (c->mon == selmon)
-        unfocus(selmon->sel, 0);
+    {   unfocus(selmon->sel, 0);
+    }
     c->mon->sel = c;
     ++c->mon->cc;
     arrange(c->mon);
@@ -1318,9 +1324,11 @@ manage(Window w, XWindowAttributes *wa)
     XMapWindow(dpy, w);
     focus(NULL);
 
-    const int hash = UI64Hash(w) % CFG_MAX_CLIENT_COUNT;
-    hashedwins[hash].id = w;
-    hashedwins[hash].data= c;
+#if CFG_STORE_PID
+    c->pid = XGetPid(dpy, w);
+#endif
+    const int index = UI64Hash(w) % CFG_MAX_CLIENT_COUNT;
+    hashedwins[index] = c;
     return c;
 }
 
@@ -1498,7 +1506,7 @@ restoremonsession(Monitor *m)
             /* breaks on non floating clients */
             if(cfloating)
             {
-                c->isfloating = 1;
+                setfloating(c, 1);
                 resize(c, cx, cy, cw, ch, 0);
             }
             setmonlyt(m, clyt);
@@ -2237,11 +2245,8 @@ unmanage(Client *c, int destroyed)
     if (lastfocused == c) lastfocused = NULL;
     /* -- cause we start index from 0 */
     --c->num;
-
-    const int hash = UI64Hash(c->win) % CFG_MAX_CLIENT_COUNT;
-    hashedwins[hash].id = 0;
-    hashedwins[hash].data= NULL;
-
+    const int index = UI64Hash(c->win) % CFG_MAX_CLIENT_COUNT;
+    hashedwins[index] = NULL;
     poolfree(pl, c, c->num);
     focus(NULL);
     updateclientlist();
@@ -2501,7 +2506,6 @@ updatesizehints(Client *c)
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
     }
     c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
-
 }
 
 void
@@ -2662,7 +2666,7 @@ updatewindowstate(Client *c, Atom state, int data)
     else if (state == netatom[NetWMStateSticky])
     {
         if(toggle)
-        {   setsticky(c, c->tags != TAGMASK);
+        {   setsticky(c, !STICKY(c));
         }
         else 
         {   setsticky(c, data);
@@ -2718,7 +2722,8 @@ updatewindowtype(Client *c)
     {   /* This feature is kinda dumb so we ignore it */
     }
     else if (wtype == netatom[NetWMWindowTypeDock])
-    {   c->isfloating = c->stayontop = c->alwaysontop = 1;
+    {   setfloating(c, 1);
+        c->stayontop = c->alwaysontop = 1;
     }
     else if (wtype == netatom[NetWMWindowTypeToolbar])
     {   /* TODO */
@@ -2733,7 +2738,8 @@ updatewindowtype(Client *c)
     {   /* IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeDialog])
-    {   c->alwaysontop = c->isfloating = 1;
+    {   setfloating(c, 1);
+        c->alwaysontop = 1;
     }
     else if (wtype == netatom[NetWMWindowTypeDropdownMenu])
     {   /* TODO */
@@ -2806,12 +2812,11 @@ wintoclient(Window w)
     Client *c;
     Monitor *m;
 
-    c = (Client *)hashedwins[UI64Hash(w) % CFG_MAX_CLIENT_COUNT].data;
-
+    c = hashedwins[UI64Hash(w) % CFG_MAX_CLIENT_COUNT];
     if(c && c->win == w)
     {   return c;
     }
-
+    /* fall through */
     for (m = mons; m; m = m->next)
     {
         c = m->clients;
@@ -3063,7 +3068,6 @@ main(int argc, char *argv[])
     if(!XInitThreads()) die("FATAL: NO_MULTI_THREADING");
     if (!(dpy = XOpenDisplay(NULL)))
         die("FATAL: CANNOT_OPEN_DISPLAY");
-
     checkotherwm();
     setup();
 

@@ -2,6 +2,7 @@
 #define WINTUTIL_H_
 
 #include <X11/Xlib.h>
+#include <stdint.h>
 
 /* Gets the window name from specified window into a char *
  * Recommend size 256
@@ -24,7 +25,7 @@ typedef struct ClientHash ClientHash;
 
 struct ClientHash
 {   
-    unsigned long id;
+    uint32_t id; /* u32 saves some bytes on x64 platforms */
     void *data;
 };
 
