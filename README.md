@@ -42,7 +42,7 @@
 
 **Pacman && yay**
 ```
-sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit imlib2 libxcursor && yay -S st
+sudo pacman -S --needed libpulse playerctl brightnessctl dmenu scrot libx11 xorg xorg-xinit libxcursor && yay -S st
 ```
 
 ## Usage 

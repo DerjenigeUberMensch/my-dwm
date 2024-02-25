@@ -46,7 +46,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
-#include <Imlib2.h>
 
 /* threading */
 #include <pthread.h>
@@ -519,73 +518,60 @@ drw_pic(Drw *drwstruct, int x, int y, unsigned int w, unsigned int h, Picture pi
     XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
 }
 
-/* Resizes a Picture using imlib2 if its too big */
+/* resizes the icon if too big using chatgpt (it works, mostly) */
 static Picture
-drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
+drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) 
+{
     Pixmap pm;
     Picture pic;
     GC gc;
-
-    if (srcw <= (dstw << 1u) && srch <= (dsth << 1u))
-    {
-        XImage img =
+    if (!(srcw <= (dstw << 1u) && srch <= (dsth << 1u)))
+    {   /* how works I have no idea but chagpt got it first try feeling good today */
+        /* this works resonably well, though a bit inaccurate resizing its good enough */
+        double widthratio = (double)srcw / (double)dstw;
+        double heightratio = (double)srch / (double)dsth;
+        for(int y = 0; y < dsth; ++y)
         {
-            srcw, srch, 0, ZPixmap, src,
-            ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
-            32, 0, 32,
-            0, 0, 0,
-        };
-        XInitImage(&img);
+            for(int x = 0; x < dstw; ++x)
+            {   
+                int originalx = (char)(x * widthratio);
+                int originaly = (char)(y * heightratio);
 
-        pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
-        gc = XCreateGC(drw->dpy, pm, 0, NULL);
-        XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
-        XFreeGC(drw->dpy, gc);
+                int originalindex = originaly * srcw + originalx;
 
-        pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
-        XFreePixmap(drw->dpy, pm);
-
-        XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
-        XTransform xf;
-        xf.matrix[0][0] = (srcw << 16u) / dstw;
-        xf.matrix[0][1] = 0;
-        xf.matrix[1][0] = 0;
-        xf.matrix[1][1] = (srch << 16u) / dsth;
-        xf.matrix[1][2] = 0;
-        xf.matrix[0][2] = 0;
-        xf.matrix[2][0] = 0;
-        xf.matrix[2][1] = 0;
-        xf.matrix[2][2] = 65536;
-        XRenderSetPictureTransform(drw->dpy, pic, &xf);
-        return pic;
+                src[y * dstw + x] = src[originalindex];
+            }
+        }
     }
-    Imlib_Image origin = imlib_create_image_using_data(srcw, srch, (DATA32 *)src);
-    if (!origin) return None;
-    imlib_context_set_image(origin);
-    imlib_image_set_has_alpha(1);
-    Imlib_Image scaled = imlib_create_cropped_scaled_image(0, 0, srcw, srch, dstw, dsth);
-    imlib_free_image_and_decache();
-    if (!scaled) return None;
-    imlib_context_set_image(scaled);
-    imlib_image_set_has_alpha(1);
-
-    XImage img = 
+    XImage img =
     {
-        dstw, dsth, 0, ZPixmap, (char *)imlib_image_get_data_for_reading_only(),
+        srcw, srch, 0, ZPixmap, src,
         ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
         32, 0, 32,
         0, 0, 0,
     };
     XInitImage(&img);
 
-    pm = XCreatePixmap(drw->dpy, drw->root, dstw, dsth, 32);
+    pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
     gc = XCreateGC(drw->dpy, pm, 0, NULL);
-    XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, dstw, dsth);
-    imlib_free_image_and_decache();
+    XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
     XFreeGC(drw->dpy, gc);
 
     pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
     XFreePixmap(drw->dpy, pm);
+
+    XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
+    XTransform xf;
+    xf.matrix[0][0] = (srcw << 16u) / dstw;
+    xf.matrix[0][1] = 0;
+    xf.matrix[1][0] = 0;
+    xf.matrix[1][1] = (srch << 16u) / dsth;
+    xf.matrix[1][2] = 0;
+    xf.matrix[0][2] = 0;
+    xf.matrix[2][0] = 0;
+    xf.matrix[2][1] = 0;
+    xf.matrix[2][2] = 65536;
+    XRenderSetPictureTransform(drw->dpy, pic, &xf);
     return pic;
 }
 
@@ -912,9 +898,8 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     unsigned long n, extra;
     unsigned long *p= NULL;
     Atom real;
-
     if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType,
-                           &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
+                    &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
     if (n == 0 || format != bitformat) 
     {
         XFree(p);
