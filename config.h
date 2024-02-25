@@ -52,7 +52,7 @@
 #define CFG_ACTIVE_MON          1           /* Show seletected even if no clients in monitor; 0 to disable      */
 #define CFG_SHOW_BAR            1           /* 1 to show bar; 0 to disable                                      */
 #define CFG_ICON_SHOW           1           /* 1 show icon (mem expensive 0.1-1Mib per window); 0 to disable    */
-#define CFG_ICON_SIZE           16          /* icon size                                                        */
+#define CFG_ICON_SIZE           16          /* icon size (default 16)                                           */
 #define CFG_ICON_SPACE          2           /* space between icon and title                                     */
 #define CFG_SEL_TAG_INDICATOR   1           /* 1 show selected tag even if there are no clients; 0 to disable   */
 /* AltTab */
