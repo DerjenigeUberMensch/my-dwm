@@ -11,7 +11,6 @@ X11LIB = /usr/X11R6/lib
 # Xinerama, comment if you don't want it
 XINERAMALIBS  = -lXinerama
 XINERAMAFLAGS = -DXINERAMA
-LIMLIB2 = -lImlib2
 
 # lXrender (window icons)
 XRENDER = -lXrender
@@ -26,11 +25,10 @@ FREETYPEINC = /usr/include/freetype2
 
 # includes and libs
 INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${XRENDER} ${XCUR} ${LIMLIB2}
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${FREETYPELIBS} ${XRENDER} ${XCUR} 
 
-#X86 isnt explicitly supported and some code might need to be tweaked
-# Mainly the lbmi2 thing where its only used for resizing an icon so you can just not resize icons and remove that
-X86 = -m32
+# X86 is mostly supported but not a priority
+X86 = -m32 -mtune=generic
 X64 = -march=x86-64 -mtune=generic
 CCVERSION = -std=c99
 XNATIVE = -march=native -mtune=native
@@ -46,7 +44,7 @@ PRELINKERFLAGS = -flto -fprefetch-loop-arrays
 INLINELIMIT = 15
 LINKERFLAGS = ${DYNAMICLINK} -Wl,--gc-sections,--as-needed,--relax,--strip-all -finline-functions -finline-limit=${INLINELIMIT} -flto 
 
-BINARY = ${X64}
+BINARY = ${X86}
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=200809L ${XINERAMAFLAGS}
 CCFLAGS  = ${CCVERSION} ${WARNINGFLAGS} ${INCS} ${CPPFLAGS} ${BINARY} ${PRELINKERFLAGS} ${SECTIONCODE} 
 RELEASEFLAGS = ${CCFLAGS} 

@@ -46,7 +46,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
-#include <Imlib2.h>
 
 /* threading */
 #include <pthread.h>
@@ -70,7 +69,13 @@
 #include "config.h"
 #include "keybinds.h"
 
+/* Window limit occurs of 23 on 15 for some reason????? */
+#if CFG_GAP_PX == 15
+#define CFG_GAP_PX 16
+#endif
+
 /* extern var declarations */
+
 int running = 1;
 int RESTART = 0;
 char stext[256];       
@@ -92,6 +97,8 @@ Monitor *mons, *selmon = NULL;
 Window root = 0, wmcheckwin = 0;
 Client *lastfocused = NULL;
 Pool *pl = NULL;
+
+Client *hashedwins[CFG_MAX_CLIENT_COUNT];
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags
@@ -154,7 +161,6 @@ alttabend(Client *tabnext)
             attach(c);
         }
     }
-
     focus(tabnext);
     focus(c);
     arrange(m);
@@ -483,20 +489,21 @@ dirtomon(int dir)
     return m;
 }
 
-int
+inline int
 docked(Client *c)
 {
     /* & better inling for some reason idk */
+    /* This is called alot of times specifically in restack() so performance does somewhat matter */
     return dockedvert(c) & dockedhorz(c);
 }
 
-int 
+inline int 
 dockedvert(Client *c)
 {
     return (c->mon->wy == c->y) & (c->mon->wh == HEIGHT(c));
 }
 
-int 
+inline int 
 dockedhorz(Client *c)
 {
     return (c->mon->wx == c->x) & (c->mon->ww == WIDTH(c));
@@ -511,73 +518,60 @@ drw_pic(Drw *drwstruct, int x, int y, unsigned int w, unsigned int h, Picture pi
     XRenderComposite(drw->dpy, PictOpOver, pic, None, drw->picture, 0, 0, 0, 0, x, y, w, h);
 }
 
-/* Resizes a Picture using imlib2 if its too big */
+/* resizes the icon if too big using chatgpt (it works, mostly) */
 static Picture
-drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) {
+drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigned int srch, unsigned int dstw, unsigned int dsth) 
+{
     Pixmap pm;
     Picture pic;
     GC gc;
-
-    if (srcw <= (dstw << 1u) && srch <= (dsth << 1u))
-    {
-        XImage img =
+    if (!(srcw <= (dstw << 1u) && srch <= (dsth << 1u)))
+    {   /* how works I have no idea but chagpt got it first try feeling good today */
+        /* this works resonably well, though a bit inaccurate resizing its good enough */
+        double widthratio = (double)srcw / (double)dstw;
+        double heightratio = (double)srch / (double)dsth;
+        for(int y = 0; y < dsth; ++y)
         {
-            srcw, srch, 0, ZPixmap, src,
-            ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
-            32, 0, 32,
-            0, 0, 0,
-        };
-        XInitImage(&img);
+            for(int x = 0; x < dstw; ++x)
+            {   
+                int originalx = (char)(x * widthratio);
+                int originaly = (char)(y * heightratio);
 
-        pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
-        gc = XCreateGC(drw->dpy, pm, 0, NULL);
-        XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
-        XFreeGC(drw->dpy, gc);
+                int originalindex = originaly * srcw + originalx;
 
-        pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
-        XFreePixmap(drw->dpy, pm);
-
-        XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
-        XTransform xf;
-        xf.matrix[0][0] = (srcw << 16u) / dstw;
-        xf.matrix[0][1] = 0;
-        xf.matrix[1][0] = 0;
-        xf.matrix[1][1] = (srch << 16u) / dsth;
-        xf.matrix[1][2] = 0;
-        xf.matrix[0][2] = 0;
-        xf.matrix[2][0] = 0;
-        xf.matrix[2][1] = 0;
-        xf.matrix[2][2] = 65536;
-        XRenderSetPictureTransform(drw->dpy, pic, &xf);
-        return pic;
+                src[y * dstw + x] = src[originalindex];
+            }
+        }
     }
-    Imlib_Image origin = imlib_create_image_using_data(srcw, srch, (DATA32 *)src);
-    if (!origin) return None;
-    imlib_context_set_image(origin);
-    imlib_image_set_has_alpha(1);
-    Imlib_Image scaled = imlib_create_cropped_scaled_image(0, 0, srcw, srch, dstw, dsth);
-    imlib_free_image_and_decache();
-    if (!scaled) return None;
-    imlib_context_set_image(scaled);
-    imlib_image_set_has_alpha(1);
-
-    XImage img = 
+    XImage img =
     {
-        dstw, dsth, 0, ZPixmap, (char *)imlib_image_get_data_for_reading_only(),
+        srcw, srch, 0, ZPixmap, src,
         ImageByteOrder(drw->dpy), BitmapUnit(drw->dpy), BitmapBitOrder(drw->dpy), 32,
         32, 0, 32,
         0, 0, 0,
     };
     XInitImage(&img);
 
-    pm = XCreatePixmap(drw->dpy, drw->root, dstw, dsth, 32);
+    pm = XCreatePixmap(drw->dpy, drw->root, srcw, srch, 32);
     gc = XCreateGC(drw->dpy, pm, 0, NULL);
-    XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, dstw, dsth);
-    imlib_free_image_and_decache();
+    XPutImage(drw->dpy, pm, gc, &img, 0, 0, 0, 0, srcw, srch);
     XFreeGC(drw->dpy, gc);
 
     pic = XRenderCreatePicture(drw->dpy, pm, XRenderFindStandardFormat(drw->dpy, PictStandardARGB32), 0, NULL);
     XFreePixmap(drw->dpy, pm);
+
+    XRenderSetPictureFilter(drw->dpy, pic, FilterBilinear, NULL, 0);
+    XTransform xf;
+    xf.matrix[0][0] = (srcw << 16u) / dstw;
+    xf.matrix[0][1] = 0;
+    xf.matrix[1][0] = 0;
+    xf.matrix[1][1] = (srch << 16u) / dsth;
+    xf.matrix[1][2] = 0;
+    xf.matrix[0][2] = 0;
+    xf.matrix[2][0] = 0;
+    xf.matrix[2][1] = 0;
+    xf.matrix[2][2] = 65536;
+    XRenderSetPictureTransform(drw->dpy, pic, &xf);
     return pic;
 }
 
@@ -630,10 +624,9 @@ drawalttab(int first, Monitor *m)
         if(CFG_ALT_TAB_POS_Y == 1) posy += (selmon->mh >> 1) - maxhNeeded;
         if(CFG_ALT_TAB_POS_Y == 2) posy += 0;
 
-        /* XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes); just reference */
         m->tabwin = XCreateWindow(dpy, root, posx, posy, maxwNeeded, maxhNeeded, 0, DefaultDepth(dpy, screen),
                                   None, DefaultVisual(dpy, screen),
-                                  CWOverrideRedirect|CWBackPixmap|CWEventMask|CWBorderPixel|CWSaveUnder, &wa); /* create tabwin */
+                                  CWOverrideRedirect|CWBackPixmap|CWEventMask|CWBorderPixel|CWSaveUnder, &wa); 
         XMapRaised(dpy, m->tabwin);
         XDefineCursor(dpy, m->tabwin, cursor[CurNormal]->cursor);
     }
@@ -704,7 +697,6 @@ int
 drawbartabs(Monitor *m, int x, int maxw)
 {
     Client *c;
-    char *txt;
     unsigned int tabcnt;     /* tab count                    */
     unsigned int tabsz;      /* tab size                     */
     unsigned int iconspace;
@@ -715,6 +707,10 @@ drawbartabs(Monitor *m, int x, int maxw)
     unsigned int btpos;      /* current bartab positon x     */
     int y;
     int h;
+
+    #define MAX_BUF_SIZE 256 + 1    /* clients name should NEVER exceed this amount as set in the client struct */
+    static char txt[MAX_BUF_SIZE];
+    int boundscheck = 0;
 
     btpos = cc = tabcnt = y = 0;
     h = bh;
@@ -734,28 +730,33 @@ drawbartabs(Monitor *m, int x, int maxw)
         iconspace = m->sel->icon ? m->sel->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_text(drw, x, y, maxw, h, iconspace, m->sel->name, 0);
         if(m->sel->icon)
-            drw_pic( drw, x, y + ((h- m->sel->ich) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
+        {   drw_pic( drw, x, y + ((h- m->sel->ich) >> 1), m->sel->icw, m->sel->ich, m->sel->icon);
+        }
         if(m->sel->isfloating)
-            drw_rect(drw, x, y + boxh, boxw, boxw, m->sel->isfixed, 0);
+        {   drw_rect(drw, x, y + boxh, boxw, boxw, m->sel->isfixed, 0);
+        }
         return x + iconspace + TEXTW(m->sel->name);
     }
 
-    /* draw first tab */
     /* draw rest of them */
     for(c = m->clients; c; c = c->next)
     {
+        memset(txt, 0, MAX_BUF_SIZE);
         if(!ISVISIBLE(c) || c->hidden) continue;
         curscheme = c == m->sel ? SchemeBarTabSel : SchemeBarTab;
         iconspace = c->icon ? c->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_setscheme(drw, scheme[curscheme]);
 
         /* TAGMASK is a mask of EVERY tag so we check for it to see if sticky */
-        txt = smprintf("%s%s", c->tags == TAGMASK ? "*" : "", c->name);
-        if(txt) drw_text(drw, x + btpos, y, tabsz, h, iconspace, txt, 0);
-        /* draw icon */
+        boundscheck = snprintf(txt, MAX_BUF_SIZE, "%s%s", (c->tags == TAGMASK) ? "*" : "", c->name);
+        /* only print text if we pass check */
+        if(!(boundscheck < 0 || boundscheck >= MAX_BUF_SIZE))
+        {   drw_text(drw, x + btpos, y, tabsz, h, iconspace, txt, 0);
+        }
+
         if(c->icon)
-            drw_pic(drw, x + btpos, y + ((h - c->ich) >> 1), c->icw, c->ich, c->icon);
-        free(txt);
+        {   drw_pic(drw, x + btpos, y + ((h - c->ich) >> 1), c->icw, c->ich, c->icon);
+        }
         btpos += tabsz;
     }
     return x + btpos + tabsz;
@@ -789,9 +790,11 @@ drawbartags(Monitor *m, int x)
         {   tagselected = m == selmon && selmon->sel && selmon->sel->tags & (1 << i);
         }
         w = TEXTW(tags[i]);
-        drw_setscheme(drw, tagscheme[i]);
         if(tagselected)
         {   drw_setscheme(drw, scheme[SchemeBarTagSel]);
+        }
+        else
+        {   drw_setscheme(drw, tagscheme[i]);
         }
         drw_text(drw, x, 0, w, bh, lrpad >> 1, tags[i], urg & 1 << i);
         if (occ & (1 << i))
@@ -895,9 +898,8 @@ geticonprop(Window win, unsigned int *picw, unsigned int *pich)
     unsigned long n, extra;
     unsigned long *p= NULL;
     Atom real;
-
     if (XGetWindowProperty(dpy, win, netatom[NetWMIcon], 0L, LONG_MAX, False, AnyPropertyType,
-                           &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
+                    &real, &format, &n, &extra, (unsigned char **)&p) != Success) return None;
     if (n == 0 || format != bitformat) 
     {
         XFree(p);
@@ -1070,6 +1072,7 @@ grabkeys(void)
         XUngrabKey(dpy, AnyKey, AnyModifier, root);
         XDisplayKeycodes(dpy, &start, &end);
         syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
+
         if (!syms) return;
         for (k = start; k <= (unsigned int)end; k++)
         {
@@ -1160,6 +1163,7 @@ killclient(Client *c, int type)
             XSync(dpy, False);
             XSetErrorHandler(xerror);
             XUngrabServer(dpy);
+#if CFG_STORE_PID && CFG_ALLOW_PID_KILL
             if(c && c->win)
             {
                 if(c->pid > probablynotsystempid || (c->pid = XGetPid(dpy, c->win)) > probablynotsystempid)
@@ -1177,12 +1181,14 @@ killclient(Client *c, int type)
                     kill(SIGKILL, c->pid);
                 }
             }
+#endif
             break;
         case Safedestroy:
             XKillClient(dpy, c->win);
             XSync(dpy, False);
             XSetErrorHandler(xerror);
             XUngrabServer(dpy);
+#if CFG_STORE_PID && CFG_ALLOW_PID_KILL
             if(c && c->win) 
             {   XDestroyWindow(dpy, c->win);
             }
@@ -1196,6 +1202,7 @@ killclient(Client *c, int type)
                 }
             }
             XSync(dpy, False);
+#endif
             return;
         }
         /* Make sure x receive the request */
@@ -1229,14 +1236,6 @@ manage(Window w, XWindowAttributes *wa)
     ++accnum;
     c->win = w;
     c->num = accnum;
-    /* destroy any new clients if we past our client limit */
-    if(accnum > CFG_MAX_CLIENT_COUNT)
-    {
-        ++c->mon->cc;
-        killclient(c, Safedestroy);
-        unmanage(c, 1);
-        return NULL;
-    }
     /* initialize geometry */
     c->x = c->oldx = wa->x;
     c->y = c->oldy = wa->y;
@@ -1247,6 +1246,15 @@ manage(Window w, XWindowAttributes *wa)
     c->snext = NULL;
     c->prev = NULL;
     c->sprev = NULL;
+    /* destroy any new clients if we past our client limit */
+    if(accnum > CFG_MAX_CLIENT_COUNT)
+    {
+        c->mon = selmon;
+        ++c->mon->cc;
+        killclient(c, Safedestroy);
+        unmanage(c, 1);
+        return NULL;
+    }
     updateicon(c);
     updatetitle(c);
     if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans)))
@@ -1280,10 +1288,10 @@ manage(Window w, XWindowAttributes *wa)
     grabbuttons(c, 0);
     c->wasfloating = 0;
     if (!c->isfloating)
-        c->isfloating = c->wasfloating = trans != None || c->isfixed;
+    {   c->isfloating = c->wasfloating = trans != None;
+    }
     /* set floating if always on top */
-    c->isfloating = c->isfloating || c->alwaysontop;
-
+    c->isfloating = c->isfloating || c->alwaysontop || c->stayontop;
     attach(c);
     attachstack(c);
     XChangeProperty(dpy, root, netatom[NetClientList], XA_WINDOW, 32, PropModeAppend,
@@ -1291,7 +1299,8 @@ manage(Window w, XWindowAttributes *wa)
     XMoveResizeWindow(dpy, c->win, c->x + (sw << 1), c->y, c->w, c->h); /* some windows require this */
     setclientstate(c, NormalState);
     if (c->mon == selmon)
-        unfocus(selmon->sel, 0);
+    {   unfocus(selmon->sel, 0);
+    }
     c->mon->sel = c;
     ++c->mon->cc;
     arrange(c->mon);
@@ -1299,6 +1308,12 @@ manage(Window w, XWindowAttributes *wa)
     setfullscreen(c, selmon->isfullscreen);
     XMapWindow(dpy, w);
     focus(NULL);
+
+#if CFG_STORE_PID
+    c->pid = XGetPid(dpy, w);
+#endif
+    const int index = UI64Hash(w) % CFG_MAX_CLIENT_COUNT;
+    hashedwins[index] = c;
     return c;
 }
 
@@ -1436,7 +1451,6 @@ restoremonsession(Monitor *m)
     if(!(clients = calloc(cc, sizeof(Client *)))) return;
     while(1)
     {
-
         if(fgets(str, MAX_LENGTH, fr))
         {
             nl = strchr(str, '\n');
@@ -1466,39 +1480,33 @@ restoremonsession(Monitor *m)
                     );
             /* XXX */
             if(check != CHECK_SUM) continue;
-            for(c = m->clients; c; c = c->next) 
+            c = wintoclient(cwin);
+            c->tags = ctags;
+            c->oldx = cox;
+            c->oldy = coy;
+            c->oldw = cow;
+            c->oldh = coh;
+            c->wasfloating = cofloating;
+            if(cissel) csel = c;
+            /* breaks on non floating clients */
+            if(cfloating)
             {
-                if(c->win == cwin) 
+                setfloating(c, 1);
+                resize(c, cx, cy, cw, ch, 0);
+            }
+            setmonlyt(m, clyt);
+            int cflag = 0;
+            /* restack order (This is skipped if we fuck up) */
+            for(i = 0; i < cc; ++i)
+            {
+                if(!clients[i]) 
                 {
-                    c->tags = ctags;
-                    c->oldx = cox;
-                    c->oldy = coy;
-                    c->oldw = cow;
-                    c->oldh = coh;
-                    c->wasfloating = cofloating;
-                    if(cissel) csel = c;
-                    /* breaks on non floating clients */
-                    if(cfloating)
-                    {
-                        c->isfloating = 1;
-                        resize(c, cx, cy, cw, ch, 0);
-                    }
-                    setmonlyt(m, clyt);
-                    /* restack order (This is skipped if we fuck up) */
-                    int cflag = 0;
-                    for(i = 0; i < cc; ++i)
-                    {
-                        if(!clients[i]) 
-                        {
-                            clients[i] = c;
-                            cflag = 1;
-                            break;
-                        }
-                    }
-                    if(!cflag) debug("WARNING: RESTORE_SESSION_TOO_MANY_CLIENTS");
+                    clients[i] = c;
+                    cflag = 1;
                     break;
                 }
             }
+            if(!cflag) debug("WARNING: RESTORE_SESSION_TOO_MANY_CLIENTS");
         }
         else
         {
@@ -1594,7 +1602,6 @@ resizeclient(Client *c, int x, int y, int w, int h)
     configure(c);
     XSync(dpy, False);
 }
-
 void
 restack(Monitor *m)
 {
@@ -1617,7 +1624,9 @@ restack(Monitor *m)
         {   setfloating(c, 0);
         }
     }
+
     if(m->sel->isfloating || m->sel->isfullscreen) XRaiseWindow(dpy, m->sel->win);
+
     if(!CFG_WIN10_FLOATING)
     {
         for(c = m->slast; c; c = c->sprev) 
@@ -1630,8 +1639,7 @@ restack(Monitor *m)
     for(c = m->slast; c; c = c->sprev) 
     {
         if(c->alwaysontop && ISVISIBLE(c)) 
-        {
-            XRaiseWindow(dpy, c->win);
+        {   XRaiseWindow(dpy, c->win);
         }
     }
     for(c = m->slast; c; c = c->sprev) 
@@ -1957,8 +1965,6 @@ setup(void)
     setuptags();
     updatebars();
     updatestatus();
-    updatebars();
-    updatestatus();
     /* supporting window for NetWMCheck */
     wmcheckwin = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
     XChangeProperty(dpy, wmcheckwin, netatom[NetSupportingWMCheck], XA_WINDOW, 32,
@@ -2066,10 +2072,17 @@ setviewport(void)
 void
 showhide(Client *c)
 {
-    if (ISVISIBLE(c))
+    /* this is called alot in short bursts */
+    int x = ISVISIBLE(c);
+    x  =  !x * (c->mon->mx - (WIDTH(c) << 1));
+    x += (!x * c->x);
+    XMoveWindow(dpy, c->win, x, c->y);
+    /*
+    if(ISVISIBLE(c))
         XMoveWindow(dpy, c->win, c->x, c->y);
     else
         XMoveWindow(dpy, c->win, c->mon->mx - (WIDTH(c) << 1), c->y);
+    */
 }
 
 void
@@ -2217,6 +2230,8 @@ unmanage(Client *c, int destroyed)
     if (lastfocused == c) lastfocused = NULL;
     /* -- cause we start index from 0 */
     --c->num;
+    const int index = UI64Hash(c->win) % CFG_MAX_CLIENT_COUNT;
+    hashedwins[index] = NULL;
     poolfree(pl, c, c->num);
     focus(NULL);
     updateclientlist();
@@ -2476,7 +2491,6 @@ updatesizehints(Client *c)
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
     }
     c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
-
 }
 
 void
@@ -2637,7 +2651,7 @@ updatewindowstate(Client *c, Atom state, int data)
     else if (state == netatom[NetWMStateSticky])
     {
         if(toggle)
-        {   setsticky(c, c->tags != TAGMASK);
+        {   setsticky(c, !STICKY(c));
         }
         else 
         {   setsticky(c, data);
@@ -2681,7 +2695,6 @@ updatewindowstate(Client *c, Atom state, int data)
     else if (state == netatom[NetWMStateFocused])
     {
     }
-    arrange(c->mon);
 }
 
 void
@@ -2694,7 +2707,8 @@ updatewindowtype(Client *c)
     {   /* This feature is kinda dumb so we ignore it */
     }
     else if (wtype == netatom[NetWMWindowTypeDock])
-    {   c->isfloating = c->stayontop = c->alwaysontop = 1;
+    {   setfloating(c, 1);
+        c->stayontop = c->alwaysontop = 1;
     }
     else if (wtype == netatom[NetWMWindowTypeToolbar])
     {   /* TODO */
@@ -2709,7 +2723,8 @@ updatewindowtype(Client *c)
     {   /* IGNORE */
     }
     else if (wtype == netatom[NetWMWindowTypeDialog])
-    {   c->alwaysontop = c->isfloating = 1;
+    {   setfloating(c, 1);
+        c->alwaysontop = 1;
     }
     else if (wtype == netatom[NetWMWindowTypeDropdownMenu])
     {   /* TODO */
@@ -2780,19 +2795,18 @@ Client *
 wintoclient(Window w)
 {
     Client *c;
-    Client *c2;
     Monitor *m;
 
+    c = hashedwins[UI64Hash(w) % CFG_MAX_CLIENT_COUNT];
+    if(c && c->win == w)
+    {   return c;
+    }
+    /* fall through */
     for (m = mons; m; m = m->next)
     {
         c = m->clients;
-        c2 = m->clast;
-        for (; c && c2; c = c->next )
-        {
-            if (c->win == w) return c;
-            if (c2->win == w) return c2;
-            if(c == c2) break;
-            c2 = c2->prev;
+        for (; c; c = c->next )
+        {   if (c->win == w) return c;
         }
 
     }

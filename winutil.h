@@ -2,6 +2,7 @@
 #define WINTUTIL_H_
 
 #include <X11/Xlib.h>
+#include <stdint.h>
 
 /* Gets the window name from specified window into a char *
  * Recommend size 256
@@ -20,6 +21,13 @@ pid_t XGetPid(Display *display, Window win);
 /* Initiliazes All display Atoms */
 void XInitAtoms(Display *display);
 
+typedef struct ClientHash ClientHash;
+
+struct ClientHash
+{   
+    uint32_t id; /* u32 saves some bytes on x64 platforms */
+    void *data;
+};
 
 /* typedef unsigned long Atom; */
 enum NETWMPROTOCOLS

@@ -15,7 +15,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
-#include <Imlib2.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xproto.h>
@@ -29,6 +28,15 @@
 #include "toggle.h"
 #include "events.h"
 
+
+/* extern stuff */
+extern Monitor *selmon;
+extern Monitor *mons;
+extern int running;
+extern Window root;
+extern Display *dpy;
+extern Cur *cursor[CurLast];
+extern int bh;
 
 /*
  * Making your own stuff with Arg
@@ -44,6 +52,11 @@
 void
 UserStats(const Arg *arg)
 {
+    Client *c = selmon->sel;
+    if(!c)
+    {   return;
+    }
+    setsticky(c, !STICKY(c));
 }
 
 void
@@ -275,15 +288,15 @@ SetWindowLayout(const Arg *arg)
 
     if(!m || m->isfullscreen) return;
     setmonlyt(m, arg->i);
-    arrangemon(m);
     if(m->sel) 
     {       
         mnext = nextvisible(m->clients);
         if(m->sel != mnext) { detach(m->sel); attach(m->sel); }
         arrange(m);
     }
-    else 
-    {   /* update the way the bar looks to show "responsiveness" */
+    else
+    {
+        arrangemon(m);
         drawbar(m);
     }
 }
@@ -330,25 +343,41 @@ void
 MaximizeWindow(const Arg *arg)
 {
     Client *c = selmon->sel;
-    if(c && !c->isfixed && !c->mon->isfullscreen)
+    if(c)
     {
-        if(docked(c))
-        {   
-            setfloating(c, 1);
-            /* assume client has never been moved */
-            if(c->x == c->oldx && c->y == c->oldy && c->oldw == c->w && c->oldh == c->h)
-            {
-                c->oldx += CFG_SNAP;
-                c->oldy += CFG_SNAP;
+        if(c->isfixed)
+        {   /* most fixed apps refuse to be flip floating so we just snap to what "max" would be */
+            int x = c->oldx;
+            int y = c->oldy;
+            if(c->x != selmon->wx)
+            {   x = selmon->wx;
             }
-            resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+            if(c->y != selmon->wy)
+            {   y = selmon->wy;
+            }
+            resize(c, x, y, c->w, c->h, 0);
+            return;
         }
-        else
-        {   
-            setfloating(c, 0);
-            maximize(c);
+        if(!c->mon->isfullscreen)
+        {
+            if(docked(c))
+            {   
+                setfloating(c, 1);
+                /* assume client has never been moved */
+                if(c->x == c->oldx && c->y == c->oldy && c->oldw == c->w && c->oldh == c->h)
+                {
+                    c->oldx += CFG_SNAP;
+                    c->oldy += CFG_SNAP;
+                }
+                resize(c, c->oldx, c->oldy, c->oldw, c->oldh, 1);
+            }
+            else
+            {   
+                setfloating(c, 0);
+                maximize(c);
+            }
+            arrange(selmon);
         }
-        arrange(selmon);
     }
 }
 
@@ -525,18 +554,27 @@ ToggleFullscreen(const Arg *arg)
     m->isfullscreen = !m->isfullscreen;
     for (c = m->clients; c; c = c->next) 
     {
-        if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop) continue;
+        if(!ISVISIBLE(c) || c->alwaysontop || c->stayontop)
+        {   continue;
+        }
         setfullscreen(c, m->isfullscreen);
     }
-    if(m->isfullscreen)  setmonlyt(m, Monocle);
+    if(m->isfullscreen) 
+    {   setmonlyt(m, Monocle);
+        if(m->showbar)
+        {   ToggleStatusBar(NULL);
+        }
+    }
     else 
     {
         /* Manually set layout to previous */
         const Layout *lyt = m->lt[!m->sellt];
         m->lt[!m->sellt] = m->lt[m->sellt];
         m->lt[m->sellt] = lyt;
+        if(m->oshowbar && !m->showbar)
+        {   ToggleStatusBar(NULL);
+        }
     }
-    ToggleStatusBar(NULL);
     arrange(m);
 }
 
