@@ -56,7 +56,7 @@ UserStats(const Arg *arg)
     if(!c)
     {   return;
     }
-    setsticky(c, !STICKY(c));
+    setsticky(c, !ISSTICKY(c));
 }
 
 void
