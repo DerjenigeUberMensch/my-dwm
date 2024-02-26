@@ -119,22 +119,8 @@ alttab(int ended)
     c = nextvisible(c ? c->next : NULL);
     if(!c) c = nextvisible(m->clients);
     focus(c);
-    if(&layouts[Monocle] == getmonlyt(m) || &layouts[Floating] == getmonlyt(m))
-    {
-        if(CFG_ALT_TAB_MAP_WINDOWS)
-        {
-            if(!c->isfloating)
-            {
-                winunmap(c->win, root, 1);
-                winmap(c, 1);
-            }
-        }
-        if(CFG_ALT_TAB_SHOW_PREVIEW) 
-        {   arrange(m);
-        }
-    }
-    else
-    {   
+    if(CFG_ALT_TAB_MAP_WINDOWS)
+    {   arrange(m);
     }
     return tabnext;
 }
@@ -743,7 +729,15 @@ drawbartabs(Monitor *m, int x, int maxw)
     {
         memset(txt, 0, MAX_BUF_SIZE);
         if(!ISVISIBLE(c) || c->hidden) continue;
-        curscheme = c == m->sel ? SchemeBarTabSel : SchemeBarTab;
+        if(c->isurgent)
+        {   curscheme = SchemeUrgent;
+        }
+        else if (c == m->sel)
+        {   curscheme = SchemeBarTabSel;
+        }
+        else
+        {   curscheme = SchemeBarTab;
+        }
         iconspace = c->icon ? c->icw + CFG_ICON_SPACE : (unsigned int)lrpad >> 1;
         drw_setscheme(drw, scheme[curscheme]);
 
@@ -1648,13 +1642,6 @@ restack(Monitor *m)
         {   XRaiseWindow(dpy, c->win);
         }
     }
-
-    for(c = m->slast; c; c = c->sprev) 
-    {
-        if(c->isurgent && ISVISIBLE(c)) 
-        {   XRaiseWindow(dpy, c->win);
-        }
-    }
     XSync(dpy, False);
     while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2059,6 +2046,7 @@ seturgent(Client *c, int urg)
     wmh->flags = urg ? (wmh->flags | XUrgencyHint) : (wmh->flags & ~XUrgencyHint);
     XSetWMHints(dpy, c->win, wmh);
     XFree(wmh);
+    drawbar(c->mon);
 }
 
 void
@@ -2216,6 +2204,14 @@ unmanage(Client *c, int destroyed)
     freeicon(c);
     if (!destroyed)
     {
+        /* This check simple reverts the windows state back to monocle view because some clients "store" their previous coordinates */
+        if(!c->isfloating)
+        {   
+            const Layout *lyt = getmonlyt(m);
+            if(lyt == &layouts[Tiled] || lyt == &layouts[Grid])
+            {   resizeclient(c, m->wx, m->wy, m->ww, m->wh);
+            }
+        }
         wc.border_width = c->oldbw;
         XGrabServer(dpy); /* avoid race conditions */
         XSetErrorHandler(xerrordummy);
@@ -2651,7 +2647,7 @@ updatewindowstate(Client *c, Atom state, int data)
     else if (state == netatom[NetWMStateSticky])
     {
         if(toggle)
-        {   setsticky(c, !STICKY(c));
+        {   setsticky(c, !ISSTICKY(c));
         }
         else 
         {   setsticky(c, data);

@@ -15,12 +15,12 @@
 #define INTERSECT(x,y,w,h,m)    (MAX(0, MIN((x)+(w),(m)->wx+(m)->ww) - MAX((x),(m)->wx)) \
         * MAX(0, MIN((y)+(h),(m)->wy+(m)->wh) - MAX((y),(m)->wy)))
 #define ISVISIBLE(C)            ((C->tags & C->mon->tagset[C->mon->seltags]))
+#define ISSTICKY(C)             ((C->tags == TAGMASK))
 #define LENGTH(X)               (sizeof X / sizeof X[0])
 #define MOUSEMASK               (BUTTONMASK|PointerMotionMask)
 #define WIDTH(X)                ((X)->w + ((X)->bw << 1))
 #define HEIGHT(X)               ((X)->h + ((X)->bw << 1))
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
-#define STICKY(C)               ((C->tags == TAGMASK))
 #define TAGSLENGTH              (LENGTH(tags))
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define OPAQUE                  0xffU
