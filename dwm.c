@@ -2152,7 +2152,7 @@ tile(Monitor *m)
              */
             nx += CFG_GAP_PX;
             ny += CFG_GAP_PX;
-            nw -= CFG_GAP_PX;
+            nw -= CFG_GAP_PX << 1;
             nh -= CFG_GAP_PX << 1;
             resize(c, nx, ny, nw, nh, 0);
                                                                         /* spacing for windows below */
@@ -2166,7 +2166,7 @@ tile(Monitor *m)
             nw = m->ww - mw - (c->bw << 1);
             nh = h - (c->bw << 1);
 
-            nx += CFG_GAP_PX;
+            nx += CFG_GAP_PX >> 1;
             ny += CFG_GAP_PX;
             nw -= CFG_GAP_PX << 1;
             nh -= CFG_GAP_PX << 1;
@@ -2232,6 +2232,7 @@ unmanage(Client *c, int destroyed)
     focus(NULL);
     updateclientlist();
     arrange(m);
+    c = NULL;
 }
 
 void
