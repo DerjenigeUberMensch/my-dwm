@@ -11,7 +11,7 @@
 #define MOD(N,M)                ((N)%(M) < 0 ? (N)%(M) + (M) : (N)%(M))
 #define TRUNC(X,A,B)            (MAX((A), MIN((X), (B))))
 
-#define ENABLE_DEBUGGING            0       /* enable debug messages for gdb via debug()                */
+#define ENABLE_DEBUGGING            1       /* enable debug messages for gdb via debug()                */
 
 void die(const char *fmt, ...);
 void *ecalloc(size_t nmemb, size_t size);

@@ -57,6 +57,7 @@ UserStats(const Arg *arg)
     {   return;
     }
     setsticky(c, !ISSTICKY(c));
+    restack(selmon);
 }
 
 void

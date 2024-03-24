@@ -1030,24 +1030,22 @@ void
 grabbuttons(Client *c, int focused)
 {
     updatenumlockmask();
+    unsigned int i, j;
+    unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
+    XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+    if (!focused)
+        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+                BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+    for (i = 0; i < LENGTH(buttons); i++)
     {
-        unsigned int i, j;
-        unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
-        XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-        if (!focused)
-            XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
-                        BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
-        for (i = 0; i < LENGTH(buttons); i++)
+        if (buttons[i].click == ClkClientWin)
         {
-            if (buttons[i].click == ClkClientWin)
+            for (j = 0; j < LENGTH(modifiers); ++j)
             {
-                for (j = 0; j < LENGTH(modifiers); ++j)
-                {
-                    XGrabButton(dpy, buttons[i].button,
-                                buttons[i].mask | modifiers[j],
-                                c->win, False, BUTTONMASK,
-                                GrabModeAsync, GrabModeSync, None, None);
-                }
+                XGrabButton(dpy, buttons[i].button,
+                        buttons[i].mask | modifiers[j],
+                        c->win, False, BUTTONMASK,
+                        GrabModeAsync, GrabModeSync, None, None);
             }
         }
     }
@@ -1057,36 +1055,34 @@ void
 grabkeys(void)
 {
     updatenumlockmask();
+    unsigned int i, j, k;
+    unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
+    int start, end, skip;
+    KeySym *syms;
+
+    XUngrabKey(dpy, AnyKey, AnyModifier, root);
+    XDisplayKeycodes(dpy, &start, &end);
+    syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
+
+    if (!syms) return;
+    for (k = start; k <= (unsigned int)end; k++)
     {
-        unsigned int i, j, k;
-        unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
-        int start, end, skip;
-        KeySym *syms;
-
-        XUngrabKey(dpy, AnyKey, AnyModifier, root);
-        XDisplayKeycodes(dpy, &start, &end);
-        syms = XGetKeyboardMapping(dpy, start, end - start + 1, &skip);
-
-        if (!syms) return;
-        for (k = start; k <= (unsigned int)end; k++)
+        for (i = 0; i < LENGTH(keys); i++)
         {
-            for (i = 0; i < LENGTH(keys); i++)
+            /* skip modifier codes, we do that ourselves */
+            if (keys[i].keysym == syms[(k - start) * skip])
             {
-                /* skip modifier codes, we do that ourselves */
-                if (keys[i].keysym == syms[(k - start) * skip])
+                for (j = 0; j < LENGTH(modifiers); j++)
                 {
-                    for (j = 0; j < LENGTH(modifiers); j++)
-                    {
-                        XGrabKey(dpy, k,
-                                 keys[i].mod | modifiers[j],
-                                 root, True,
-                                 GrabModeAsync, GrabModeAsync);
-                    }
+                    XGrabKey(dpy, k,
+                            keys[i].mod | modifiers[j],
+                            root, True,
+                            GrabModeAsync, GrabModeAsync);
                 }
             }
         }
-        XFree(syms);
     }
+    XFree(syms);
 }
 
 
@@ -1817,6 +1813,7 @@ setborderbcol(Window win, char *schemecol)
 {
     //XSetWindowBorder(dpy, win, scheme[ColBorder].pixel);
 }
+
 void
 setclientstate(Client *c, long state)
 {
@@ -1990,16 +1987,30 @@ setupcur(void)
 
     /* vertical */
     cursor[CurResizeTop]        = drw_cur_create_img(drw, "size_ver");
+    if(!cursor[CurResizeTop])
+    {   cursor[CurResizeTop]    = drw_cur_create(drw, XC_top_side);
+    }
     cursor[CurResizeBottom]     = cursor[CurResizeTop];
+
     /* diagonal left */
     cursor[CurResizeTopLeft]    = drw_cur_create_img(drw, "size_fdiag");
+    if(!cursor[CurResizeTopLeft])
+    {   cursor[CurResizeTopLeft] = drw_cur_create(drw, XC_top_left_corner);
+    }
     cursor[CurResizeBottomLeft] = cursor[CurResizeTopLeft];
+
     /* diagonal right */
     cursor[CurResizeTopRight]   = drw_cur_create_img(drw, "size_bdiag");
+    if(!cursor[CurResizeTopRight])
+    {   cursor[CurResizeTopRight] = drw_cur_create(drw, XC_top_right_corner);
+    }
     cursor[CurResizeBottomRight]= cursor[CurResizeTopRight];
     /* horizontal */
-    cursor[CurResizeLeft] = drw_cur_create_img(drw, "size_hor");
-    cursor[CurResizeRight] =  cursor[CurResizeLeft];
+    cursor[CurResizeLeft]       = drw_cur_create_img(drw, "size_hor");
+    if(!cursor[CurResizeLeft])
+    {   cursor[CurResizeLeft] = drw_cur_create(drw, XC_sb_h_double_arrow);
+    }
+    cursor[CurResizeRight]      = cursor[CurResizeLeft];
     /* move curs */
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 }
@@ -2488,6 +2499,9 @@ updatesizehints(Client *c)
         c->maxa = (float)size.max_aspect.x / size.max_aspect.y;
     }
     c->isfixed = (c->maxw && c->maxh && c->maxw == c->minw && c->maxh == c->minh);
+    if(c->alwaysontop && c->isfixed)
+    {   c->alwaysontop = 0;
+    }
 }
 
 void
