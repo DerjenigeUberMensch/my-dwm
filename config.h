@@ -170,7 +170,7 @@ static const Rule rules[] =
 
 static const Layout layouts[] =
 {
-    /*Name          symbol     arrange function */
+    /* Name          symbol     arrange function */
     [Tiled]     = { "[T]",      tile            },
     [Floating]  = { "[F]",      NULL            },
     [Monocle]   = { "[M]",      monocle         },

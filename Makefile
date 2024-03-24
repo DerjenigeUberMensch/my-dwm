@@ -10,18 +10,17 @@ EXE = dwm
 all: options default
 
 options:
-	@echo dwm build options:
+	@echo "dwm build options:"
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
-	@echo "rebuild  = ${REBUILD}"
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
 
 default: ${OBJ}
 	${CC} -o ${EXE} ${OBJ} ${LDFLAGS}
-	rm -f -- *.o
+	rm *.o
 
 release:
 	rm -rf -f -- ${EXE}-${VERSION}
