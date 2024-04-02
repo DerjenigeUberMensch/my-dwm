@@ -512,20 +512,21 @@ drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigne
     Picture pic;
     GC gc;
     if (!(srcw <= (dstw << 1u) && srch <= (dsth << 1u)))
-    {   /* how works I have no idea but chagpt got it first try feeling good today */
-        /* this works resonably well, though a bit inaccurate resizing its good enough */
+    {   
         double widthratio = (double)srcw / (double)dstw;
         double heightratio = (double)srch / (double)dsth;
         for(int y = 0; y < dsth; ++y)
         {
+            break;
             for(int x = 0; x < dstw; ++x)
             {   
                 int originalx = (char)(x * widthratio);
                 int originaly = (char)(y * heightratio);
 
                 int originalindex = originaly * srcw + originalx;
-
-                src[y * dstw + x] = src[originalindex];
+                if(srcw * srch - 1 >= y * dstw + x && originalindex <= srcw * srch - 1)
+                {   src[y * dstw + x] = src[originalindex];
+                }
             }
         }
     }
