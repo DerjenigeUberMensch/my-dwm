@@ -517,7 +517,6 @@ drw_picture_create_resized(Drw *drwstruct, char *src, unsigned int srcw, unsigne
         double heightratio = (double)srch / (double)dsth;
         for(int y = 0; y < dsth; ++y)
         {
-            break;
             for(int x = 0; x < dstw; ++x)
             {   
                 int originalx = (char)(x * widthratio);
