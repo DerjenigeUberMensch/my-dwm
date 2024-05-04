@@ -47,8 +47,6 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 
-/* threading */
-#include <pthread.h>
 
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
@@ -1990,27 +1988,45 @@ setupcur(void)
     if(!cursor[CurResizeTop])
     {   cursor[CurResizeTop]    = drw_cur_create(drw, XC_top_side);
     }
-    cursor[CurResizeBottom]     = cursor[CurResizeTop];
+    cursor[CurResizeBottom]     = drw_cur_create_img(drw, "size_ver");
+
+    if(!cursor[CurResizeBottom])
+    {   cursor[CurResizeBottom]    = drw_cur_create(drw, XC_top_side);
+    }
 
     /* diagonal left */
     cursor[CurResizeTopLeft]    = drw_cur_create_img(drw, "size_fdiag");
+
     if(!cursor[CurResizeTopLeft])
     {   cursor[CurResizeTopLeft] = drw_cur_create(drw, XC_top_left_corner);
     }
-    cursor[CurResizeBottomLeft] = cursor[CurResizeTopLeft];
+
+    cursor[CurResizeBottomLeft] = drw_cur_create_img(drw, "size_fdiag");
+    if(!cursor[CurResizeBottomLeft])
+    {   cursor[CurResizeBottomLeft] = drw_cur_create(drw, XC_top_left_corner);
+    }
 
     /* diagonal right */
     cursor[CurResizeTopRight]   = drw_cur_create_img(drw, "size_bdiag");
     if(!cursor[CurResizeTopRight])
     {   cursor[CurResizeTopRight] = drw_cur_create(drw, XC_top_right_corner);
     }
-    cursor[CurResizeBottomRight]= cursor[CurResizeTopRight];
+
+    cursor[CurResizeBottomRight]= drw_cur_create_img(drw, "size_bdiag");
+    if(!cursor[CurResizeBottomRight])
+    {   cursor[CurResizeBottomRight] = drw_cur_create(drw, XC_top_right_corner);
+    }
+
     /* horizontal */
     cursor[CurResizeLeft]       = drw_cur_create_img(drw, "size_hor");
     if(!cursor[CurResizeLeft])
     {   cursor[CurResizeLeft] = drw_cur_create(drw, XC_sb_h_double_arrow);
     }
-    cursor[CurResizeRight]      = cursor[CurResizeLeft];
+    cursor[CurResizeRight]      = drw_cur_create_img(drw, "size_hor");
+    if(!cursor[CurResizeRight])
+    {   cursor[CurResizeRight] = drw_cur_create(drw, XC_sb_h_double_arrow);
+    }
+
     /* move curs */
     cursor[CurMove] = drw_cur_create(drw, XC_fleur);
 }

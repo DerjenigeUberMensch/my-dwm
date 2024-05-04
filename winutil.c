@@ -29,7 +29,6 @@
 #include <X11/Xutil.h>
 #include <X11/Xproto.h>
 #include <X11/Xft/Xft.h>
-#include <pthread.h>
 
 #include "winutil.h"
 

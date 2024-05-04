@@ -507,6 +507,8 @@ drw_cur_free(Drw *drw, Cur *cursor)
 {
     if (!cursor) return;
     if(cursor->img) XcursorImageDestroy(cursor->img);
-    XFreeCursor(drw->dpy, cursor->cursor);
+    if(cursor->cursor)
+    {   XFreeCursor(drw->dpy, cursor->cursor);
+    }
     free(cursor);
 }
